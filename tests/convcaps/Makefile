@@ -1,6 +1,6 @@
 ROOTDIR = $(abspath $(dir $(firstword $(MAKEFILE_LIST))))
 DEPENV = $(shell echo "$${LIBXSMMROOT}")
-DEPDIR = $(if $(wildcard $(LIBXSMMROOT)),$(LIBXSMMROOT),$(if $(wildcard $(DEPENV)),$(DEPENV),../../../..))
+DEPDIR = $(if $(wildcard $(LIBXSMMROOT)),$(LIBXSMMROOT),$(if $(wildcard $(DEPENV)),$(DEPENV),../../libxsmm))
 SRCDIR = .
 INCDIR = ../../include
 BLDDIR = obj
