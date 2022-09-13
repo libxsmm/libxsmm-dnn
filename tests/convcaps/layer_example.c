@@ -3,7 +3,7 @@
 * This file is part of the LIBXSMM library.                                   *
 *                                                                             *
 * For information on the license, see the LICENSE file.                       *
-* Further information: https://github.com/libxsmm/libxsmm/                    *
+* Further information: https://github.com/libxsmm/libxsmm_dnn/                *
 * SPDX-License-Identifier: BSD-3-Clause                                       *
 ******************************************************************************/
 /* Alexander Heinecke (Intel Corp.)
