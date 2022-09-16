@@ -161,7 +161,7 @@ int main(int argc, char* argv[])
   if ( prec_bf16 > 0 ) {
     in_dt = LIBXSMM_DATATYPE_BF16;
     out_dt = LIBXSMM_DATATYPE_BF16;
-    comp_dt = LIBXSMM_DATATYPE_BF16;
+    comp_dt = LIBXSMM_DATATYPE_F32;
   } else {
     in_dt = LIBXSMM_DATATYPE_F32;
     out_dt = LIBXSMM_DATATYPE_F32;
@@ -359,7 +359,7 @@ int main(int argc, char* argv[])
 
     libxsmm_dnn_opt[i] = setup_libxsmm_dnn_opt( C[i], C[i+1], (C[i  ] % bc == 0) ? bc : C[i  ],
                                             (C[i+1] % bk == 0) ? bk : C[i+1],
-                                            nThreads, lr, in_dt, out_dt, comp_dt );
+                                            nThreads, lr, in_dt, out_dt, out_dt );
 
     /* let's allocate and bind scratch */
     if ( libxsmm_dnn_fc_fwd[i].scratch_size > 0 || libxsmm_dnn_fc_bwd[i].scratch_size > 0 || libxsmm_dnn_opt[i].scratch_size > 0 ) {
@@ -376,11 +376,11 @@ int main(int argc, char* argv[])
   /* softmax+loss is treated as N+! layer */
   libxsmm_dnn_smax_fwd = setup_libxsmm_dnn_smax_fwd( MB, C[num_layers+1], (MB % bn == 0) ? bn : MB,
                                        (C[num_layers+1] % bk == 0) ? bk : C[num_layers+1],
-                                       nThreads, in_dt, out_dt, comp_dt );
+                                       nThreads, in_dt, out_dt, out_dt );
 
   libxsmm_dnn_smax_bwd = setup_libxsmm_dnn_smax_bwd( MB, C[num_layers+1], (MB % bn == 0) ? bn : MB,
                                        (C[num_layers+1] % bk == 0) ? bk : C[num_layers+1],
-                                       nThreads, loss_weight, in_dt, out_dt, comp_dt );
+                                       nThreads, loss_weight, in_dt, out_dt, out_dt );
 
   if ( libxsmm_dnn_smax_fwd.scratch_size > 0 || libxsmm_dnn_smax_bwd.scratch_size > 0 ) {
     size_t alloc_size = LIBXSMM_MAX( libxsmm_dnn_smax_fwd.scratch_size, libxsmm_dnn_smax_bwd.scratch_size );
@@ -467,11 +467,15 @@ int main(int argc, char* argv[])
           for ( i = num_layers-1; i > 0; --i) {
             libxsmm_dnn_fc_bwd_exec_bf16( libxsmm_dnn_fc_bwd[i], fil_libxsmm_bf16[i], delact_libxsmm_bf16[i], delact_libxsmm_bf16[i+1], delfil_libxsmm_bf16[i],
                                  act_libxsmm_bf16[i], delbias_libxsmm_bf16[i], relumask_libxsmm[i], LIBXSMM_DNN_FC_PASS_BWD, 0, tid, scratch );
+#if 0
             libxsmm_dnn_opt_exec_bf16( libxsmm_dnn_opt[i], fil_libxsmm_bf16[i], fil_libxsmm[i], delfil_libxsmm_bf16[i], 0, tid, scratch );
+#endif
           }
           libxsmm_dnn_fc_bwd_exec_bf16( libxsmm_dnn_fc_bwd[0], fil_libxsmm_bf16[0], delact_libxsmm_bf16[0], delact_libxsmm_bf16[0+1], delfil_libxsmm_bf16[0],
                              act_libxsmm_bf16[0], delbias_libxsmm_bf16[0], relumask_libxsmm[0], LIBXSMM_DNN_FC_PASS_BWD_W, 0, tid, scratch );
+#if 0
           libxsmm_dnn_opt_exec_bf16( libxsmm_dnn_opt[0], fil_libxsmm_bf16[0], fil_libxsmm[0], delfil_libxsmm_bf16[0], 0, tid, scratch );
+#endif
 
         } else {
 #ifdef USE_SOFTMAX
@@ -527,7 +531,7 @@ int main(int argc, char* argv[])
             libxsmm_dnn_fc_fwd_exec_bf16( libxsmm_dnn_fc_fwd[i], fil_libxsmm_bf16[i], act_libxsmm_bf16[i], act_libxsmm_bf16[i+1],
                                  bias_libxsmm_bf16[i], relumask_libxsmm[i], 0, tid, scratch );
           }
-#ifdef USE_SOFTMAX
+#if 0
           libxsmm_dnn_smax_fwd_exec_bf16( libxsmm_dnn_smax_fwd, act_libxsmm_bf16[num_layers], act_libxsmm_bf16[num_layers+1], label_libxsmm, &loss,
                                  0, tid, scratch );
           libxsmm_dnn_smax_bwd_exec_bf16( libxsmm_dnn_smax_bwd, delact_libxsmm_bf16[num_layers], act_libxsmm_bf16[num_layers+1], label_libxsmm,
@@ -536,11 +540,15 @@ int main(int argc, char* argv[])
           for ( i = num_layers-1; i > 0; --i) {
             libxsmm_dnn_fc_bwd_exec_bf16( libxsmm_dnn_fc_bwd[i], fil_libxsmm_bf16[i], delact_libxsmm_bf16[i], delact_libxsmm_bf16[i+1], delfil_libxsmm_bf16[i],
                                  act_libxsmm_bf16[i], delbias_libxsmm_bf16[i], relumask_libxsmm[i], LIBXSMM_DNN_FC_PASS_BWD, 0, tid, scratch );
+#if 0
             libxsmm_dnn_opt_exec_bf16( libxsmm_dnn_opt[i], fil_libxsmm_bf16[i], fil_libxsmm[i], delfil_libxsmm_bf16[i], 0, tid, scratch );
+#endif
           }
           libxsmm_dnn_fc_bwd_exec_bf16( libxsmm_dnn_fc_bwd[0], fil_libxsmm_bf16[0], delact_libxsmm_bf16[0], delact_libxsmm_bf16[0+1], delfil_libxsmm_bf16[0],
                                act_libxsmm_bf16[0], delbias_libxsmm_bf16[0], relumask_libxsmm[0], LIBXSMM_DNN_FC_PASS_BWD_W, 0, tid, scratch );
+#if 0
           libxsmm_dnn_opt_exec_bf16( libxsmm_dnn_opt[0], fil_libxsmm_bf16[0], fil_libxsmm[0], delfil_libxsmm_bf16[0], 0, tid, scratch );
+#endif
         } else {
           for ( i = 0; i < num_layers; ++i) {
             libxsmm_dnn_fc_fwd_exec_f32( libxsmm_dnn_fc_fwd[i], fil_libxsmm[i], act_libxsmm[i], act_libxsmm[i+1],
