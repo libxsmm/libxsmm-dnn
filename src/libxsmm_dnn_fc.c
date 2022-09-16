@@ -500,7 +500,8 @@ LIBXSMM_API libxsmm_dnn_fc_bwd_config setup_libxsmm_dnn_fc_bwd(libxsmm_blasint N
   /* @TODO egeor, kvoronin: can you please double check */
   libxsmm_blasint ldaT = bk;
   libxsmm_blasint ldb_orig= bc;
-
+  int arch_cpuid = libxsmm_cpuid();
+  int l_is_aarch64 = ( arch_cpuid >= LIBXSMM_AARCH64_V81 && arch_cpuid <= LIBXSMM_AARCH64_ALLFEAT ) ? 1 : 0;
   libxsmm_meltw_unary_shape  l_unary_shape;
   libxsmm_bitfield  l_unary_flags;
 
@@ -1090,7 +1091,11 @@ LIBXSMM_API libxsmm_dnn_fc_bwd_config setup_libxsmm_dnn_fc_bwd(libxsmm_blasint N
 
     /* JITing the transpose kernel */
     l_unary_shape = libxsmm_create_meltw_unary_shape( bk, bc, ldaT, lda, LIBXSMM_DATATYPE_BF16, LIBXSMM_DATATYPE_BF16, LIBXSMM_DATATYPE_BF16 );
-    res.vnni_to_vnniT_kernel = libxsmm_dispatch_meltw_unary_v2( LIBXSMM_MELTW_TYPE_UNARY_TRANSFORM_VNNI2_TO_VNNI2T, l_unary_shape, LIBXSMM_MELTW_FLAG_UNARY_NONE );
+    if (l_is_aarch64 == 0) {
+      res.vnni_to_vnniT_kernel = libxsmm_dispatch_meltw_unary_v2( LIBXSMM_MELTW_TYPE_UNARY_TRANSFORM_VNNI2_TO_VNNI2T, l_unary_shape, LIBXSMM_MELTW_FLAG_UNARY_NONE );
+    } else {
+      res.vnni_to_vnniT_kernel = libxsmm_dispatch_meltw_unary_v2( LIBXSMM_MELTW_TYPE_UNARY_TRANSFORM_VNNI4_TO_VNNI4T, l_unary_shape, LIBXSMM_MELTW_FLAG_UNARY_NONE ); 
+    }
     if ( res.vnni_to_vnniT_kernel == NULL ) {
       fprintf( stderr, "JIT for TPP vnni_to_vnniT_kernel failed. Bailing...!\n");
       exit(-1);
@@ -1164,14 +1169,22 @@ LIBXSMM_API libxsmm_dnn_fc_bwd_config setup_libxsmm_dnn_fc_bwd(libxsmm_blasint N
 
     /* JITing the transpose kernels */
     l_unary_shape = libxsmm_create_meltw_unary_shape( bk, bn, lda, lda, LIBXSMM_DATATYPE_BF16, LIBXSMM_DATATYPE_BF16, LIBXSMM_DATATYPE_BF16 );
-    res.norm_to_vnni_kernel = libxsmm_dispatch_meltw_unary_v2( LIBXSMM_MELTW_TYPE_UNARY_TRANSFORM_NORM_TO_VNNI2, l_unary_shape, LIBXSMM_MELTW_FLAG_UNARY_NONE );
+    if (l_is_aarch64 == 0) {
+      res.norm_to_vnni_kernel = libxsmm_dispatch_meltw_unary_v2( LIBXSMM_MELTW_TYPE_UNARY_TRANSFORM_NORM_TO_VNNI2, l_unary_shape, LIBXSMM_MELTW_FLAG_UNARY_NONE );
+    } else {
+      res.norm_to_vnni_kernel = libxsmm_dispatch_meltw_unary_v2( LIBXSMM_MELTW_TYPE_UNARY_TRANSFORM_NORM_TO_VNNI4, l_unary_shape, LIBXSMM_MELTW_FLAG_UNARY_NONE );  
+    }
     if ( res.norm_to_vnni_kernel == NULL ) {
       fprintf( stderr, "JIT for TPP norm_to_vnni_kernel failed. Bailing...!\n");
       exit(-1);
     }
 
     l_unary_shape = libxsmm_create_meltw_unary_shape( bbk, bbc, ldc, ldc, LIBXSMM_DATATYPE_BF16, LIBXSMM_DATATYPE_BF16, LIBXSMM_DATATYPE_BF16 );
-    res.norm_to_vnni_kernel_wt = libxsmm_dispatch_meltw_unary_v2( LIBXSMM_MELTW_TYPE_UNARY_TRANSFORM_NORM_TO_VNNI2, l_unary_shape, LIBXSMM_MELTW_FLAG_UNARY_NONE );
+    if (l_is_aarch64 == 0) {
+      res.norm_to_vnni_kernel_wt = libxsmm_dispatch_meltw_unary_v2( LIBXSMM_MELTW_TYPE_UNARY_TRANSFORM_NORM_TO_VNNI2, l_unary_shape, LIBXSMM_MELTW_FLAG_UNARY_NONE );
+    } else {
+      res.norm_to_vnni_kernel_wt = libxsmm_dispatch_meltw_unary_v2( LIBXSMM_MELTW_TYPE_UNARY_TRANSFORM_NORM_TO_VNNI4, l_unary_shape, LIBXSMM_MELTW_FLAG_UNARY_NONE );
+    }
     if ( res.norm_to_vnni_kernel_wt == NULL ) {
       fprintf( stderr, "JIT for TPP norm_to_vnni_kernel failed. Bailing...!\n");
       exit(-1);

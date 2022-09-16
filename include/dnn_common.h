@@ -965,8 +965,11 @@ LIBXSMM_INLINE void matrix_copy_CK_to_KCCK_bf16(libxsmm_bfloat16 *src, libxsmm_b
   int k1, k2, c1, c2;
   int kBlocks = K/bk;
   int cBlocks = C/bc;
+  int arch_cpuid = libxsmm_cpuid();
+  int l_is_aarch64 = ( arch_cpuid >= LIBXSMM_AARCH64_V81 && arch_cpuid <= LIBXSMM_AARCH64_ALLFEAT ) ? 1 : 0;
+  int vnni_block = (l_is_aarch64 == 0) ? 2 : 4;
   LIBXSMM_VLA_DECL(2, libxsmm_bfloat16, real_src, src, K);
-  LIBXSMM_VLA_DECL(5, libxsmm_bfloat16, real_dst, dst, cBlocks, bc/2, bk, 2);
+  LIBXSMM_VLA_DECL(5, libxsmm_bfloat16, real_dst, dst, cBlocks, bc/vnni_block, bk, vnni_block);
 
 #if defined(_OPENMP)
   LIBXSMM_OMP_VAR(c1); LIBXSMM_OMP_VAR(c2); LIBXSMM_OMP_VAR(k2);
@@ -976,7 +979,7 @@ LIBXSMM_INLINE void matrix_copy_CK_to_KCCK_bf16(libxsmm_bfloat16 *src, libxsmm_b
     for (c1 = 0; c1 < cBlocks; c1++) {
       for (c2 = 0; c2 < bc; c2++) {
         for (k2 = 0; k2 < bk; k2++) {
-          LIBXSMM_VLA_ACCESS(5, real_dst, k1, c1, c2/2, k2, c2%2, cBlocks, bc/2, bk, 2) =
+          LIBXSMM_VLA_ACCESS(5, real_dst, k1, c1, c2/vnni_block, k2, c2%vnni_block, cBlocks, bc/vnni_block, bk, vnni_block) =
             LIBXSMM_VLA_ACCESS(2, real_src, c1*bc+c2, k1*bk+k2, K);
         }
       }
@@ -989,8 +992,11 @@ LIBXSMM_INLINE void matrix_copy_CK_to_CKKC_bf16(libxsmm_bfloat16 *src, libxsmm_b
   int k1, k2, c1, c2;
   int kBlocks = K/bk;
   int cBlocks = C/bc;
+  int arch_cpuid = libxsmm_cpuid();
+  int l_is_aarch64 = ( arch_cpuid >= LIBXSMM_AARCH64_V81 && arch_cpuid <= LIBXSMM_AARCH64_ALLFEAT ) ? 1 : 0;
+  int vnni_block = (l_is_aarch64 == 0) ? 2 : 4;
   LIBXSMM_VLA_DECL(2, libxsmm_bfloat16, real_src, src, K);
-  LIBXSMM_VLA_DECL(5, libxsmm_bfloat16, real_dst, dst, kBlocks, bk/2, bc, 2);
+  LIBXSMM_VLA_DECL(5, libxsmm_bfloat16, real_dst, dst, kBlocks, bk/vnni_block, bc, vnni_block);
 
 #if defined(_OPENMP)
   LIBXSMM_OMP_VAR(k1); LIBXSMM_OMP_VAR(c1); LIBXSMM_OMP_VAR(c2); LIBXSMM_OMP_VAR(k2);
@@ -1000,7 +1006,7 @@ LIBXSMM_INLINE void matrix_copy_CK_to_CKKC_bf16(libxsmm_bfloat16 *src, libxsmm_b
     for (k1 = 0; k1 < kBlocks; k1++) {
       for (k2 = 0; k2 < bk; k2++) {
         for (c2 = 0; c2 < bc; c2++) {
-          LIBXSMM_VLA_ACCESS(5, real_dst, c1, k1, k2/2, c2, k2%2, kBlocks, bk/2, bc, 2) =
+          LIBXSMM_VLA_ACCESS(5, real_dst, c1, k1, k2/vnni_block, c2, k2%vnni_block, kBlocks, bk/vnni_block, bc, vnni_block) =
             LIBXSMM_VLA_ACCESS(2, real_src, c1*bc+c2, k1*bk+k2, K);
         }
       }
@@ -1013,8 +1019,11 @@ LIBXSMM_INLINE void matrix_copy_KC_to_KCCK_bf16(libxsmm_bfloat16 *src, libxsmm_b
   int k1, k2, c1, c2;
   int kBlocks = K/bk;
   int cBlocks = C/bc;
+  int arch_cpuid = libxsmm_cpuid();
+  int l_is_aarch64 = ( arch_cpuid >= LIBXSMM_AARCH64_V81 && arch_cpuid <= LIBXSMM_AARCH64_ALLFEAT ) ? 1 : 0;
+  int vnni_block = (l_is_aarch64 == 0) ? 2 : 4;
   LIBXSMM_VLA_DECL(2, libxsmm_bfloat16, real_src, src, C);
-  LIBXSMM_VLA_DECL(5, libxsmm_bfloat16, real_dst, dst, cBlocks, bc/2, bk, 2);
+  LIBXSMM_VLA_DECL(5, libxsmm_bfloat16, real_dst, dst, cBlocks, bc/vnni_block, bk, vnni_block);
 
 #if defined(_OPENMP)
   LIBXSMM_OMP_VAR(c1); LIBXSMM_OMP_VAR(c2); LIBXSMM_OMP_VAR(k2);
@@ -1024,7 +1033,7 @@ LIBXSMM_INLINE void matrix_copy_KC_to_KCCK_bf16(libxsmm_bfloat16 *src, libxsmm_b
     for (c1 = 0; c1 < cBlocks; c1++) {
       for (c2 = 0; c2 < bc; c2++) {
         for (k2 = 0; k2 < bk; k2++) {
-          LIBXSMM_VLA_ACCESS(5, real_dst, k1, c1, c2/2, k2, c2%2, cBlocks, bc/2, bk, 2) =
+          LIBXSMM_VLA_ACCESS(5, real_dst, k1, c1, c2/vnni_block, k2, c2%vnni_block, cBlocks, bc/vnni_block, bk, vnni_block) =
             LIBXSMM_VLA_ACCESS(2, real_src, k1*bk+k2, c1*bc+c2, C);
         }
       }
@@ -1037,8 +1046,11 @@ LIBXSMM_INLINE void matrix_copy_KCCK_to_KC_bf16(libxsmm_bfloat16 *src, libxsmm_b
   int k1, k2, c1, c2;
   int kBlocks = K/bk;
   int cBlocks = C/bc;
+  int arch_cpuid = libxsmm_cpuid();
+  int l_is_aarch64 = ( arch_cpuid >= LIBXSMM_AARCH64_V81 && arch_cpuid <= LIBXSMM_AARCH64_ALLFEAT ) ? 1 : 0;
+  int vnni_block = (l_is_aarch64 == 0) ? 2 : 4;
   LIBXSMM_VLA_DECL(2, libxsmm_bfloat16, real_dst, dst, C);
-  LIBXSMM_VLA_DECL(5, libxsmm_bfloat16, real_src, src, cBlocks, bc/2, bk, 2);
+  LIBXSMM_VLA_DECL(5, libxsmm_bfloat16, real_src, src, cBlocks, bc/vnni_block, bk, vnni_block);
 
 #if defined(_OPENMP)
   LIBXSMM_OMP_VAR(c1); LIBXSMM_OMP_VAR(c2); LIBXSMM_OMP_VAR(k2);
@@ -1049,7 +1061,7 @@ LIBXSMM_INLINE void matrix_copy_KCCK_to_KC_bf16(libxsmm_bfloat16 *src, libxsmm_b
       for (c2 = 0; c2 < bc; c2++) {
         for (k2 = 0; k2 < bk; k2++) {
           LIBXSMM_VLA_ACCESS(2, real_dst, k1*bk+k2, c1*bc+c2, C) =
-            LIBXSMM_VLA_ACCESS(5, real_src, k1, c1, c2/2, k2, c2%2, cBlocks, bc/2, bk, 2);
+            LIBXSMM_VLA_ACCESS(5, real_src, k1, c1, c2/vnni_block, k2, c2%vnni_block, cBlocks, bc/vnni_block, bk, vnni_block);
         }
       }
     }
@@ -1061,8 +1073,11 @@ LIBXSMM_INLINE void matrix_copy_KCCK_to_CK_bf16(libxsmm_bfloat16 *src, libxsmm_b
   int k1, k2, c1, c2;
   int kBlocks = K/bk;
   int cBlocks = C/bc;
+  int arch_cpuid = libxsmm_cpuid();
+  int l_is_aarch64 = ( arch_cpuid >= LIBXSMM_AARCH64_V81 && arch_cpuid <= LIBXSMM_AARCH64_ALLFEAT ) ? 1 : 0;
+  int vnni_block = (l_is_aarch64 == 0) ? 2 : 4;
   LIBXSMM_VLA_DECL(2, libxsmm_bfloat16, real_dst, dst, K);
-  LIBXSMM_VLA_DECL(5, libxsmm_bfloat16, real_src, src, cBlocks, bc/2, bk, 2);
+  LIBXSMM_VLA_DECL(5, libxsmm_bfloat16, real_src, src, cBlocks, bc/vnni_block, bk, vnni_block);
 
 #if defined(_OPENMP)
   LIBXSMM_OMP_VAR(c1); LIBXSMM_OMP_VAR(c2); LIBXSMM_OMP_VAR(k2);
@@ -1073,7 +1088,7 @@ LIBXSMM_INLINE void matrix_copy_KCCK_to_CK_bf16(libxsmm_bfloat16 *src, libxsmm_b
       for (c2 = 0; c2 < bc; c2++) {
         for (k2 = 0; k2 < bk; k2++) {
           LIBXSMM_VLA_ACCESS(2, real_dst, c1*bc+c2, k1*bk+k2, K) =
-            LIBXSMM_VLA_ACCESS(5, real_src, k1, c1, c2/2, k2, c2%2, cBlocks, bc/2, bk, 2);
+            LIBXSMM_VLA_ACCESS(5, real_src, k1, c1, c2/vnni_block, k2, c2%vnni_block, cBlocks, bc/vnni_block, bk, vnni_block);
         }
       }
     }
@@ -1085,8 +1100,11 @@ LIBXSMM_INLINE void matrix_copy_KCCK_to_CKKC_bf16(libxsmm_bfloat16 *src, libxsmm
   int k1, k2, c1, c2;
   int kBlocks = K/bk;
   int cBlocks = C/bc;
-  LIBXSMM_VLA_DECL(5, libxsmm_bfloat16, real_dst, dst, kBlocks, bk/2, bc, 2);
-  LIBXSMM_VLA_DECL(5, libxsmm_bfloat16, real_src, src, cBlocks, bc/2, bk, 2);
+  int arch_cpuid = libxsmm_cpuid();
+  int l_is_aarch64 = ( arch_cpuid >= LIBXSMM_AARCH64_V81 && arch_cpuid <= LIBXSMM_AARCH64_ALLFEAT ) ? 1 : 0;
+  int vnni_block = (l_is_aarch64 == 0) ? 2 : 4;
+  LIBXSMM_VLA_DECL(5, libxsmm_bfloat16, real_dst, dst, kBlocks, bk/vnni_block, bc, vnni_block);
+  LIBXSMM_VLA_DECL(5, libxsmm_bfloat16, real_src, src, cBlocks, bc/vnni_block, bk, vnni_block);
 
 #if defined(_OPENMP)
   LIBXSMM_OMP_VAR(c1); LIBXSMM_OMP_VAR(c2); LIBXSMM_OMP_VAR(k2);
@@ -1096,8 +1114,8 @@ LIBXSMM_INLINE void matrix_copy_KCCK_to_CKKC_bf16(libxsmm_bfloat16 *src, libxsmm
     for (c1 = 0; c1 < cBlocks; c1++) {
       for (c2 = 0; c2 < bc; c2++) {
         for (k2 = 0; k2 < bk; k2++) {
-          LIBXSMM_VLA_ACCESS(5, real_dst, c1, k1, k2/2, c2, k2%2, kBlocks, bk/2, bc, 2) =
-          LIBXSMM_VLA_ACCESS(5, real_src, k1, c1, c2/2, k2, c2%2, cBlocks, bc/2, bk, 2);
+          LIBXSMM_VLA_ACCESS(5, real_dst, c1, k1, k2/vnni_block, c2, k2%vnni_block, kBlocks, bk/vnni_block, bc, vnni_block) =
+          LIBXSMM_VLA_ACCESS(5, real_src, k1, c1, c2/vnni_block, k2, c2%vnni_block, cBlocks, bc/vnni_block, bk, vnni_block);
         }
       }
     }
@@ -1320,8 +1338,11 @@ LIBXSMM_INLINE void tensor_copy_KCRS_to_KCRSck_bf16(float *src, libxsmm_bfloat16
   int k1, k2, c1, c2, r, s;
   int cBlocks = C/bc;
   int kBlocks = K/bk;
+  int arch_cpuid = libxsmm_cpuid();
+  int l_is_aarch64 = ( arch_cpuid >= LIBXSMM_AARCH64_V81 && arch_cpuid <= LIBXSMM_AARCH64_ALLFEAT ) ? 1 : 0;
+  int vnni_block = (l_is_aarch64 == 0) ? 2 : 4;
   LIBXSMM_VLA_DECL(4, float, in, src, C, R, S);
-  LIBXSMM_VLA_DECL(7, libxsmm_bfloat16, out, dst, cBlocks, R, S, bc/2, bk, 2);
+  LIBXSMM_VLA_DECL(7, libxsmm_bfloat16, out, dst, cBlocks, R, S, bc/vnni_block, bk, vnni_block);
 
 #if defined(_OPENMP)
   LIBXSMM_OMP_VAR(c1); LIBXSMM_OMP_VAR(c2); LIBXSMM_OMP_VAR(r); LIBXSMM_OMP_VAR(s);
@@ -1334,7 +1355,7 @@ LIBXSMM_INLINE void tensor_copy_KCRS_to_KCRSck_bf16(float *src, libxsmm_bfloat16
           for (r = 0; r < R; r++) {
             for (s = 0; s < S; s++) {
               libxsmm_rne_convert_fp32_bf16( &LIBXSMM_VLA_ACCESS(4, in,  k1*bk+k2, c1*bc+c2, r, s, C, R, S),
-                                             &LIBXSMM_VLA_ACCESS(7, out, k1,     c1,         r, s, c2/2, k2, c2%2, cBlocks, R, S, bc/2, bk, 2),     1);
+                                             &LIBXSMM_VLA_ACCESS(7, out, k1,     c1,         r, s, c2/vnni_block, k2, c2%vnni_block, cBlocks, R, S, bc/vnni_block, bk, vnni_block),     1);
             }
           }
         }
@@ -1376,7 +1397,10 @@ LIBXSMM_INLINE void tensor_copy_KCRSck_vnni_to_norm_f32(libxsmm_bfloat16 *src, f
   int k1, k2, c1, c2, r, s;
   int cBlocks = C/bc;
   int kBlocks = K/bk;
-  LIBXSMM_VLA_DECL(7, libxsmm_bfloat16, in, src, cBlocks, R, S, bc/2, bk, 2);
+  int arch_cpuid = libxsmm_cpuid();
+  int l_is_aarch64 = ( arch_cpuid >= LIBXSMM_AARCH64_V81 && arch_cpuid <= LIBXSMM_AARCH64_ALLFEAT ) ? 1 : 0;
+  int vnni_block = (l_is_aarch64 == 0) ? 2 : 4;
+  LIBXSMM_VLA_DECL(7, libxsmm_bfloat16, in, src, cBlocks, R, S, bc/vnni_block, bk, vnni_block);
   LIBXSMM_VLA_DECL(6, float, out, dst, cBlocks, R, S, bc, bk);
 
 #if defined(_OPENMP)
@@ -1390,7 +1414,7 @@ LIBXSMM_INLINE void tensor_copy_KCRSck_vnni_to_norm_f32(libxsmm_bfloat16 *src, f
           for (r = 0; r < R; r++) {
             for (s = 0; s < S; s++) {
               float val;
-              libxsmm_convert_bf16_f32( &LIBXSMM_VLA_ACCESS(7, in, k1, c1, r, s, c2/2, k2, c2%2, cBlocks, R, S, bc/2, bk, 2), &val, 1 );
+              libxsmm_convert_bf16_f32( &LIBXSMM_VLA_ACCESS(7, in, k1, c1, r, s, c2/vnni_block, k2, c2%vnni_block, cBlocks, R, S, bc/vnni_block, bk, vnni_block), &val, 1 );
               LIBXSMM_VLA_ACCESS(6, out, k1, c1, r, s, c2, k2, cBlocks, R, S, bc, bk) = val;
             }
           }
@@ -1433,7 +1457,10 @@ LIBXSMM_INLINE void tensor_transpose_KCRSck_to_CKRSkc_bf16(float *src, libxsmm_b
   int k1, k2, c1, c2, r, s;
   int cBlocks = C/bc;
   int kBlocks = K/bk;
-  LIBXSMM_VLA_DECL(7, libxsmm_bfloat16, out, dst, kBlocks, R, S, bk/2, bc, 2);
+  int arch_cpuid = libxsmm_cpuid();
+  int l_is_aarch64 = ( arch_cpuid >= LIBXSMM_AARCH64_V81 && arch_cpuid <= LIBXSMM_AARCH64_ALLFEAT ) ? 1 : 0;
+  int vnni_block = (l_is_aarch64 == 0) ? 2 : 4;
+  LIBXSMM_VLA_DECL(7, libxsmm_bfloat16, out, dst, kBlocks, R, S, bk/vnni_block, bc, vnni_block);
   LIBXSMM_VLA_DECL(6, float, in , src, cBlocks, R, S, bc, bk);
 
 #if defined(_OPENMP)
@@ -1447,7 +1474,7 @@ LIBXSMM_INLINE void tensor_transpose_KCRSck_to_CKRSkc_bf16(float *src, libxsmm_b
           for (r = 0; r < R; r++) {
             for (s = 0; s < S; s++) {
               libxsmm_rne_convert_fp32_bf16( &LIBXSMM_VLA_ACCESS(6,  in, k1, c1, r, s, c2, k2, cBlocks, R, S, bc, bk),
-                                             &LIBXSMM_VLA_ACCESS(7, out, c1, k1, R-1-r, S-1-s, k2/2, c2, k2%2, kBlocks, R, S, bk/2, bc, 2),     1);
+                                             &LIBXSMM_VLA_ACCESS(7, out, c1, k1, R-1-r, S-1-s, k2/vnni_block, c2, k2%vnni_block, kBlocks, R, S, bk/vnni_block, bc, vnni_block),     1);
             }
           }
         }
