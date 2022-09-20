@@ -134,6 +134,7 @@ typedef struct libxsmm_dnn_conv_config {
   int block_bwd_ofm;
   int block_upd_ifm;
   int block_upd_ofm;
+  int multiple_target;
 
   /* Hoisting the compute kernels for FWD  */
   libxsmm_xmmfunction fwd_compute_kernel_strd_fused_f32;

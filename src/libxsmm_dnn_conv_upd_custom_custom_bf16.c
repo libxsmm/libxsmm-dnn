@@ -31,7 +31,7 @@ LIBXSMM_API void libxsmm_dnn_conv_upd_exec_bf16( libxsmm_dnn_conv_config cfg, co
   libxsmm_bfloat16 *weight_ptr = (libxsmm_bfloat16*)((char*)scratch + cfg.upd_filter_scratch_offset) + ltid * cfg.C * cfg.K * cfg.R * cfg.S;
 
   libxsmm_bfloat16 *filter_dst_ptr = (cfg.weight_copies > 1) ? (libxsmm_bfloat16*)weight_ptr : (libxsmm_bfloat16*)dfilter_ptr;
-  LIBXSMM_VLA_DECL(7, libxsmm_bfloat16, weight_dst, (libxsmm_bfloat16*)filter_dst_ptr, cfg.blocksifm, cfg.R, cfg.S, cfg.ifmblock/2, cfg.ofmblock, 2);
+  LIBXSMM_VLA_DECL(7, libxsmm_bfloat16, weight_dst, (libxsmm_bfloat16*)filter_dst_ptr, cfg.blocksifm, cfg.R, cfg.S, cfg.ifmblock/cfg.multiple_target, cfg.ofmblock, cfg.multiple_target);
 
   /* This intermediate tensor is used when pixels are NOT fully accumulated  */
   float *weight_ptr_f32 = (float*) ((char*)scratch + cfg.upd_lp_filter_full_scratch_offset) + ltid * cfg.C * cfg.K * cfg.R * cfg.S;
@@ -49,8 +49,8 @@ LIBXSMM_API void libxsmm_dnn_conv_upd_exec_bf16( libxsmm_dnn_conv_config cfg, co
   LIBXSMM_VLA_DECL(5, libxsmm_bfloat16, tr_input_2, (libxsmm_bfloat16*) scratch_tr_input, cfg.blocksifm, cfg.ifmblock, IFHP, cfg.ifwp_extended);
 
   libxsmm_bfloat16 *scratch_tr_output = (libxsmm_bfloat16*)((char*)scratch + cfg.upd_lp_output_full_scratch_offset);
-  LIBXSMM_VLA_DECL(5, libxsmm_bfloat16, tr_output, (libxsmm_bfloat16*) scratch_tr_output, cfg.blocksofm, cfg.output_pixels/2, cfg.ofmblock, 2);
-  LIBXSMM_VLA_DECL(6, libxsmm_bfloat16, tr_output_2, (libxsmm_bfloat16*) scratch_tr_output, cfg.blocksofm, OFHP, cfg.ofwp_extended/2, cfg.ofmblock, 2);
+  LIBXSMM_VLA_DECL(5, libxsmm_bfloat16, tr_output, (libxsmm_bfloat16*) scratch_tr_output, cfg.blocksofm, cfg.output_pixels/cfg.multiple_target, cfg.ofmblock, cfg.multiple_target);
+  LIBXSMM_VLA_DECL(6, libxsmm_bfloat16, tr_output_2, (libxsmm_bfloat16*) scratch_tr_output, cfg.blocksofm, OFHP, cfg.ofwp_extended/cfg.multiple_target, cfg.ofmblock, cfg.multiple_target);
 
   /* transpose, copy and reduce work-related variables  */
   float *dst_ptr;
@@ -82,6 +82,7 @@ LIBXSMM_API void libxsmm_dnn_conv_upd_exec_bf16( libxsmm_dnn_conv_config cfg, co
               }
             }
           } else {
+            memset((void*) &LIBXSMM_VLA_ACCESS(4, tr_input, img, 0, 0, 0, cfg.blocksifm, cfg.ifmblock, cfg.input_pixels), 0, cfg.blocksifm * cfg.input_pixels * cfg.ifmblock * sizeof(libxsmm_bfloat16));
             for (ifm1 = 0; ifm1 < cfg.blocksifm; ifm1++) {
               for (ij = 0; ij < cfg.ifhp; ij++) {
                 unary_param.in.primary = (void*) &LIBXSMM_VLA_ACCESS(5, input, img, ifm1, ij, 0, 0, cfg.blocksifm, cfg.ifhp, cfg.ifwp, cfg.ifmblock);
@@ -106,13 +107,13 @@ LIBXSMM_API void libxsmm_dnn_conv_upd_exec_bf16( libxsmm_dnn_conv_config cfg, co
       if (cfg.upd_padding_copy == 1) {
         for (img = my_img_start; img < my_img_end; img++) {
           for (ofm1 = 0; ofm1 < cfg.blocksofm; ofm1++) {
-            zero_ptr_out = (libxsmm_bfloat16*) &LIBXSMM_VLA_ACCESS(5, tr_output, img, ofm1, 0, 0, 0, cfg.blocksofm, cfg.output_pixels/2, cfg.ofmblock, 2);
+            zero_ptr_out = (libxsmm_bfloat16*) &LIBXSMM_VLA_ACCESS(5, tr_output, img, ofm1, 0, 0, 0, cfg.blocksofm, cfg.output_pixels/cfg.multiple_target, cfg.ofmblock, cfg.multiple_target);
             unary_param.out.primary = (void*) zero_ptr_out;
             cfg.zero_ofmblock_output_pixels_bf16( &unary_param );
-            if (cfg.ofwp % 2 == 0) {
+            if (cfg.ofwp % cfg.multiple_target == 0) {
               for (oj = 0; oj < cfg.ofhp; oj++) {
                 unary_param.in.primary = (void*) &LIBXSMM_VLA_ACCESS(5, output, img, ofm1, oj, 0, 0, cfg.blocksofm, cfg.ofhp, cfg.ofwp, cfg.ofmblock);
-                unary_param.out.primary= (void*) &LIBXSMM_VLA_ACCESS(5, tr_output, img, ofm1, (oj*OFWP)/2, 0, 0, cfg.blocksofm, cfg.output_pixels/2, cfg.ofmblock, 2);
+                unary_param.out.primary= (void*) &LIBXSMM_VLA_ACCESS(5, tr_output, img, ofm1, (oj*OFWP)/2, 0, 0, cfg.blocksofm, cfg.output_pixels/cfg.multiple_target, cfg.ofmblock, cfg.multiple_target);
                 cfg.vnni_output_w_pixels_bf16( &unary_param );
               }
             } else {
@@ -130,7 +131,7 @@ LIBXSMM_API void libxsmm_dnn_conv_upd_exec_bf16( libxsmm_dnn_conv_config cfg, co
               for (oj = 0; oj < cfg.ofhp; oj++) {
                 for (oi = 0; oi < cfg.ofwp; oi++) {
                   for (ofm2 = 0; ofm2 < cfg.ofmblock; ofm2++) {
-                    LIBXSMM_VLA_ACCESS(5, tr_output, img, ofm1, (oj*OFWP+oi)/2, ofm2, (oj*OFWP+oi)%2, cfg.blocksofm, cfg.output_pixels/2, cfg.ofmblock, 2) =
+                    LIBXSMM_VLA_ACCESS(5, tr_output, img, ofm1, (oj*OFWP+oi)/cfg.multiple_target, ofm2, (oj*OFWP+oi)%cfg.multiple_target, cfg.blocksofm, cfg.output_pixels/cfg.multiple_target, cfg.ofmblock, cfg.multiple_target) =
                       LIBXSMM_VLA_ACCESS(5, output, img, ofm1, oj, oi, ofm2, cfg.blocksofm, cfg.ofhp, cfg.ofwp, cfg.ofmblock);
                   }
                 }
@@ -141,12 +142,13 @@ LIBXSMM_API void libxsmm_dnn_conv_upd_exec_bf16( libxsmm_dnn_conv_config cfg, co
         }
       } else {
         for (img = my_img_start; img < my_img_end; img++) {
+          memset((void*)  &LIBXSMM_VLA_ACCESS(5, tr_output, img, 0, 0, 0, 0, cfg.blocksofm, cfg.output_pixels/cfg.multiple_target, cfg.ofmblock, cfg.multiple_target), 0, cfg.blocksofm * cfg.output_pixels * cfg.ofmblock * sizeof(libxsmm_bfloat16));
           for (ofm1 = 0; ofm1 < cfg.blocksofm; ofm1++) {
             unary_param.in.primary = (void*) &LIBXSMM_VLA_ACCESS(5, output, img, ofm1, 0, 0, 0, cfg.blocksofm, cfg.ofhp, cfg.ofwp, cfg.ofmblock);
-            unary_param.out.primary= (void*) &LIBXSMM_VLA_ACCESS(5, tr_output, img, ofm1, 0, 0, 0, cfg.blocksofm, cfg.output_pixels/2, cfg.ofmblock, 2);
+            unary_param.out.primary= (void*) &LIBXSMM_VLA_ACCESS(5, tr_output, img, ofm1, 0, 0, 0, cfg.blocksofm, cfg.output_pixels/cfg.multiple_target, cfg.ofmblock, cfg.multiple_target);
             cfg.vnni_output_compute_pixels_bf16( &unary_param );
             if (cfg.upd_remaining_pixels > 0) {
-              unary_param.out.primary= (void*) &LIBXSMM_VLA_ACCESS(5, tr_output, img, ofm1, (cfg.compute_pixels+1)/2, 0, 0, cfg.blocksofm, cfg.output_pixels/2, cfg.ofmblock, 2);
+              unary_param.out.primary= (void*) &LIBXSMM_VLA_ACCESS(5, tr_output, img, ofm1, ((cfg.compute_pixels+cfg.multiple_target-1)/cfg.multiple_target)*cfg.multiple_target, 0, 0, cfg.blocksofm, cfg.output_pixels/cfg.multiple_target, cfg.ofmblock, cfg.multiple_target);
               cfg.vnni_output_zero_remaining_pixels_bf16( &unary_param );
             }
           }
@@ -173,7 +175,7 @@ LIBXSMM_API void libxsmm_dnn_conv_upd_exec_bf16( libxsmm_dnn_conv_config cfg, co
         for (ofm1 = 0; ofm1 < cfg.blocksofm; ofm1++) {
           for (oj = 0; oj < cfg.ofh; oj++) {
             unary_param.in.primary = (void*) &LIBXSMM_VLA_ACCESS(5, output, img, ofm1, oj, 0, 0, cfg.blocksofm, cfg.ofhp, cfg.ofwp, cfg.ofmblock);
-            unary_param.out.primary= (void*) &LIBXSMM_VLA_ACCESS(6, tr_output_2, img, ofm1, oj, 0, 0, 0, cfg.blocksofm, OFHP, cfg.ofwp_extended/2, cfg.ofmblock, 2);
+            unary_param.out.primary= (void*) &LIBXSMM_VLA_ACCESS(6, tr_output_2, img, ofm1, oj, 0, 0, 0, cfg.blocksofm, OFHP, cfg.ofwp_extended/cfg.multiple_target, cfg.ofmblock, cfg.multiple_target);
             cfg.vnni_output_w_pixels_bf16( &unary_param );
           }
         }
@@ -198,7 +200,7 @@ LIBXSMM_API void libxsmm_dnn_conv_upd_exec_bf16( libxsmm_dnn_conv_config cfg, co
                 /* Transpose output block */
                 for (j=0; j < cfg.batchreduce_h_pixels; j++) {
                   unary_param.in.primary = (void*) &LIBXSMM_VLA_ACCESS(5, output, img, ofm1, oj+j, 0, 0, cfg.blocksofm, cfg.ofhp, cfg.ofwp, cfg.ofmblock);
-                  unary_param.out.primary= (void*) &LIBXSMM_VLA_ACCESS(6, tr_output_2, img, 0, j, 0, 0, 0, cfg.blocksofm, OFHP, cfg.ofwp_extended/2, cfg.ofmblock, 2);
+                  unary_param.out.primary= (void*) &LIBXSMM_VLA_ACCESS(6, tr_output_2, img, 0, j, 0, 0, 0, cfg.blocksofm, OFHP, cfg.ofwp_extended/cfg.multiple_target, cfg.ofmblock, cfg.multiple_target);
                   cfg.vnni_output_w_pixels_bf16( &unary_param );
                 }
                 for (ifm1 = ifmb; ifm1 < LIBXSMM_MIN(ifmb+cfg.block_upd_ifm, cfg.blocksifm); ifm1++) {
@@ -217,7 +219,7 @@ LIBXSMM_API void libxsmm_dnn_conv_upd_exec_bf16( libxsmm_dnn_conv_config cfg, co
                         dst_ptr = (float*)&LIBXSMM_VLA_ACCESS(2, filter_tmp, 0, 0, cfg.ofmblock);
                       }
                       gemm_param.op.tertiary  = (void*) &n_blocks;
-                      gemm_param.a.primary    = (void*) &LIBXSMM_VLA_ACCESS(6, tr_output_2, img, 0, 0, 0, 0, 0, cfg.blocksofm, OFHP, cfg.ofwp_extended/2, cfg.ofmblock, 2);
+                      gemm_param.a.primary    = (void*) &LIBXSMM_VLA_ACCESS(6, tr_output_2, img, 0, 0, 0, 0, 0, cfg.blocksofm, OFHP, cfg.ofwp_extended/cfg.multiple_target, cfg.ofmblock, cfg.multiple_target);
                       gemm_param.b.primary    = (void*) &LIBXSMM_VLA_ACCESS(5, tr_input_2, img, 0, 0, 0, 0, cfg.blocksifm, cfg.ifmblock, IFHP, cfg.ifwp_extended);
                       gemm_param.c.primary    = (void*) dst_ptr;
                       cfg.upd_compute_kernel1_bf16f32.gemm( &gemm_param );
@@ -227,7 +229,7 @@ LIBXSMM_API void libxsmm_dnn_conv_upd_exec_bf16( libxsmm_dnn_conv_config cfg, co
                         unary_param.in.primary = (void*) dst_ptr;
                         unary_param.out.primary= (void*) dst_ptr;
                         cfg.upd_weight_cvt_f32bf16( &unary_param );
-                        unary_param.out.primary= (void*) &LIBXSMM_VLA_ACCESS(7, weight_dst, ofm1, ifm1, kj, ki, 0, 0, 0, cfg.blocksifm, cfg.R, cfg.S, cfg.ifmblock/2, cfg.ofmblock, 2);
+                        unary_param.out.primary= (void*) &LIBXSMM_VLA_ACCESS(7, weight_dst, ofm1, ifm1, kj, ki, 0, 0, 0, cfg.blocksifm, cfg.R, cfg.S, cfg.ifmblock/cfg.multiple_target, cfg.ofmblock, cfg.multiple_target);
                         cfg.upd_weight_vnni_format_bf16( &unary_param );
                       }
                     }
@@ -293,7 +295,7 @@ LIBXSMM_API void libxsmm_dnn_conv_upd_exec_bf16( libxsmm_dnn_conv_config cfg, co
                       }
 
                       gemm_param.op.tertiary  = (void*) &n_blocks;
-                      gemm_param.a.primary    = (void*) &LIBXSMM_VLA_ACCESS(6, tr_output_2, img, ofm1, oj, 0, 0, 0, cfg.blocksofm, OFHP, cfg.ofwp_extended/2, cfg.ofmblock, 2);
+                      gemm_param.a.primary    = (void*) &LIBXSMM_VLA_ACCESS(6, tr_output_2, img, ofm1, oj, 0, 0, 0, cfg.blocksofm, OFHP, cfg.ofwp_extended/cfg.multiple_target, cfg.ofmblock, cfg.multiple_target);
                       if (cfg.on_the_fly_input_packing == 1) {
                         gemm_param.b.primary    = (void*) &LIBXSMM_VLA_ACCESS(5, tr_input_2, img, 0, 0, 0, 0, cfg.blocksifm, cfg.ifmblock, IFHP, cfg.ifwp_extended);
                       } else {
@@ -307,7 +309,7 @@ LIBXSMM_API void libxsmm_dnn_conv_upd_exec_bf16( libxsmm_dnn_conv_config cfg, co
                         unary_param.in.primary = (void*) dst_ptr;
                         unary_param.out.primary= (void*) dst_ptr;
                         cfg.upd_weight_cvt_f32bf16( &unary_param );
-                        unary_param.out.primary= (void*) &LIBXSMM_VLA_ACCESS(7, weight_dst, ofm1, ifm1, kj, ki, 0, 0, 0, cfg.blocksifm, cfg.R, cfg.S, cfg.ifmblock/2, cfg.ofmblock, 2);
+                        unary_param.out.primary= (void*) &LIBXSMM_VLA_ACCESS(7, weight_dst, ofm1, ifm1, kj, ki, 0, 0, 0, cfg.blocksifm, cfg.R, cfg.S, cfg.ifmblock/cfg.multiple_target, cfg.ofmblock, cfg.multiple_target);
                         cfg.upd_weight_vnni_format_bf16( &unary_param );
                       }
                     }
@@ -393,7 +395,7 @@ LIBXSMM_API void libxsmm_dnn_conv_upd_exec_bf16( libxsmm_dnn_conv_config cfg, co
                         dst_ptr = (float*)&LIBXSMM_VLA_ACCESS(2, filter_tmp, 0, 0, cfg.ofmblock);
                       }
                       gemm_param.op.tertiary  = (void*) &n_blocks;
-                      gemm_param.a.primary    = (void*) &LIBXSMM_VLA_ACCESS(5, tr_output, img, ofm1, pix/2, 0, 0, cfg.blocksofm, cfg.output_pixels/2, cfg.ofmblock, 2);
+                      gemm_param.a.primary    = (void*) &LIBXSMM_VLA_ACCESS(5, tr_output, img, ofm1, pix/cfg.multiple_target, 0, 0, cfg.blocksofm, cfg.output_pixels/cfg.multiple_target, cfg.ofmblock, cfg.multiple_target);
                       gemm_param.b.primary    = (void*) &LIBXSMM_VLA_ACCESS(4, tr_input, img, ifm1, 0, pix + kj * IFWP + ki, cfg.blocksifm, cfg.ifmblock, cfg.input_pixels);
                       gemm_param.c.primary    = (void*) dst_ptr;
                       cfg.upd_compute_kernel3_bf16f32.gemm( &gemm_param );
@@ -403,7 +405,7 @@ LIBXSMM_API void libxsmm_dnn_conv_upd_exec_bf16( libxsmm_dnn_conv_config cfg, co
                         unary_param.in.primary = (void*) dst_ptr;
                         unary_param.out.primary= (void*) dst_ptr;
                         cfg.upd_weight_cvt_f32bf16( &unary_param );
-                        unary_param.out.primary= (void*) &LIBXSMM_VLA_ACCESS(7, weight_private_group, ofm1, ifm1, kj, ki, 0, 0, 0, cfg.blocksifm, cfg.R, cfg.S, cfg.ifmblock/2, cfg.ofmblock, 2);
+                        unary_param.out.primary= (void*) &LIBXSMM_VLA_ACCESS(7, weight_private_group, ofm1, ifm1, kj, ki, 0, 0, 0, cfg.blocksifm, cfg.R, cfg.S, cfg.ifmblock/cfg.multiple_target, cfg.ofmblock, cfg.multiple_target);
                         cfg.upd_weight_vnni_format_bf16( &unary_param );
                       }
                     }
@@ -423,14 +425,14 @@ LIBXSMM_API void libxsmm_dnn_conv_upd_exec_bf16( libxsmm_dnn_conv_config cfg, co
                 /* Transpose output block  */
                 if (pix == 0 && ifmb == 0) {
                   if (cfg.upd_padding_copy == 1) {
-                    zero_ptr_out = (libxsmm_bfloat16*) &LIBXSMM_VLA_ACCESS(5, tr_output, img, ofm1, 0, 0, 0, cfg.blocksofm, cfg.output_pixels/2, cfg.ofmblock, 2);
+                    zero_ptr_out = (libxsmm_bfloat16*) &LIBXSMM_VLA_ACCESS(5, tr_output, img, ofm1, 0, 0, 0, cfg.blocksofm, cfg.output_pixels/cfg.multiple_target, cfg.ofmblock, cfg.multiple_target);
                     unary_param.out.primary = (void*) zero_ptr_out;
                     cfg.zero_ofmblock_output_pixels_bf16( &unary_param );
-                    if (OFWP % 2 == 1) {
+                    if (OFWP % cfg.multiple_target != 0) {
                       for (oj = 0; oj < cfg.ofhp; oj++) {
                         for (oi = 0; oi < cfg.ofwp; oi++) {
                           for (ofm2 = 0; ofm2 < cfg.ofmblock; ofm2++) {
-                            LIBXSMM_VLA_ACCESS(5, tr_output, img, ofm1, (oj*OFWP+oi)/2, ofm2, (oj*OFWP+oi)%2, cfg.blocksofm, cfg.output_pixels/2, cfg.ofmblock, 2) =
+                            LIBXSMM_VLA_ACCESS(5, tr_output, img, ofm1, (oj*OFWP+oi)/cfg.multiple_target, ofm2, (oj*OFWP+oi)%cfg.multiple_target, cfg.blocksofm, cfg.output_pixels/cfg.multiple_target, cfg.ofmblock, cfg.multiple_target) =
                               LIBXSMM_VLA_ACCESS(5, output, img, ofm1, oj, oi, ofm2, cfg.blocksofm, cfg.ofhp, cfg.ofwp, cfg.ofmblock);
                           }
                         }
@@ -438,16 +440,16 @@ LIBXSMM_API void libxsmm_dnn_conv_upd_exec_bf16( libxsmm_dnn_conv_config cfg, co
                     } else {
                       for (oj = 0; oj < cfg.ofhp; oj++) {
                         unary_param.in.primary = (void*) &LIBXSMM_VLA_ACCESS(5, output, img, ofm1, oj, 0, 0, cfg.blocksofm, cfg.ofhp, cfg.ofwp, cfg.ofmblock);
-                        unary_param.out.primary= (void*) &LIBXSMM_VLA_ACCESS(5, tr_output, img, ofm1, (oj*OFWP)/2, 0, 0, cfg.blocksofm, cfg.output_pixels/2, cfg.ofmblock, 2);
+                        unary_param.out.primary= (void*) &LIBXSMM_VLA_ACCESS(5, tr_output, img, ofm1, (oj*OFWP)/cfg.multiple_target, 0, 0, cfg.blocksofm, cfg.output_pixels/cfg.multiple_target, cfg.ofmblock, cfg.multiple_target);
                         cfg.vnni_output_w_pixels_bf16( &unary_param );
                       }
                     }
                   } else {
                     unary_param.in.primary = (void*) &LIBXSMM_VLA_ACCESS(5, output, img, ofm1, 0, 0, 0, cfg.blocksofm, cfg.ofhp, cfg.ofwp, cfg.ofmblock);
-                    unary_param.out.primary= (void*) &LIBXSMM_VLA_ACCESS(5, tr_output, img, ofm1, 0, 0, 0, cfg.blocksofm, cfg.output_pixels/2, cfg.ofmblock, 2);
+                    unary_param.out.primary= (void*) &LIBXSMM_VLA_ACCESS(5, tr_output, img, ofm1, 0, 0, 0, cfg.blocksofm, cfg.output_pixels/cfg.multiple_target, cfg.ofmblock, cfg.multiple_target);
                     cfg.vnni_output_compute_pixels_bf16( &unary_param );
                     if (cfg.upd_remaining_pixels > 0) {
-                      unary_param.out.primary= (void*) &LIBXSMM_VLA_ACCESS(5, tr_output, img, ofm1, (cfg.compute_pixels+1)/2, 0, 0, cfg.blocksofm, cfg.output_pixels/2, cfg.ofmblock, 2);
+                      unary_param.out.primary= (void*) &LIBXSMM_VLA_ACCESS(5, tr_output, img, ofm1, ((cfg.compute_pixels+cfg.multiple_target-1)/cfg.multiple_target)*cfg.multiple_target, 0, 0, cfg.blocksofm, cfg.output_pixels/cfg.multiple_target, cfg.ofmblock, cfg.multiple_target);
                       cfg.vnni_output_zero_remaining_pixels_bf16( &unary_param );
                     }
                   }
@@ -488,7 +490,7 @@ LIBXSMM_API void libxsmm_dnn_conv_upd_exec_bf16( libxsmm_dnn_conv_config cfg, co
                       } else {
                         dst_ptr = (float*)&LIBXSMM_VLA_ACCESS(2, filter_tmp, 0, 0, cfg.ofmblock);
                       }
-                      gemm_param.a.primary    = (void*) &LIBXSMM_VLA_ACCESS(5, tr_output, img, ofm1, pix/2, 0, 0, cfg.blocksofm, cfg.output_pixels/2, cfg.ofmblock, 2);
+                      gemm_param.a.primary    = (void*) &LIBXSMM_VLA_ACCESS(5, tr_output, img, ofm1, pix/cfg.multiple_target, 0, 0, cfg.blocksofm, cfg.output_pixels/cfg.multiple_target, cfg.ofmblock, cfg.multiple_target);
                       gemm_param.b.primary    = (void*) &LIBXSMM_VLA_ACCESS(4, tr_input, img, ifm1, 0, pix + kj * IFWP + ki, cfg.blocksifm, cfg.ifmblock, cfg.input_pixels);
                       gemm_param.c.primary    = (void*) dst_ptr;
                       cfg.upd_compute_kernel4_bf16f32.gemm( &gemm_param );
@@ -498,7 +500,7 @@ LIBXSMM_API void libxsmm_dnn_conv_upd_exec_bf16( libxsmm_dnn_conv_config cfg, co
                         unary_param.in.primary = (void*) dst_ptr;
                         unary_param.out.primary= (void*) dst_ptr;
                         cfg.upd_weight_cvt_f32bf16( &unary_param );
-                        unary_param.out.primary= (void*) &LIBXSMM_VLA_ACCESS(7, weight_dst, ofm1, ifm1, kj, ki, 0, 0, 0, cfg.blocksifm, cfg.R, cfg.S, cfg.ifmblock/2, cfg.ofmblock, 2);
+                        unary_param.out.primary= (void*) &LIBXSMM_VLA_ACCESS(7, weight_dst, ofm1, ifm1, kj, ki, 0, 0, 0, cfg.blocksifm, cfg.R, cfg.S, cfg.ifmblock/cfg.multiple_target, cfg.ofmblock, cfg.multiple_target);
                         cfg.upd_weight_vnni_format_bf16( &unary_param );
                       }
                     }

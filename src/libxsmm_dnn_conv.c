@@ -754,11 +754,12 @@ LIBXSMM_API_INLINE void libxsmm_dnn_conv_setup_bf16_upd_algorithms( libxsmm_dnn_
   int remainder_pixels, max_init_offset, max_compute_offset_input, input_compute_pad, accum_length_pixels, compute_pixels;
   int arch_cpuid = libxsmm_cpuid();
   int l_is_aarch64 = ( arch_cpuid >= LIBXSMM_AARCH64_V81 && arch_cpuid <= LIBXSMM_AARCH64_ALLFEAT ) ? 1 : 0;
-  const int multiple_target = (l_is_aarch64 == 0) ? 2 : 4;
+  const int multiple_target = (l_is_aarch64 == 0) ? 2 : 8;
   int IFHP = (res.upd_padding_copy == 1) ? res.ifhp + 2 * res.pad_h : res.ifhp;
   int IFWP = (res.upd_padding_copy == 1) ? res.ifwp + 2 * res.pad_w : res.ifwp;
   int OFHP = (res.upd_padding_copy == 1) ? res.ofhp + 2 * res.pad_h : res.ofhp;
   int OFWP = (res.upd_padding_copy == 1) ? res.ofwp + 2 * res.pad_w : res.ofwp;
+  res.multiple_target = (l_is_aarch64 == 0) ? 2 : 4;
   res.ifwp_extended = IFWP;
   res.upd_linearized_pixels = 1;
   if (res.S != 1 && res.v != 1) {
@@ -828,8 +829,8 @@ LIBXSMM_API_INLINE void libxsmm_dnn_conv_setup_bf16_upd_algorithms( libxsmm_dnn_
     remainder_pixels = (res.ofw % multiple_target == 0) ? 0 : (res.ofw/multiple_target+1)*multiple_target - res.ofw;
     res.ofwp_extended = OFWP + remainder_pixels;
     res.ifwp_extended = IFWP + remainder_pixels;
-    if (res.ifwp_extended % 2 != 0) {
-      res.ifwp_extended = res.ifwp_extended + 1;
+    if (res.ifwp_extended % multiple_target != 0) {
+      res.ifwp_extended = res.ifwp_extended + multiple_target - res.ifwp_extended % multiple_target;
     }
     res.output_pixels = OFHP * res.ofwp_extended;
     /* coverity[identical_branches] */
@@ -1042,7 +1043,7 @@ LIBXSMM_API_INLINE void libxsmm_dnn_conv_setup_upd_scratch( libxsmm_dnn_conv_con
     } else {
 #endif
     if (1) {
-      const int multiple_target = (l_is_aarch64 == 0) ? 2 : 4;
+      const int multiple_target = (l_is_aarch64 == 0) ? 2 : 8;
       int IFHP = (cfg->upd_padding_copy == 1) ? cfg->ifhp + 2 * cfg->pad_h : cfg->ifhp;
       int IFWP = (cfg->upd_padding_copy == 1) ? cfg->ifwp + 2 * cfg->pad_w : cfg->ifwp;
       int OFHP = (cfg->upd_padding_copy == 1) ? cfg->ofhp + 2 * cfg->pad_h : cfg->ofhp;
@@ -2070,6 +2071,9 @@ LIBXSMM_API_INLINE void libxsmm_dnn_conv_generate_upd_kernels( libxsmm_dnn_conv_
   libxsmm_dnn_conv_config res = *inout_cfg;
   int arch_cpuid = libxsmm_cpuid();
   int l_is_aarch64 = ( arch_cpuid >= LIBXSMM_AARCH64_V81 && arch_cpuid <= LIBXSMM_AARCH64_ALLFEAT ) ? 1 : 0;
+  const int multiple_target = (l_is_aarch64 == 0) ? 2 : 8;
+  const int vnni_target = (l_is_aarch64 == 0) ? 2 : 4; 
+
   res.A_offsets_upd = NULL;
   res.B_offsets_upd = NULL;
   res.A_offsets2_upd = NULL;
@@ -2364,8 +2368,8 @@ LIBXSMM_API_INLINE void libxsmm_dnn_conv_generate_upd_kernels( libxsmm_dnn_conv_
         exit(-1);
       }
 
-      if (res.ofw % 2 == 1) {
-         l_shape.k = res.ofw+1;
+      if (res.ofw % multiple_target != 0) {
+         l_shape.k = res.ofw+multiple_target - res.ofw % multiple_target;
       }
       res.upd_compute_kernel2_bf16f32.gemm = libxsmm_dispatch_brgemm_v2( l_shape, l_flags, l_prefetch_flags, l_brconfig );
       if (  res.upd_compute_kernel2_bf16f32.gemm  == NULL ) {
@@ -2374,7 +2378,7 @@ LIBXSMM_API_INLINE void libxsmm_dnn_conv_generate_upd_kernels( libxsmm_dnn_conv_
       }
     }
 
-    if (res.pixel_blocking % 2 == 0) {
+    if (res.pixel_blocking % multiple_target == 0) {
       l_shape.k = LIBXSMM_MAX(2,res.pixel_blocking);
       l_shape.ldb = LIBXSMM_MAX(l_shape.k, res.input_pixels);
       l_brconfig.br_unroll_hint = 0;
@@ -2554,7 +2558,7 @@ LIBXSMM_API_INLINE void libxsmm_dnn_conv_generate_upd_kernels( libxsmm_dnn_conv_
     unary_shape.comp_type = LIBXSMM_DATATYPE_BF16;
     unary_shape.out_type  = LIBXSMM_DATATYPE_BF16;
 
-    if (res.ofwp % 2 != 0) {
+    if (res.ofwp % vnni_target != 0) {
       res.vnni_output_w_pixels_bf16 = libxsmm_dispatch_meltw_unary_v2( (l_is_aarch64 == 0) ? LIBXSMM_MELTW_TYPE_UNARY_TRANSFORM_NORM_TO_VNNI2_PAD : LIBXSMM_MELTW_TYPE_UNARY_TRANSFORM_NORM_TO_VNNI4_PAD, unary_shape, LIBXSMM_MELTW_FLAG_UNARY_NONE ) ;
     } else {
       res.vnni_output_w_pixels_bf16 = libxsmm_dispatch_meltw_unary_v2( (l_is_aarch64 == 0) ? LIBXSMM_MELTW_TYPE_UNARY_TRANSFORM_NORM_TO_VNNI2 : LIBXSMM_MELTW_TYPE_UNARY_TRANSFORM_NORM_TO_VNNI4, unary_shape, LIBXSMM_MELTW_FLAG_UNARY_NONE ) ;
@@ -2574,7 +2578,7 @@ LIBXSMM_API_INLINE void libxsmm_dnn_conv_generate_upd_kernels( libxsmm_dnn_conv_
     unary_shape.comp_type = LIBXSMM_DATATYPE_BF16;
     unary_shape.out_type  = LIBXSMM_DATATYPE_BF16;
 
-    if ((res.ofwp-1) % 2 != 0) {
+    if ((res.ofwp-1) % vnni_target != 0) {
       res.vnni_output_w2_pixels_bf16 = libxsmm_dispatch_meltw_unary_v2( (l_is_aarch64 == 0) ? LIBXSMM_MELTW_TYPE_UNARY_TRANSFORM_NORM_TO_VNNI2_PAD : LIBXSMM_MELTW_TYPE_UNARY_TRANSFORM_NORM_TO_VNNI4_PAD, unary_shape, LIBXSMM_MELTW_FLAG_UNARY_NONE ) ;
     } else {
       res.vnni_output_w2_pixels_bf16 = libxsmm_dispatch_meltw_unary_v2( (l_is_aarch64 == 0) ? LIBXSMM_MELTW_TYPE_UNARY_TRANSFORM_NORM_TO_VNNI2 : LIBXSMM_MELTW_TYPE_UNARY_TRANSFORM_NORM_TO_VNNI4, unary_shape, LIBXSMM_MELTW_FLAG_UNARY_NONE ) ;
@@ -2594,7 +2598,7 @@ LIBXSMM_API_INLINE void libxsmm_dnn_conv_generate_upd_kernels( libxsmm_dnn_conv_
     unary_shape.comp_type = LIBXSMM_DATATYPE_BF16;
     unary_shape.out_type  = LIBXSMM_DATATYPE_BF16;
 
-    if (res.compute_pixels % 2 != 0) {
+    if (res.compute_pixels % vnni_target != 0) {
       res.vnni_output_compute_pixels_bf16 = libxsmm_dispatch_meltw_unary_v2( (l_is_aarch64 == 0) ? LIBXSMM_MELTW_TYPE_UNARY_TRANSFORM_NORM_TO_VNNI2_PAD : LIBXSMM_MELTW_TYPE_UNARY_TRANSFORM_NORM_TO_VNNI4_PAD, unary_shape, LIBXSMM_MELTW_FLAG_UNARY_NONE ) ;
     } else {
       res.vnni_output_compute_pixels_bf16 = libxsmm_dispatch_meltw_unary_v2( (l_is_aarch64 == 0) ? LIBXSMM_MELTW_TYPE_UNARY_TRANSFORM_NORM_TO_VNNI2 : LIBXSMM_MELTW_TYPE_UNARY_TRANSFORM_NORM_TO_VNNI4, unary_shape, LIBXSMM_MELTW_FLAG_UNARY_NONE ) ;
@@ -2604,7 +2608,7 @@ LIBXSMM_API_INLINE void libxsmm_dnn_conv_generate_upd_kernels( libxsmm_dnn_conv_
       exit(-1);
     }
 
-    res.upd_remaining_pixels = res.output_pixels - ((res.compute_pixels+1)/2)*2;
+    res.upd_remaining_pixels = res.output_pixels - ((res.compute_pixels+vnni_target-1)/vnni_target)*vnni_target;
     if (res.upd_remaining_pixels > 0) {
       stride_in             = res.upd_remaining_pixels * res.ofmblock;
       stride_out            = res.upd_remaining_pixels * res.ofmblock;
