@@ -88,7 +88,7 @@ LIBXSMM_API void libxsmm_dnn_conv_upd_exec_bf16( libxsmm_dnn_conv_config cfg, co
                 unary_param.out.primary= (void*) &LIBXSMM_VLA_ACCESS(4, tr_input, img, ifm1, 0, ij * cfg.ifwp, cfg.blocksifm, cfg.ifmblock, cfg.input_pixels);
                 cfg.transpose_input_pixels_bf16( &unary_param );
               }
-              if (cfg.upd_remaining_pixels > 0) {
+              if ((cfg.input_pixels - cfg.ifhp * cfg.ifwp) > 0) {
                 for (ifm2 = 0; ifm2 < cfg.ifmblock; ifm2++) {
                   memset((void*) &LIBXSMM_VLA_ACCESS(4, tr_input, img, ifm1, ifm2, cfg.ifhp * cfg.ifwp, cfg.blocksifm, cfg.ifmblock, cfg.input_pixels), 0, (cfg.input_pixels - cfg.ifhp * cfg.ifwp)  * sizeof(libxsmm_bfloat16));
                 }
@@ -476,7 +476,7 @@ LIBXSMM_API void libxsmm_dnn_conv_upd_exec_bf16( libxsmm_dnn_conv_config cfg, co
                           unary_param.out.primary= (void*) &LIBXSMM_VLA_ACCESS(4, tr_input, img, ifm1, 0, ij * cfg.ifwp, cfg.blocksifm, cfg.ifmblock, cfg.input_pixels);
                           cfg.transpose_input_pixels_bf16( &unary_param );
                         }
-                        if (cfg.upd_remaining_pixels > 0) {
+                        if ((cfg.input_pixels - cfg.ifhp * cfg.ifwp) > 0) {
                           for (ifm2 = 0; ifm2 < cfg.ifmblock; ifm2++) {
                             memset((void*) &LIBXSMM_VLA_ACCESS(4, tr_input, img, ifm1, ifm2, cfg.ifhp * cfg.ifwp, cfg.blocksifm, cfg.ifmblock, cfg.input_pixels), 0, (cfg.input_pixels - cfg.ifhp * cfg.ifwp)  * sizeof(libxsmm_bfloat16));
                           }
