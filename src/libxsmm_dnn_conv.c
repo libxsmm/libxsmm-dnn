@@ -2624,6 +2624,21 @@ LIBXSMM_API_INLINE void libxsmm_dnn_conv_generate_upd_kernels( libxsmm_dnn_conv_
       }
     }
 
+    if ((res.input_pixels - res.ifhp * res.ifwp) > 0) {
+      stride_in             = res.input_pixels;
+      stride_out            = res.input_pixels;
+      unary_shape.m         = (res.input_pixels - res.ifhp * res.ifwp);
+      unary_shape.n         = res.ifmblock;
+      unary_shape.ldi       = stride_in;
+      unary_shape.ldo       = stride_out;
+
+      res.input_zero_remaining_pixels_bf16 = libxsmm_dispatch_meltw_unary_v2( LIBXSMM_MELTW_TYPE_UNARY_XOR, unary_shape, LIBXSMM_MELTW_FLAG_UNARY_NONE ) ;
+      if (  res.input_zero_remaining_pixels_bf16  == NULL ) {
+        fprintf( stderr, "JIT for TPP input_zero_remaining_pixels_bf16 failed. Bailing...!\n");
+        exit(-1);
+      }
+    }
+
     stride_in             = res.ifmblock;
     stride_out            = res.ifhp * res.ifwp_extended;
     unary_shape.m         = res.ifmblock;
