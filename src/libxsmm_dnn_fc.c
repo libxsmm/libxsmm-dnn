@@ -86,6 +86,13 @@ LIBXSMM_API libxsmm_dnn_fc_fwd_config setup_libxsmm_dnn_fc_fwd(libxsmm_blasint N
     res.fwd_row_teams = 14;
     res.fwd_M_hyperpartitions = 1;
     res.fwd_N_hyperpartitions = 4;
+  } else if (threads == 64) {
+    res.fwd_bf = 1;
+    res.fwd_2d_blocking = 1;
+    res.fwd_col_teams = 1;
+    res.fwd_row_teams = 8;
+    res.fwd_M_hyperpartitions = 1;
+    res.fwd_N_hyperpartitions = 8;
   } else if (threads == 1) {
     res.fwd_bf = 1;
     res.fwd_2d_blocking = 1;
@@ -575,6 +582,21 @@ LIBXSMM_API libxsmm_dnn_fc_bwd_config setup_libxsmm_dnn_fc_bwd(libxsmm_blasint N
     res.upd_row_teams = 14;
     res.upd_M_hyperpartitions = 1;
     res.upd_N_hyperpartitions = 4;
+    res.ifm_subtasks = 1;
+    res.ofm_subtasks = 1;
+  } else if (threads == 64) {
+    res.bwd_bf = 1;
+    res.bwd_2d_blocking = 1;
+    res.bwd_col_teams = 1;
+    res.bwd_row_teams = 8;
+    res.bwd_M_hyperpartitions = 1;
+    res.bwd_N_hyperpartitions = 8;
+    res.upd_bf = 1;
+    res.upd_2d_blocking = 1;
+    res.upd_col_teams = 1;
+    res.upd_row_teams = 8;
+    res.upd_M_hyperpartitions = 1;
+    res.upd_N_hyperpartitions = 8;
     res.ifm_subtasks = 1;
     res.ofm_subtasks = 1;
   } else if (res.threads == 2) {
