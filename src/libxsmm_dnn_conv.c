@@ -3372,10 +3372,10 @@ LIBXSMM_API_INLINE void libxsmm_dnn_conv_generate_upd_kernels( libxsmm_dnn_conv_
     libxsmm_blasint stride_b = res.ifwp_extended * sizeof(libxsmm_bfloat8);
     l_shape.m = res.ofmblock;
     l_shape.n = res.ifmblock;
-    if (res.ofw % 2 == 0) {
+    if (res.ofw % 4 == 0) {
       l_shape.k = res.ofw;
     } else {
-      l_shape.k = res.ofw + 1;
+      l_shape.k = res.ofw + (res.ofw%4);
     }
     l_shape.lda = LDA;
     l_shape.ldb = LDB;
