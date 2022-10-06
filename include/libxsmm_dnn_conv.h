@@ -3,7 +3,7 @@
 * This file is part of the LIBXSMM library.                                   *
 *                                                                             *
 * For information on the license, see the LICENSE file.                       *
-* Further information: https://github.com/libxsmm/libxsmm_dnn/                *
+* Further information: https://github.com/hfp/libxsmm/                        *
 * SPDX-License-Identifier: BSD-3-Clause                                       *
 ******************************************************************************/
 /* Evangelos Georganas (Intel Corp.)
@@ -169,6 +169,24 @@ typedef struct libxsmm_dnn_conv_config {
   libxsmm_meltwfunction_unary  relu_kernel_bf16;
   libxsmm_meltwfunction_binary colbias_add_kernel_bf16;
 
+  libxsmm_xmmfunction fwd_compute_kernel_strd_fused_bf8;
+  libxsmm_xmmfunction fwd_compute_kernel_strd_bf8;
+  libxsmm_xmmfunction fwd_compute_kernel2_strd_bf8;
+  libxsmm_xmmfunction fwd_compute_kernel_offs_fused_bf8;
+  libxsmm_xmmfunction fwd_compute_kernel_offs_bf8;
+  libxsmm_xmmfunction fwd_compute_kernel_strd_bf8f32;
+  libxsmm_xmmfunction fwd_compute_kernel2_strd_bf8f32;
+  libxsmm_meltwfunction_unary cvt_kernel_fp32bf8;
+
+  libxsmm_meltwfunction_unary strided_copy_kernel_bf8;
+  libxsmm_meltwfunction_unary ifmblock_copy_kernel_bf8;
+  libxsmm_meltwfunction_unary ifmblock_zero_kernel_bf8;
+  libxsmm_meltwfunction_unary ofmblock_zero_kernel_bf8;
+  libxsmm_meltwfunction_unary ofw_x_ofmblock_zero_kernel_bf8;
+  libxsmm_meltwfunction_unary ofh_x_ofw_x_ofmblock_zero_kernel_bf8;
+  libxsmm_meltwfunction_unary  relu_kernel_bf8;
+  libxsmm_meltwfunction_binary colbias_add_kernel_bf8;
+
   /* Hoisting the compute kernels for BWD  */
   libxsmm_xmmfunction bwd_compute_kernel_strd_f32;
   libxsmm_xmmfunction bwd_compute_kernel2_strd_f32;
@@ -183,6 +201,13 @@ typedef struct libxsmm_dnn_conv_config {
   libxsmm_xmmfunction bwd_compute_kernel_fallback_bf16;
   libxsmm_meltwfunction_unary cvt_kernel_bwd_fp32bf16;
   libxsmm_meltwfunction_unary tr_kernel;
+  libxsmm_xmmfunction bwd_compute_kernel_strd_bf8;
+  libxsmm_xmmfunction bwd_compute_kernel2_strd_bf8;
+  libxsmm_xmmfunction bwd_compute_kernel_strd_bf8f32;
+  libxsmm_xmmfunction bwd_compute_kernel2_strd_bf8f32;
+  libxsmm_xmmfunction bwd_compute_kernel_offs_bf8;
+  libxsmm_xmmfunction bwd_compute_kernel_fallback_bf8;
+  libxsmm_meltwfunction_unary cvt_kernel_bwd_fp32bf8;
 
   libxsmm_meltwfunction_unary ofh_x_ofw_x_ifmblock_zero_kernel_f32;
   libxsmm_meltwfunction_unary paddedH_x_paddedW_x_ifmblock_zero_kernel_f32;
@@ -191,6 +216,10 @@ typedef struct libxsmm_dnn_conv_config {
   libxsmm_meltwfunction_unary ofh_x_ofw_x_ifmblock_zero_kernel_bf16;
   libxsmm_meltwfunction_unary paddedH_x_paddedW_x_ifmblock_zero_kernel_bf16;
   libxsmm_meltwfunction_unary ifhp_x_ifwp_x_ifmblock_zero_kernel_bf16;
+
+  libxsmm_meltwfunction_unary ofh_x_ofw_x_ifmblock_zero_kernel_bf8;
+  libxsmm_meltwfunction_unary paddedH_x_paddedW_x_ifmblock_zero_kernel_bf8;
+  libxsmm_meltwfunction_unary ifhp_x_ifwp_x_ifmblock_zero_kernel_bf8;
 
   /* Hoisting the compute kernels for UPD  */
   libxsmm_xmmfunction upd_compute_kernel_no_linearized_tasklist_f32;
@@ -210,8 +239,16 @@ typedef struct libxsmm_dnn_conv_config {
   libxsmm_xmmfunction upd_compute_kernel3_bf16f32;
   libxsmm_xmmfunction upd_compute_kernel4_bf16f32;
 
+  libxsmm_xmmfunction upd_compute_kernel1_bf8f32;
+  libxsmm_xmmfunction upd_compute_kernel2_bf8f32;
+  libxsmm_xmmfunction upd_compute_kernel3_bf8f32;
+  libxsmm_xmmfunction upd_compute_kernel4_bf8f32;
+
   libxsmm_meltwfunction_unary upd_weight_cvt_f32bf16;
   libxsmm_meltwfunction_unary upd_weight_vnni_format_bf16;
+  libxsmm_meltwfunction_unary upd_weight_cvt_f32bf8;
+  libxsmm_meltwfunction_unary upd_weight_vnni_format_bf8;
+
   libxsmm_meltwfunction_unary zero_full_weights_f32;
   libxsmm_meltwfunction_unary zero_partial_weights_f32;
   libxsmm_meltwfunction_unary zero_ofmblock_pixels_bf16;
@@ -232,6 +269,25 @@ typedef struct libxsmm_dnn_conv_config {
 
   libxsmm_meltwfunction_unary wt_reduce_kernel0_bf16;
   libxsmm_meltwfunction_unary wt_reduce_kernel1_bf16;
+
+  libxsmm_meltwfunction_unary zero_ofmblock_pixels_bf8;
+  libxsmm_meltwfunction_unary zero_ifmblock_input_pixels_bf8;
+  libxsmm_meltwfunction_unary zero_ifmblock_input_pixels_extended_bf8;
+  libxsmm_meltwfunction_unary zero_ofmblock_output_pixels_bf8;
+  libxsmm_meltwfunction_unary transpose_input_pixels_bf8;
+  libxsmm_meltwfunction_unary transposeNpack_input_pixels_bf8;
+  libxsmm_meltwfunction_unary transpose_input_pixels_ifwp_extended_bf8;
+  libxsmm_meltwfunction_unary transpose_input_pixels_ifwp_strided_extended_bf8;
+  libxsmm_meltwfunction_unary transpose_input_pixels_ifwp_extended2_bf8;
+  libxsmm_meltwfunction_unary vnni_output_pixels_bf8;
+  libxsmm_meltwfunction_unary vnni_output_pixels_extended_bf8;
+  libxsmm_meltwfunction_unary vnni_output_w_pixels_bf8;
+  libxsmm_meltwfunction_unary vnni_output_w2_pixels_bf8;
+  libxsmm_meltwfunction_unary vnni_output_compute_pixels_bf8;
+  libxsmm_meltwfunction_unary vnni_output_zero_remaining_pixels_bf8;
+
+  libxsmm_meltwfunction_unary wt_reduce_kernel0_bf8;
+  libxsmm_meltwfunction_unary wt_reduce_kernel1_bf8;
 
   unsigned long long *A_offsets;
   unsigned long long *B_offsets;
@@ -294,16 +350,25 @@ LIBXSMM_API void libxsmm_dnn_conv_bwd_exec( libxsmm_dnn_conv_config cfg, const f
 LIBXSMM_API void libxsmm_dnn_conv_bwd_exec_bf16( libxsmm_dnn_conv_config cfg, const libxsmm_bfloat16* wt_ptr, const libxsmm_bfloat16* tr_wt_ptr,  const libxsmm_bfloat16* dout_act_ptr, libxsmm_bfloat16* din_act_ptr,
     unsigned char* relu_ptr, int start_tid, int my_tid, void* scratch );
 
+LIBXSMM_API void libxsmm_dnn_conv_bwd_exec_bf8( libxsmm_dnn_conv_config cfg, const libxsmm_bfloat8* wt_ptr, const libxsmm_bfloat8* tr_wt_ptr,  const libxsmm_bfloat8* dout_act_ptr, libxsmm_bfloat8* din_act_ptr,
+    unsigned char* relu_ptr, int start_tid, int my_tid, void* scratch );
+
 LIBXSMM_API void libxsmm_dnn_conv_fwd_exec( libxsmm_dnn_conv_config cfg, const float* wt_ptr, const float* in_act_ptr, float* out_act_ptr,
     const float* bias_ptr, unsigned char* relu_ptr, int start_tid, int my_tid, void* scratch );
 
 LIBXSMM_API void libxsmm_dnn_conv_fwd_exec_bf16( libxsmm_dnn_conv_config cfg, const libxsmm_bfloat16* wt_ptr, const libxsmm_bfloat16* in_act_ptr, libxsmm_bfloat16* out_act_ptr,
     const libxsmm_bfloat16* bias_ptr, unsigned char* relu_ptr, int start_tid, int my_tid, void* scratch );
 
+LIBXSMM_API void libxsmm_dnn_conv_fwd_exec_bf8( libxsmm_dnn_conv_config cfg, const libxsmm_bfloat8* wt_ptr, const libxsmm_bfloat8* in_act_ptr, libxsmm_bfloat8* out_act_ptr,
+    const libxsmm_bfloat8* bias_ptr, unsigned char* relu_ptr, int start_tid, int my_tid, void* scratch );
+
 LIBXSMM_API void libxsmm_dnn_conv_upd_exec( libxsmm_dnn_conv_config cfg, const float* in_act_ptr, const float* dout_act_ptr, float* dfilter_ptr,
     unsigned char* bias_ptr, int start_tid, int my_tid, void* scratch );
 
 LIBXSMM_API void libxsmm_dnn_conv_upd_exec_bf16( libxsmm_dnn_conv_config cfg, const libxsmm_bfloat16* in_act_ptr, const libxsmm_bfloat16* dout_act_ptr, libxsmm_bfloat16* dfilter_ptr,
+    unsigned char* bias_ptr, int start_tid, int my_tid, void* scratch );
+
+LIBXSMM_API void libxsmm_dnn_conv_upd_exec_bf8( libxsmm_dnn_conv_config cfg, const libxsmm_bfloat8* in_act_ptr, const libxsmm_bfloat8* dout_act_ptr, libxsmm_bfloat8* dfilter_ptr,
     unsigned char* bias_ptr, int start_tid, int my_tid, void* scratch );
 
 #endif
