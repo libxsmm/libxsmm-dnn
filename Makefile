@@ -55,16 +55,19 @@ all: $(XFILES)
 .PHONY: compile
 compile: $(OBJECTS) $(FTNOBJS)
 
-$(OUTDIR)/libxsmm_dnn.so: $(OUTDIR)/.make $(COBJCTS) $(LIBDEP)
+$(LIBDEP):
+	@$(FLOCK) $(DEPDIR) "$(MAKE) --no-print-directory"
+
+$(OUTDIR)/libxsmm_dnn.so: $(OUTDIR)/.make $(COBJCTS)
 	$(LD) -shared -o $@ $(COBJCTS) $(call cleanld,$(MAINLIB) $(SLDFLAGS) $(LDFLAGS) $(CLDFLAGS))
 
-$(OUTDIR)/libxsmm_dnn.a: $(OUTDIR)/.make $(COBJCTS) $(LIBDEP)
+$(OUTDIR)/libxsmm_dnn.a: $(OUTDIR)/.make $(COBJCTS)
 	$(AR) -rs $@ $(COBJCTS)
 
-$(BLDDIR)/%-cpp.o: $(SRCDIR)/%.cpp .state $(BLDDIR)/.make $(HEADERS) Makefile $(DEPDIR)/Makefile.inc
+$(BLDDIR)/%-cpp.o: $(SRCDIR)/%.cpp .state $(BLDDIR)/.make $(HEADERS) Makefile $(DEPDIR)/Makefile.inc $(LIBDEP)
 	$(CXX) $(DFLAGS) $(IFLAGS) $(CXXFLAGS) $(CTARGET) -c $< -o $@
 
-$(BLDDIR)/%-c.o: $(SRCDIR)/%.c .state $(BLDDIR)/.make $(HEADERS) Makefile $(DEPDIR)/Makefile.inc
+$(BLDDIR)/%-c.o: $(SRCDIR)/%.c .state $(BLDDIR)/.make $(HEADERS) Makefile $(DEPDIR)/Makefile.inc $(LIBDEP)
 	$(CC) $(DFLAGS) $(IFLAGS) $(CFLAGS) $(CTARGET) -c $< -o $@
 
 .PHONY: clean
