@@ -3,7 +3,7 @@
 * This file is part of the LIBXSMM library.                                   *
 *                                                                             *
 * For information on the license, see the LICENSE file.                       *
-* Further information: https://github.com/hfp/libxsmm/                        *
+* Further information: https://github.com/libxsmm/libxsmm_dnn/                *
 * SPDX-License-Identifier: BSD-3-Clause                                       *
 ******************************************************************************/
 /* Evangelos Georganas (Intel Corp.)
@@ -284,15 +284,7 @@ LIBXSMM_API_INLINE int libxsmm_dnn_conv_setup_blocksifm_blocking( libxsmm_dnn_co
   }
 #endif
 
-  if (cfg->datatype_in == LIBXSMM_DATATYPE_I8) {
-    result = cfg->blocksifm;
-  }
-
-  if (cfg->datatype_in == LIBXSMM_DATATYPE_BF16) {
-    result = cfg->blocksifm;
-  }
-
-  if (cfg->datatype_in == LIBXSMM_DATATYPE_BF8) {
+  if ((cfg->datatype_in == LIBXSMM_DATATYPE_BF16) || (cfg->datatype_in == LIBXSMM_DATATYPE_BF8) || (cfg->datatype_in == LIBXSMM_DATATYPE_I8)) {
     result = cfg->blocksifm;
   }
 
@@ -380,14 +372,9 @@ LIBXSMM_API_INLINE int libxsmm_dnn_conv_setup_avoid_rim_fmas_fwd( libxsmm_dnn_co
   }
 #endif
 
-  if (cfg->datatype_in == LIBXSMM_DATATYPE_BF16) {
+  if ((cfg->datatype_in == LIBXSMM_DATATYPE_BF16) || (cfg->datatype_in == LIBXSMM_DATATYPE_BF8)) {
     result = 0;
   }
-
-  if (cfg->datatype_in == LIBXSMM_DATATYPE_BF8) {
-    result = 0;
-  }
-
   return result;
 }
 
@@ -632,11 +619,7 @@ LIBXSMM_API_INLINE int libxsmm_dnn_conv_setup_blocksofm_blocking( libxsmm_dnn_co
     result = 1;
   }
 
-  if (cfg->datatype_in == LIBXSMM_DATATYPE_BF16) {
-    result = cfg->blocksofm;
-  }
-
-  if (cfg->datatype_in == LIBXSMM_DATATYPE_BF8) {
+  if ((cfg->datatype_in == LIBXSMM_DATATYPE_BF16) || (cfg->datatype_in == LIBXSMM_DATATYPE_BF8)) {
     result = cfg->blocksofm;
   }
 
@@ -3871,7 +3854,6 @@ LIBXSMM_API libxsmm_dnn_conv_config setup_libxsmm_dnn_conv( libxsmm_datatype cnn
   res.upd_padding_copy = libxsmm_dnn_conv_setup_upd_padding_copy(&res);
 
   if (cnn_dtype_in == LIBXSMM_DATATYPE_BF16) {
-  //if (cnn_dtype_in == LIBXSMM_DATATYPE_BF16 || cnn_dtype_in == LIBXSMM_DATATYPE_BF8) {
     libxsmm_dnn_conv_setup_bf16_upd_algorithms(&res);
   } else if (cnn_dtype_in == LIBXSMM_DATATYPE_BF8) {
     libxsmm_dnn_conv_setup_bf8_upd_algorithms(&res);

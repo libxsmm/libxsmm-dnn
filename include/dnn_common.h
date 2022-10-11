@@ -3,7 +3,7 @@
 * This file is part of the LIBXSMM library.                                   *
 *                                                                             *
 * For information on the license, see the LICENSE file.                       *
-* Further information: https://github.com/libxsmm/libxsmm/                    *
+* Further information: https://github.com/libxsmm/libxsmm_dnn/                *
 * SPDX-License-Identifier: BSD-3-Clause                                       *
 ******************************************************************************/
 /* Alexander Heinecke (Intel Corp.)
@@ -1178,8 +1178,6 @@ LIBXSMM_INLINE void matrix_copy_KCCK_to_CKKC_bf16(libxsmm_bfloat16 *src, libxsmm
   }
 }
 
-/****************************************************************/
-
 LIBXSMM_INLINE void matrix_copy_CK_to_KCCK_bf8(libxsmm_bfloat8 *src, libxsmm_bfloat8 *dst, int C, int K, int bc, int bk)
 {
   int k1, k2, c1, c2;
@@ -1323,8 +1321,6 @@ LIBXSMM_INLINE void matrix_copy_KCCK_to_CKKC_bf8(libxsmm_bfloat8 *src, libxsmm_b
     }
   }
 }
-
-/***************************************************************/
 
 LIBXSMM_INLINE void tensor_copy_NCHW_to_NCHWc(float *src, float *dst, int N, int C, int H, int W, int bc)
 {
@@ -1509,8 +1505,6 @@ LIBXSMM_INLINE void tensor_copy_NCHWc_to_NCHW_bf16(libxsmm_bfloat16 *src, libxsm
   }
 }
 
-/**********************************************************************/
-
 LIBXSMM_INLINE void tensor_copy_NCHW_to_NCHWc_bf8(libxsmm_bfloat8 *src, libxsmm_bfloat8 *dst, int N, int C, int H, int W, int bc)
 {
   int n, h, w, c1, c2;
@@ -1590,8 +1584,6 @@ LIBXSMM_INLINE void tensor_copy_NCHWc_to_NCHW_bf8(libxsmm_bfloat8 *src, libxsmm_
   }
 }
 
-/**********************************************************************/
-
 LIBXSMM_INLINE void tensor_copy_KCRS_to_KCRSck(float *src, float *dst, int K, int C, int R, int S, int bc, int bk)
 {
   int k1, k2, c1, c2, r, s;
@@ -1620,7 +1612,7 @@ LIBXSMM_INLINE void tensor_copy_KCRS_to_KCRSck(float *src, float *dst, int K, in
   }
 }
 
-LIBXSMM_INLINE void tensor_copy_KCRS_to_KCRSck_bf16(float *src, libxsmm_bfloat16 *dst, int K, int C, int R, int S, int bc, int bk)
+LIBXSMM_INLINE void tensor_cvt_copy_KCRS_to_KCRSck_bf16(float *src, libxsmm_bfloat16 *dst, int K, int C, int R, int S, int bc, int bk)
 {
   int k1, k2, c1, c2, r, s;
   int cBlocks = C/bc;
@@ -1648,7 +1640,7 @@ LIBXSMM_INLINE void tensor_copy_KCRS_to_KCRSck_bf16(float *src, libxsmm_bfloat16
   }
 }
 
-LIBXSMM_INLINE void tensor_copy_KCRS_to_KCRSck_bf8(float *src, libxsmm_bfloat8 *dst, int K, int C, int R, int S, int bc, int bk)
+LIBXSMM_INLINE void tensor_cvt_copy_KCRS_to_KCRSck_bf8(float *src, libxsmm_bfloat8 *dst, int K, int C, int R, int S, int bc, int bk)
 {
   int k1, k2, c1, c2, r, s;
   int cBlocks = C/bc;
@@ -1704,7 +1696,7 @@ LIBXSMM_INLINE void tensor_copy_KCRSck_to_KCRS(float *src, float *dst, int K, in
   }
 }
 
-LIBXSMM_INLINE void tensor_copy_KCRSck_vnni2_to_norm_f32(libxsmm_bfloat16 *src, float *dst, int K, int C, int R, int S, int bc, int bk)
+LIBXSMM_INLINE void tensor_cvt_copy_KCRSck_vnni2_to_norm_f32(libxsmm_bfloat16 *src, float *dst, int K, int C, int R, int S, int bc, int bk)
 {
   int k1, k2, c1, c2, r, s;
   int cBlocks = C/bc;
@@ -1733,7 +1725,7 @@ LIBXSMM_INLINE void tensor_copy_KCRSck_vnni2_to_norm_f32(libxsmm_bfloat16 *src, 
   }
 }
 
-LIBXSMM_INLINE void tensor_copy_KCRSck_vnni4_to_norm_f32(libxsmm_bfloat8 *src, float *dst, int K, int C, int R, int S, int bc, int bk)
+LIBXSMM_INLINE void tensor_cvt_copy_KCRSck_vnni4_to_norm_f32(libxsmm_bfloat8 *src, float *dst, int K, int C, int R, int S, int bc, int bk)
 {
   int k1, k2, c1, c2, r, s;
   int cBlocks = C/bc;
@@ -1791,7 +1783,7 @@ LIBXSMM_INLINE void tensor_transpose_KCRSck_to_CKRSkc(float *src, float *dst, in
   }
 }
 
-LIBXSMM_INLINE void tensor_transpose_KCRSck_to_CKRSkc_bf16(float *src, libxsmm_bfloat16 *dst, int K, int C, int R, int S, int bc, int bk)
+LIBXSMM_INLINE void tensor_cvt_transpose_KCRSck_to_CKRSkc_bf16(float *src, libxsmm_bfloat16 *dst, int K, int C, int R, int S, int bc, int bk)
 {
   int k1, k2, c1, c2, r, s;
   int cBlocks = C/bc;
@@ -1819,7 +1811,7 @@ LIBXSMM_INLINE void tensor_transpose_KCRSck_to_CKRSkc_bf16(float *src, libxsmm_b
   }
 }
 
-LIBXSMM_INLINE void tensor_transpose_KCRSck_to_CKRSkc_bf8(float *src, libxsmm_bfloat8 *dst, int K, int C, int R, int S, int bc, int bk)
+LIBXSMM_INLINE void tensor_cvt_transpose_KCRSck_to_CKRSkc_bf8(float *src, libxsmm_bfloat8 *dst, int K, int C, int R, int S, int bc, int bk)
 {
   int k1, k2, c1, c2, r, s;
   int cBlocks = C/bc;
