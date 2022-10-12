@@ -19,7 +19,7 @@ fi
 
 if [ $# -ne 8 ]
 then
-  echo "Usage: $(basename $0) bin=(f32, bf16) iters MB type=(A, F, B, U, M) fuse=(0 (None), 1 (Bias), 2 (ReLU), 4 (Bias+ReLU)) bn bc bk"
+  echo "Usage: $(basename $0) bin=(f32, bf16, bf8) iters MB type=(A, F, B, U, M) fuse=(0 (None), 1 (Bias), 2 (ReLU), 4 (Bias+ReLU)) bn bc bk"
   BIN=f32
   ITERS=${CHECK_DNN_ITERS}
   MB=${CHECK_DNN_MB}
@@ -98,13 +98,14 @@ if [ "" = "${LIBXSMM_TARGET_HIDDEN}" ] || [ "0" = "${LIBXSMM_TARGET_HIDDEN}" ]; 
 fi
 
 if [ "f32" == "${BIN}" ]; then
-  PREC_BF16=0
+  PREC=4
+elif [ "bf16" == "${BIN}" ]; then
+  PREC=2
 else
-  PREC_BF16=1
+  PREC=1
 fi
 
-${NUMACTL} ./layer_example ${ITERS} ${MB} 128 256 ${FUSE} ${TYPE} ${BN} ${BK} ${BC} ${PREC_BF16}
-${NUMACTL} ./layer_example ${ITERS} ${MB} 512 1024 ${FUSE} ${TYPE} ${BN} ${BK} ${BC} ${PREC_BF16}
-${NUMACTL} ./layer_example ${ITERS} ${MB} 1024 1024 ${FUSE} ${TYPE} ${BN} ${BK} ${BC} ${PREC_BF16}
-${NUMACTL} ./layer_example ${ITERS} ${MB} 2048 512 ${FUSE} ${TYPE} ${BN} ${BK} ${BC} ${PREC_BF16}
-
+${NUMACTL} ./layer_example ${ITERS} ${MB} 128 256 ${FUSE} ${TYPE} ${BN} ${BK} ${BC} ${PREC}
+${NUMACTL} ./layer_example ${ITERS} ${MB} 512 1024 ${FUSE} ${TYPE} ${BN} ${BK} ${BC} ${PREC}
+${NUMACTL} ./layer_example ${ITERS} ${MB} 1024 1024 ${FUSE} ${TYPE} ${BN} ${BK} ${BC} ${PREC}
+${NUMACTL} ./layer_example ${ITERS} ${MB} 2048 512 ${FUSE} ${TYPE} ${BN} ${BK} ${BC} ${PREC}

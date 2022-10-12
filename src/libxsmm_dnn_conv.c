@@ -67,6 +67,8 @@ LIBXSMM_API_INLINE void  libxsmm_dnn_conv_get_feature_map_blocks( int C, int K, 
     lp_block = 1;
   } else if ( (datatype_in == LIBXSMM_DATATYPE_BF16) && (datatype_out == LIBXSMM_DATATYPE_BF16) ) {
     lp_block = 2;
+  } else if ( (datatype_in == LIBXSMM_DATATYPE_BF8) && (datatype_out == LIBXSMM_DATATYPE_BF8) ) {
+    lp_block = 4;
   } else if ( (datatype_in == LIBXSMM_DATATYPE_I16) && ((datatype_out == LIBXSMM_DATATYPE_I32) || (datatype_out == LIBXSMM_DATATYPE_F32)) ) {
     lp_block = 2;
   } else if (datatype_in == LIBXSMM_DATATYPE_I8) {
@@ -282,13 +284,10 @@ LIBXSMM_API_INLINE int libxsmm_dnn_conv_setup_blocksifm_blocking( libxsmm_dnn_co
   }
 #endif
 
-  if (cfg->datatype_in == LIBXSMM_DATATYPE_I8) {
+  if ((cfg->datatype_in == LIBXSMM_DATATYPE_BF16) || (cfg->datatype_in == LIBXSMM_DATATYPE_BF8) || (cfg->datatype_in == LIBXSMM_DATATYPE_I8)) {
     result = cfg->blocksifm;
   }
 
-  if (cfg->datatype_in == LIBXSMM_DATATYPE_BF16) {
-    result = cfg->blocksifm;
-  }
   return result;
 }
 
@@ -373,10 +372,9 @@ LIBXSMM_API_INLINE int libxsmm_dnn_conv_setup_avoid_rim_fmas_fwd( libxsmm_dnn_co
   }
 #endif
 
-  if (cfg->datatype_in == LIBXSMM_DATATYPE_BF16) {
+  if ((cfg->datatype_in == LIBXSMM_DATATYPE_BF16) || (cfg->datatype_in == LIBXSMM_DATATYPE_BF8)) {
     result = 0;
   }
-
   return result;
 }
 
@@ -434,7 +432,7 @@ LIBXSMM_API_INLINE int libxsmm_dnn_conv_setup_init_fwd_gemm_flags( libxsmm_dnn_c
     result = LIBXSMM_GEMM_FLAG_ALIGN_C_NTS_HINT;
   }
   /* Disable since the GEMM output is going to f32 scratch  */
-  if (cfg->datatype_in == LIBXSMM_DATATYPE_BF16 || cfg->datatype_in == LIBXSMM_DATATYPE_I8) {
+  if (cfg->datatype_in == LIBXSMM_DATATYPE_BF16 || cfg->datatype_in == LIBXSMM_DATATYPE_BF8 || cfg->datatype_in == LIBXSMM_DATATYPE_I8) {
     result = 0;
   }
 #else
@@ -474,7 +472,7 @@ LIBXSMM_API_INLINE void libxsmm_dnn_conv_setup_fwd_scratch( libxsmm_dnn_conv_con
       LIBXSMM_TYPESIZE(cfg->datatype_in);
   }
   /* output buffer in high precision when we use BF16 */
-  if ( ( cfg->datatype_in == LIBXSMM_DATATYPE_BF16 ) ||
+  if ( ( cfg->datatype_in == LIBXSMM_DATATYPE_BF16 ) || ( cfg->datatype_in == LIBXSMM_DATATYPE_BF8 ) ||
       ( cfg->datatype_in == LIBXSMM_DATATYPE_I8 )      ) {
     cfg->fwd_lp_output_full_scratch_size = (size_t) LIBXSMM_MAX(cfg->threads * cfg->fwd_gemm_pixels * cfg->ofmblock * LIBXSMM_TYPESIZE(LIBXSMM_DATATYPE_F32), cfg->N * cfg->K * cfg->ofwp * cfg->ofhp * LIBXSMM_TYPESIZE(LIBXSMM_DATATYPE_F32));
     cfg->fwd_lp_output_block_scratch_size = (size_t)cfg->threads * cfg->fwd_ofw_rb *
@@ -621,7 +619,7 @@ LIBXSMM_API_INLINE int libxsmm_dnn_conv_setup_blocksofm_blocking( libxsmm_dnn_co
     result = 1;
   }
 
-  if (cfg->datatype_in == LIBXSMM_DATATYPE_BF16) {
+  if ((cfg->datatype_in == LIBXSMM_DATATYPE_BF16) || (cfg->datatype_in == LIBXSMM_DATATYPE_BF8)) {
     result = cfg->blocksofm;
   }
 
@@ -683,7 +681,7 @@ LIBXSMM_API_INLINE void libxsmm_dnn_conv_setup_bwd_scratch( libxsmm_dnn_conv_con
       LIBXSMM_TYPESIZE(cfg->datatype_in);
   }
   /* input bufffer in high precision when we use BF16 */
-  if ( cfg->datatype_in == LIBXSMM_DATATYPE_BF16 ) {
+  if ( cfg->datatype_in == LIBXSMM_DATATYPE_BF16 || cfg->datatype_in == LIBXSMM_DATATYPE_BF8 ) {
     cfg->bwd_lp_input_full_scratch_size = (size_t) LIBXSMM_MAX(cfg->threads * cfg->bwd_gemm_pixels * cfg->ifmblock * LIBXSMM_TYPESIZE(LIBXSMM_DATATYPE_F32), cfg->N * cfg->C * cfg->ifwp * cfg->ifhp * LIBXSMM_TYPESIZE(LIBXSMM_DATATYPE_F32));
     /* logical padding with copying in the fly */
     if ( cfg->use_fallback_bwd_loops != 0 ) {
@@ -753,6 +751,101 @@ LIBXSMM_API_INLINE void libxsmm_dnn_conv_setup_bf16_upd_algorithms( libxsmm_dnn_
   libxsmm_dnn_conv_config res = *inout_cfg;
   int remainder_pixels, max_init_offset, max_compute_offset_input, input_compute_pad, accum_length_pixels, compute_pixels;
   const int multiple_target = 2;
+  int IFHP = (res.upd_padding_copy == 1) ? res.ifhp + 2 * res.pad_h : res.ifhp;
+  int IFWP = (res.upd_padding_copy == 1) ? res.ifwp + 2 * res.pad_w : res.ifwp;
+  int OFHP = (res.upd_padding_copy == 1) ? res.ofhp + 2 * res.pad_h : res.ofhp;
+  int OFWP = (res.upd_padding_copy == 1) ? res.ofwp + 2 * res.pad_w : res.ofwp;
+  res.ifwp_extended = IFWP;
+  res.upd_linearized_pixels = 1;
+  if (res.S != 1 && res.v != 1) {
+    res.upd_linearized_pixels = 0;
+    res.upd_trans_w_only = 0;
+  }
+  if ((res.S != 1 && res.pad_w == 0) ||
+      (res.R != 1 && res.pad_h == 0) ) {
+    res.upd_linearized_pixels = 0;
+    res.upd_trans_w_only = 0;
+  }
+
+  /* For large images facilitate the "large" transposes by blocking the pixel/reduction domains  */
+  if (res.ofw >= 56 && res.ofh >=56 && res.R == 1 && res.S == 1 && res.u == 1 && res.v == 1) {
+    res.upd_linearized_pixels = 0;
+    res.upd_trans_w_only = 1;
+  }
+
+  res.on_the_fly_input_packing = 0;
+  res.upd_pack_input_upfront = 0;
+  res.use_hybrid_imgofm_parallelization = 0;
+  res.upd_linearized_tasklist = 0;
+
+  if (res.upd_linearized_pixels == 1) {
+    /* Logistics to pad accumulation chainlength */
+    compute_pixels = res.ofw * res.ofh + 2 * res.pad_w * (res.ofh-1);
+    remainder_pixels = (compute_pixels % multiple_target == 0) ? 0 : (compute_pixels/multiple_target+1)*multiple_target - compute_pixels;
+    accum_length_pixels = compute_pixels + remainder_pixels;
+
+    /* In this case compact input upfront */
+    if (res.R == 1 && res.S == 1 && (res.u != 1 || res.v != 1)) {
+      res.upd_pack_input_upfront = 1;
+    }
+
+    /* Logistics for input transpose and additional pixel padding */
+    max_init_offset = 2 * res.pad_h * IFWP + 2 * res.pad_w;
+    max_compute_offset_input = max_init_offset + accum_length_pixels;
+    input_compute_pad = (max_compute_offset_input > IFWP*IFHP) ? max_compute_offset_input - IFWP*IFHP : 0;
+    res.input_pixels = IFWP * IFHP + input_compute_pad;
+    if (res.upd_pack_input_upfront) {
+      res.input_pixels = accum_length_pixels;
+    }
+    res.output_pixels = accum_length_pixels;
+    res.pixel_blocking = accum_length_pixels;
+    res.n_used_pixels = accum_length_pixels;
+    res.compute_pixels = compute_pixels;
+
+    res.use_intermediate_f32_wt_tensor = (res.pixel_blocking == res.n_used_pixels) ? 0 : 1;
+
+    if (res.ofw <= 14) {
+      res.use_hybrid_imgofm_parallelization = 1;
+      res.weight_copies = libxsmm_dnn_conv_setup_weight_copies_upd(&res);
+      if (res.ofw == 14 && res.K >= 1024) {
+        res.use_hybrid_imgofm_parallelization = 0;
+        res.weight_copies = res.threads;
+      }
+    } else {
+      res.weight_copies = res.threads;
+    }
+  }
+
+  if (res.upd_linearized_pixels == 0) {
+    res.weight_copies = res.threads;
+    if (res.v !=1) {
+      res.on_the_fly_input_packing = 1;
+    }
+    remainder_pixels = (res.ofw % multiple_target == 0) ? 0 : (res.ofw/multiple_target+1)*multiple_target - res.ofw;
+    res.ofwp_extended = OFWP + remainder_pixels;
+    res.ifwp_extended = IFWP + remainder_pixels;
+    if (res.ifwp_extended % 2 == 1) {
+      res.ifwp_extended = res.ifwp_extended + 1;
+    }
+    res.output_pixels = OFHP * res.ofwp_extended;
+    /* coverity[identical_branches] */
+    res.batchreduce_h_pixels = (res.upd_trans_w_only) ? 1 : 1; /* TODO: identical_branches */
+    res.use_intermediate_f32_wt_tensor = (res.batchreduce_h_pixels == res.ofh) ? 0 : 1;
+  }
+
+  if (res.N != res.threads) {
+    res.use_intermediate_f32_wt_tensor = 1;
+    res.use_hybrid_imgofm_parallelization = 0;
+    res.weight_copies = LIBXSMM_MIN(res.N, res.threads);
+  }
+
+  *inout_cfg = res;
+}
+
+LIBXSMM_API_INLINE void libxsmm_dnn_conv_setup_bf8_upd_algorithms( libxsmm_dnn_conv_config* inout_cfg ) {
+  libxsmm_dnn_conv_config res = *inout_cfg;
+  int remainder_pixels, max_init_offset, max_compute_offset_input, input_compute_pad, accum_length_pixels, compute_pixels;
+  const int multiple_target = 4;
   int IFHP = (res.upd_padding_copy == 1) ? res.ifhp + 2 * res.pad_h : res.ifhp;
   int IFWP = (res.upd_padding_copy == 1) ? res.ifwp + 2 * res.pad_w : res.ifwp;
   int OFHP = (res.upd_padding_copy == 1) ? res.ofhp + 2 * res.pad_h : res.ofhp;
@@ -1019,7 +1112,7 @@ LIBXSMM_API_INLINE void libxsmm_dnn_conv_setup_upd_scratch( libxsmm_dnn_conv_con
       LIBXSMM_TYPESIZE(cfg->datatype_in);
   }
   /* output/input buffer to transpose when we use bf16 */
-  if ( cfg->datatype_in == LIBXSMM_DATATYPE_BF16 ) {
+  if ( cfg->datatype_in == LIBXSMM_DATATYPE_BF16 || cfg->datatype_in == LIBXSMM_DATATYPE_BF8) {
 #if 0
     if  (cfg->target_archid >= LIBXSMM_X86_AVX512_SPR) {
       int OFHP = (cfg->upd_padding_copy == 1) ? cfg->ofhp + 2 * cfg->pad_h : cfg->ofhp;
@@ -1037,7 +1130,8 @@ LIBXSMM_API_INLINE void libxsmm_dnn_conv_setup_upd_scratch( libxsmm_dnn_conv_con
     } else {
 #endif
     if (1) {
-      const int multiple_target = 2;
+      int multiple_target = 2;
+      if ( cfg->datatype_in == LIBXSMM_DATATYPE_BF8 ) multiple_target = 4;
       int IFHP = (cfg->upd_padding_copy == 1) ? cfg->ifhp + 2 * cfg->pad_h : cfg->ifhp;
       int IFWP = (cfg->upd_padding_copy == 1) ? cfg->ifwp + 2 * cfg->pad_w : cfg->ifwp;
       int OFHP = (cfg->upd_padding_copy == 1) ? cfg->ofhp + 2 * cfg->pad_h : cfg->ofhp;
@@ -1648,6 +1742,304 @@ LIBXSMM_API_INLINE void libxsmm_dnn_conv_generate_fwd_kernels( libxsmm_dnn_conv_
         exit(-1);
       }
     }
+  } else if ( res.datatype_in == LIBXSMM_DATATYPE_BF8 ) {
+    libxsmm_blasint ldx;
+    libxsmm_blasint ldA;
+    libxsmm_blasint ldC;
+    float beta;
+    libxsmm_meltw_unary_shape unary_shape;
+    libxsmm_meltw_binary_shape binary_shape;
+    libxsmm_blasint stride_in;
+    libxsmm_blasint stride_out;
+    libxsmm_gemm_shape l_shape;
+    libxsmm_gemm_batch_reduce_config l_brconfig;
+    libxsmm_gemm_ext_unary_argops l_argops;
+    libxsmm_gemm_ext_binary_postops l_postops;
+    libxsmm_bitfield l_flags = LIBXSMM_GEMM_VNNI_FLAGS('N', 'N', 'V', 'N');
+    libxsmm_bitfield l_prefetch_flags = 0;
+    int prefetch_mode = libxsmm_get_gemm_prefetch(LIBXSMM_GEMM_PREFETCH_NONE);
+    int brgemm_pf_oob = 0;
+    const char *const env_brgemm_pf_oob = getenv("BRGEMM_PF_OOB");
+
+    res.A_offsets = NULL;
+    res.B_offsets = NULL;
+
+    res.block_fwd_ofm = 1;
+    res.block_fwd_oj = res.fwd_ofh_rb;
+    ldx = (res.pack_input == 1) ? (libxsmm_blasint)res.ifmblock : (libxsmm_blasint)res.v*res.ifmblock;
+    ldA = res.ofmblock;
+    ldC = res.ofmblock;
+    beta = (res.avoid_acc_load) ? (float)0.0 : (float)1.0;
+
+    l_flags |= res.fwd_flags;
+    l_flags |= ( beta == 0 ) ? LIBXSMM_GEMM_FLAG_BETA_0 : 0;
+    if ( 0 == env_brgemm_pf_oob ) {
+    } else {
+      brgemm_pf_oob = atoi(env_brgemm_pf_oob);
+    }
+    if (brgemm_pf_oob > 0) {
+      prefetch_mode = libxsmm_get_gemm_prefetch(LIBXSMM_GEMM_PREFETCH_BRGEMM_OOB);
+    }
+    l_prefetch_flags = prefetch_mode;
+
+    /* Strided kernel  */
+    libxsmm_blasint IFW = (res.pack_input == 1) ? res.ofwp : res.ifwp;
+    libxsmm_blasint IFH = (res.pack_input == 1) ? res.ofhp : res.ifhp;
+    libxsmm_blasint stride_a = res.R * res.S * res.ifmblock * res.ofmblock * sizeof(libxsmm_bfloat8);
+    libxsmm_blasint stride_b = IFW * IFH * res.ifmblock * sizeof(libxsmm_bfloat8);
+
+    l_shape.m = res.ofmblock;
+    l_shape.n = res.fwd_gemm_pixels;
+    l_shape.k = res.ifmblock;
+    l_shape.lda = ldA;
+    l_shape.ldb = ldx;
+    l_shape.ldc = ldC;
+    l_shape.a_in_type = LIBXSMM_DATATYPE_BF8;
+    l_shape.b_in_type = LIBXSMM_DATATYPE_BF8;
+    l_shape.out_type  = LIBXSMM_DATATYPE_BF8;
+    l_shape.comp_type = LIBXSMM_DATATYPE_BF8;
+    l_brconfig.br_type = LIBXSMM_GEMM_BATCH_REDUCE_STRIDE;
+    l_brconfig.br_stride_a_hint = stride_a;
+    l_brconfig.br_stride_b_hint = stride_b;
+    l_brconfig.br_unroll_hint   = res.blocksifm_blocking;
+
+    memset( &l_argops, 0, sizeof(libxsmm_gemm_ext_unary_argops) );
+    memset( &l_postops, 0, sizeof(libxsmm_gemm_ext_binary_postops) );
+
+    if ((res.fuse_type & LIBXSMM_DNN_CONV_ELTWISE_FUSE_BIAS) > 0) {
+      l_postops.d_in_type      = LIBXSMM_DATATYPE_BF8;
+      l_postops.d_binary_flags = LIBXSMM_MELTW_FLAG_BINARY_BCAST_COL_IN_0;
+      l_postops.d_binary_type  = LIBXSMM_MELTW_TYPE_BINARY_ADD;
+      l_postops.ldd            = ldC;
+    }
+    if ((res.fuse_type & LIBXSMM_DNN_CONV_ELTWISE_FUSE_RELU) > 0) {
+      l_argops.cp_unary_type  = LIBXSMM_MELTW_TYPE_UNARY_RELU;
+      l_argops.ldcp           = ldC;
+    }
+
+    /* Stride-based kernels  */
+    res.fwd_compute_kernel_strd_bf8.gemm = libxsmm_dispatch_brgemm_v2( l_shape, l_flags, l_prefetch_flags, l_brconfig );
+    if (  res.fwd_compute_kernel_strd_bf8.gemm  == NULL ) {
+      fprintf( stderr, "JIT for BRGEMM TPP fwd_compute_kernel_strd_bf8 failed. Bailing...!\n");
+      exit(-1);
+    }
+
+    l_shape.out_type  = LIBXSMM_DATATYPE_F32;
+    res.fwd_compute_kernel_strd_bf8f32.gemm = libxsmm_dispatch_brgemm_v2( l_shape, l_flags, l_prefetch_flags, l_brconfig );
+    if (  res.fwd_compute_kernel_strd_bf8f32.gemm  == NULL ) {
+      fprintf( stderr, "JIT for BRGEMM TPP fwd_compute_kernel_strd_bf8f32 failed. Bailing...!\n");
+      exit(-1);
+    }
+    l_shape.out_type  = LIBXSMM_DATATYPE_BF8;
+
+    res.fwd_compute_kernel_strd_fused_bf8.gemm_ext = libxsmm_dispatch_brgemm_ext_v2( l_shape, l_flags, l_prefetch_flags, l_brconfig,
+        l_argops, l_postops );
+    if (  res.fwd_compute_kernel_strd_fused_bf8.gemm_ext == NULL ) {
+      fprintf( stderr, "JIT for BRGEMM TPP fwd_compute_kernel_strd_fused_bf8 failed. Bailing...!\n");
+      exit(-1);
+    }
+    if (res.avoid_fmas_in_rim > 0) {
+      l_shape.n =  res.fwd_ofh_rb*(res.fwd_ofw_rb-1);
+      res.fwd_compute_kernel2_strd_bf8.gemm = libxsmm_dispatch_brgemm_v2( l_shape, l_flags, l_prefetch_flags, l_brconfig );
+      if (  res.fwd_compute_kernel2_strd_bf8.gemm  == NULL ) {
+        fprintf( stderr, "JIT for BRGEMM TPP fwd_compute_kernel_strd_bf8 failed. Bailing...!\n");
+        exit(-1);
+      }
+
+      l_shape.out_type  = LIBXSMM_DATATYPE_F32;
+      res.fwd_compute_kernel2_strd_bf8f32.gemm = libxsmm_dispatch_brgemm_v2( l_shape, l_flags, l_prefetch_flags, l_brconfig );
+      if (  res.fwd_compute_kernel2_strd_bf8f32.gemm  == NULL ) {
+        fprintf( stderr, "JIT for BRGEMM TPP fwd_compute_kernel2_strd_bf8f32 failed. Bailing...!\n");
+        exit(-1);
+      }
+      l_shape.out_type  = LIBXSMM_DATATYPE_BF8;
+    }
+
+    /* Offset-based kernel */
+    IFW = (res.fwd_padding_copy == 1) ? res.ifwp + 2*res.pad_w : ( (res.pack_input == 1) ? res.ofwp : res.ifwp );
+    IFH = (res.fwd_padding_copy == 1) ? res.ifhp + 2*res.pad_h : ( (res.pack_input == 1) ? res.ofhp : res.ifhp );
+    int n_blocks = res.R * res.S * res.blocksifm_blocking;
+    int i = 0, ifm, ki, kj;
+    l_shape.n = res.fwd_gemm_pixels;
+
+    if ((res.avoid_fmas_in_rim == 0) && (res.R > 1 || res.S > 1)) {
+      res.A_offsets = (unsigned long long*) libxsmm_aligned_malloc(n_blocks * sizeof(unsigned long long), 2097152);
+      res.B_offsets = (unsigned long long*) libxsmm_aligned_malloc(n_blocks * sizeof(unsigned long long), 2097152);
+      for (ifm = 0; ifm < res.blocksifm_blocking; ifm++) {
+        for (kj = 0; kj < res.R; kj++) {
+          for (ki = 0; ki < res.S; ki++) {
+            res.A_offsets[i] = (ifm * res.R * res.S * res.ifmblock * res.ofmblock +
+                kj * res.S * res.ifmblock * res.ofmblock +
+                ki * res.ifmblock * res.ofmblock) * sizeof(libxsmm_bfloat8);
+            res.B_offsets[i] = (ifm * IFH * IFW * res.ifmblock +
+                kj * IFW * res.ifmblock +
+                ki * res.ifmblock) * sizeof(libxsmm_bfloat8);
+            i++;
+          }
+        }
+      }
+
+      l_brconfig.br_type = LIBXSMM_GEMM_BATCH_REDUCE_OFFSET;
+      l_brconfig.br_stride_a_hint = 0;
+      l_brconfig.br_stride_b_hint = 0;
+
+      res.fwd_compute_kernel_offs_bf8.gemm = libxsmm_dispatch_brgemm_v2( l_shape, l_flags, l_prefetch_flags, l_brconfig );
+      if (  res.fwd_compute_kernel_offs_bf8.gemm  == NULL ) {
+        fprintf( stderr, "JIT for BRGEMM TPP fwd_compute_kernel_offs_bf8 failed. Bailing...!\n");
+        exit(-1);
+      }
+      res.fwd_compute_kernel_offs_fused_bf8.gemm_ext = libxsmm_dispatch_brgemm_ext_v2( l_shape, l_flags, l_prefetch_flags, l_brconfig,
+          l_argops, l_postops );
+      if (  res.fwd_compute_kernel_offs_fused_bf8.gemm_ext  == NULL ) {
+        fprintf( stderr, "JIT for BRGEMM TPP fwd_compute_kernel_offs_fused_bf8 failed. Bailing...!\n");
+        exit(-1);
+      }
+    }
+
+    /* Eltwise TPPs */
+    stride_in             = res.ifmblock * res.v;
+    stride_out            = res.ifmblock;
+    unary_shape.m         = res.ifmblock;
+    unary_shape.n         = res.ofw;
+    unary_shape.in0_type   = LIBXSMM_DATATYPE_BF8;
+    unary_shape.comp_type = LIBXSMM_DATATYPE_BF8;
+    unary_shape.out_type  = LIBXSMM_DATATYPE_BF8;
+    unary_shape.ldi       = stride_in;
+    unary_shape.ldo       = stride_out;
+    res.strided_copy_kernel_bf8 = libxsmm_dispatch_meltw_unary_v2( LIBXSMM_MELTW_TYPE_UNARY_IDENTITY, unary_shape, LIBXSMM_MELTW_FLAG_UNARY_NONE ) ;
+    if (  res.strided_copy_kernel_bf8  == NULL ) {
+      fprintf( stderr, "JIT for TPP strided_copy_kernel_bf8 failed. Bailing...!\n");
+      exit(-1);
+    }
+
+    stride_in             = res.ifmblock;
+    stride_out            = res.ifmblock;
+    unary_shape.m         = res.ifmblock;
+    unary_shape.n         = 1;
+    unary_shape.ldi       = stride_in;
+    unary_shape.ldo       = stride_out;
+    res.ifmblock_copy_kernel_bf8 = libxsmm_dispatch_meltw_unary_v2( LIBXSMM_MELTW_TYPE_UNARY_IDENTITY, unary_shape, LIBXSMM_MELTW_FLAG_UNARY_NONE ) ;
+    if (  res.ifmblock_copy_kernel_bf8  == NULL ) {
+      fprintf( stderr, "JIT for TPP ifmblock_copy_kernel_bf8 failed. Bailing...!\n");
+      exit(-1);
+    }
+
+    res.ifmblock_zero_kernel_bf8 = libxsmm_dispatch_meltw_unary_v2( LIBXSMM_MELTW_TYPE_UNARY_XOR, unary_shape, LIBXSMM_MELTW_FLAG_UNARY_NONE ) ;
+    if (  res.ifmblock_zero_kernel_bf8  == NULL ) {
+      fprintf( stderr, "JIT for TPP ifmblock_zero_kernel_bf8 failed. Bailing...!\n");
+      exit(-1);
+    }
+
+    stride_in             = res.ofmblock;
+    stride_out            = res.ofmblock;
+    unary_shape.m         = res.ofmblock;
+    unary_shape.n         = 1;
+    unary_shape.ldi       = stride_in;
+    unary_shape.ldo       = stride_out;
+    res.ofmblock_zero_kernel_bf8 = libxsmm_dispatch_meltw_unary_v2( LIBXSMM_MELTW_TYPE_UNARY_XOR, unary_shape, LIBXSMM_MELTW_FLAG_UNARY_NONE ) ;
+    if (  res.ofmblock_zero_kernel_bf8  == NULL ) {
+      fprintf( stderr, "JIT for TPP ofmblock_zero_kernel_bf8 failed. Bailing...!\n");
+      exit(-1);
+    }
+
+    stride_in             = res.ofwp * res.ofmblock;
+    stride_out            = res.ofw * res.ofmblock;
+    unary_shape.m         = res.ofw * res.ofmblock;
+    unary_shape.n         = 1;
+    unary_shape.ldi       = stride_out;
+    unary_shape.ldo       = stride_out;
+    res.ofw_x_ofmblock_zero_kernel_bf8 = libxsmm_dispatch_meltw_unary_v2( LIBXSMM_MELTW_TYPE_UNARY_XOR, unary_shape, LIBXSMM_MELTW_FLAG_UNARY_NONE ) ;
+    if (  res.ofw_x_ofmblock_zero_kernel_bf8  == NULL ) {
+      fprintf( stderr, "JIT for TPP ofw_x_ofmblock_zero_kernel_bf8 failed. Bailing...!\n");
+      exit(-1);
+    }
+
+    stride_out            = res.ofwp * res.ofmblock;
+    unary_shape.m         = res.ofw * res.ofmblock;
+    unary_shape.n         = res.ofh;
+    unary_shape.ldi       = stride_out;
+    unary_shape.ldo       = stride_out;
+    res.ofh_x_ofw_x_ofmblock_zero_kernel_bf8 = libxsmm_dispatch_meltw_unary_v2( LIBXSMM_MELTW_TYPE_UNARY_XOR, unary_shape, LIBXSMM_MELTW_FLAG_UNARY_NONE ) ;
+    if (  res.ofh_x_ofw_x_ofmblock_zero_kernel_bf8  == NULL ) {
+      fprintf( stderr, "JIT for TPP ofh_x_ofw_x_ofmblock_zero_kernel_bf8 failed. Bailing...!\n");
+      exit(-1);
+    }
+
+    unary_shape.in0_type   = LIBXSMM_DATATYPE_F32;
+    unary_shape.comp_type = LIBXSMM_DATATYPE_F32;
+    unary_shape.out_type  = LIBXSMM_DATATYPE_F32;
+
+    stride_out            = res.ofwp * res.ofmblock;
+    unary_shape.m         = res.ofw * res.ofmblock;
+    unary_shape.n         = res.ofh;
+    unary_shape.ldi       = stride_out;
+    unary_shape.ldo       = stride_out;
+    res.ofh_x_ofw_x_ofmblock_zero_kernel_f32 = libxsmm_dispatch_meltw_unary_v2( LIBXSMM_MELTW_TYPE_UNARY_XOR, unary_shape, LIBXSMM_MELTW_FLAG_UNARY_NONE ) ;
+    if (  res.ofh_x_ofw_x_ofmblock_zero_kernel_f32  == NULL ) {
+      fprintf( stderr, "JIT for TPP ofh_x_ofw_x_ofmblock_zero_kernel_f32 failed. Bailing...!\n");
+      exit(-1);
+    }
+
+    stride_in             = res.ofwp * res.ofmblock;
+    stride_out            = res.ofw * res.ofmblock;
+    unary_shape.m         = res.ofw * res.ofmblock;
+    unary_shape.n         = 1;
+    unary_shape.ldi       = stride_out;
+    unary_shape.ldo       = stride_out;
+    res.ofw_x_ofmblock_zero_kernel_f32 = libxsmm_dispatch_meltw_unary_v2( LIBXSMM_MELTW_TYPE_UNARY_XOR, unary_shape, LIBXSMM_MELTW_FLAG_UNARY_NONE ) ;
+    if (  res.ofw_x_ofmblock_zero_kernel_f32  == NULL ) {
+      fprintf( stderr, "JIT for TPP ofw_x_ofmblock_zero_kernel_f32 failed. Bailing...!\n");
+      exit(-1);
+    }
+    unary_shape.in0_type   = LIBXSMM_DATATYPE_F32;
+    unary_shape.comp_type = LIBXSMM_DATATYPE_F32;
+    unary_shape.out_type  = LIBXSMM_DATATYPE_BF8;
+    stride_out            = res.ofwp * res.ofmblock;
+    unary_shape.m         = res.ofw * res.ofmblock;
+    unary_shape.n         = 1;
+    unary_shape.ldi       = stride_out;
+    unary_shape.ldo       = stride_out;
+    res.cvt_kernel_fp32bf8 = libxsmm_dispatch_meltw_unary_v2( LIBXSMM_MELTW_TYPE_UNARY_IDENTITY, unary_shape, LIBXSMM_MELTW_FLAG_UNARY_NONE ) ;
+    if (  res.cvt_kernel_fp32bf8  == NULL ) {
+      fprintf( stderr, "JIT for TPP cvt_kernel_fp32bf8 failed. Bailing...!\n");
+      exit(-1);
+    }
+    unary_shape.in0_type   = LIBXSMM_DATATYPE_BF8;
+    unary_shape.comp_type = LIBXSMM_DATATYPE_BF8;
+    unary_shape.out_type  = LIBXSMM_DATATYPE_BF8;
+
+    if ((res.fuse_type & LIBXSMM_DNN_CONV_ELTWISE_FUSE_RELU) > 0) {
+      stride_in             = res.ofmblock;
+      stride_out            = res.ofmblock;
+      unary_shape.m         = res.ofmblock;
+      unary_shape.n         = res.fwd_ofw_rb;
+      unary_shape.ldi       = stride_in;
+      unary_shape.ldo       = stride_out;
+      res.relu_kernel_bf8 = libxsmm_dispatch_meltw_unary_v2( LIBXSMM_MELTW_TYPE_UNARY_RELU, unary_shape, LIBXSMM_MELTW_FLAG_UNARY_NONE );
+      if (  res.relu_kernel_bf8  == NULL ) {
+        fprintf( stderr, "JIT for TPP relu_kernel_bf8 failed. Bailing...!\n");
+        exit(-1);
+      }
+    }
+
+    if ((res.fuse_type & LIBXSMM_DNN_CONV_ELTWISE_FUSE_BIAS) > 0) {
+      stride_in              = res.ofmblock;
+      stride_out             = res.ofmblock;
+      binary_shape.m         = res.ofmblock;
+      binary_shape.n         = res.fwd_ofw_rb;
+      binary_shape.in0_type  = LIBXSMM_DATATYPE_BF8;
+      binary_shape.in1_type  = LIBXSMM_DATATYPE_BF8;
+      binary_shape.comp_type = LIBXSMM_DATATYPE_BF8;
+      binary_shape.out_type  = LIBXSMM_DATATYPE_BF8;
+      binary_shape.ldi       = stride_in;
+      binary_shape.ldi2      = stride_in;
+      binary_shape.ldo       = stride_out;
+      res.colbias_add_kernel_bf8 = libxsmm_dispatch_meltw_binary_v2( LIBXSMM_MELTW_TYPE_BINARY_ADD, binary_shape, LIBXSMM_MELTW_FLAG_BINARY_BCAST_COL_IN_1) ;
+      if (  res.colbias_add_kernel_bf8  == NULL ) {
+        fprintf( stderr, "JIT for TPP colbias_add_kernel_bf8 failed. Bailing...!\n");
+        exit(-1);
+      }
+    }
   }
 
   *inout_cfg = res;
@@ -1779,7 +2171,7 @@ LIBXSMM_API_INLINE void libxsmm_dnn_conv_generate_bwd_kernels( libxsmm_dnn_conv_
     stride_out            = res.ifmblock;
     unary_shape.m         = res.ofmblock;
     unary_shape.n         = res.ifmblock;
-    unary_shape.in0_type   = LIBXSMM_DATATYPE_F32;
+    unary_shape.in0_type  = LIBXSMM_DATATYPE_F32;
     unary_shape.comp_type = LIBXSMM_DATATYPE_F32;
     unary_shape.out_type  = LIBXSMM_DATATYPE_F32;
     unary_shape.ldi       = stride_in;
@@ -2053,6 +2445,230 @@ LIBXSMM_API_INLINE void libxsmm_dnn_conv_generate_bwd_kernels( libxsmm_dnn_conv_
 
     if (  res.ifhp_x_ifwp_x_ifmblock_zero_kernel_bf16  == NULL ) {
       fprintf( stderr, "JIT for TPP ifhp_x_ifwp_x_ifmblock_zero_kernel_bf16 failed. Bailing...!\n");
+      exit(-1);
+    }
+  } else if ( res.datatype_in == LIBXSMM_DATATYPE_BF8 ) {
+    libxsmm_blasint ldA;
+    libxsmm_blasint ldB;
+    libxsmm_blasint ldC;
+    float beta;
+    libxsmm_meltw_unary_shape unary_shape;
+    libxsmm_blasint stride_in;
+    libxsmm_blasint stride_out;
+    libxsmm_gemm_shape l_shape;
+    libxsmm_gemm_batch_reduce_config l_brconfig;
+    libxsmm_bitfield l_flags = LIBXSMM_GEMM_VNNI_FLAGS('N', 'N', 'V', 'N');
+    libxsmm_bitfield l_prefetch_flags = 0;
+    int prefetch_mode = libxsmm_get_gemm_prefetch(LIBXSMM_GEMM_PREFETCH_NONE);
+    int brgemm_pf_oob = 0;
+    const char *const env_brgemm_pf_oob = getenv("BRGEMM_PF_OOB");
+
+    res.A_offsets_bwd = NULL;
+    res.B_offsets_bwd = NULL;
+
+    ldB = (libxsmm_blasint)res.ofmblock;
+    ldA = (libxsmm_blasint)res.ifmblock;
+    ldC = (res.spread_input_bwd == 1) ? (libxsmm_blasint)(res.ifmblock * res.v) : (libxsmm_blasint)res.ifmblock;
+    beta = (res.avoid_acc_load_bwd ? 0.f : 1.f);
+
+    l_flags |= res.bwd_flags;
+    l_flags |= ( beta == 0 ) ? LIBXSMM_GEMM_FLAG_BETA_0 : 0;
+    if ( 0 == env_brgemm_pf_oob ) {
+    } else {
+      brgemm_pf_oob = atoi(env_brgemm_pf_oob);
+    }
+    if (brgemm_pf_oob > 0) {
+      prefetch_mode = libxsmm_get_gemm_prefetch(LIBXSMM_GEMM_PREFETCH_BRGEMM_OOB);
+    }
+    l_prefetch_flags = prefetch_mode;
+
+    /* Strided kernel  */
+    libxsmm_blasint stride_a = res.R * res.S * res.ifmblock * res.ofmblock * sizeof(libxsmm_bfloat8);
+    libxsmm_blasint stride_b = res.ofwp * res.ofhp * res.ofmblock * sizeof(libxsmm_bfloat8);
+
+    l_shape.m = res.ifmblock;
+    l_shape.n = res.bwd_ofh_rb*res.bwd_ofw_rb;
+    l_shape.k = res.ofmblock;
+    l_shape.lda = ldA;
+    l_shape.ldb = ldB;
+    l_shape.ldc = ldC;
+    l_shape.a_in_type = LIBXSMM_DATATYPE_BF8;
+    l_shape.b_in_type = LIBXSMM_DATATYPE_BF8;
+    l_shape.out_type  = LIBXSMM_DATATYPE_BF8;
+    l_shape.comp_type = LIBXSMM_DATATYPE_BF8;
+    l_brconfig.br_type = LIBXSMM_GEMM_BATCH_REDUCE_STRIDE;
+    l_brconfig.br_stride_a_hint = stride_a;
+    l_brconfig.br_stride_b_hint = stride_b;
+    l_brconfig.br_unroll_hint   = res.blocksofm_blocking;
+
+    /* Stride-based kernels  */
+    res.bwd_compute_kernel_strd_bf8.gemm = libxsmm_dispatch_brgemm_v2( l_shape, l_flags, l_prefetch_flags, l_brconfig );
+    if (  res.bwd_compute_kernel_strd_bf8.gemm  == NULL ) {
+      fprintf( stderr, "JIT for BRGEMM TPP bwd_compute_kernel_strd_bf8 failed. Bailing...!\n");
+      exit(-1);
+    }
+
+    if (res.avoid_fmas_in_rim > 0) {
+      l_shape.n =  res.bwd_ofh_rb*(res.bwd_ofw_rb-1);
+      res.bwd_compute_kernel2_strd_bf8.gemm = libxsmm_dispatch_brgemm_v2( l_shape, l_flags, l_prefetch_flags, l_brconfig );
+      if (  res.bwd_compute_kernel2_strd_bf8.gemm  == NULL ) {
+        fprintf( stderr, "JIT for BRGEMM TPP bwd_compute_kernel2_strd_bf8 failed. Bailing...!\n");
+        exit(-1);
+      }
+    }
+
+    l_shape.out_type  = LIBXSMM_DATATYPE_F32;
+    l_shape.n = res.bwd_ofh_rb*res.bwd_ofw_rb;
+    res.bwd_compute_kernel_strd_bf8f32.gemm = libxsmm_dispatch_brgemm_v2( l_shape, l_flags, l_prefetch_flags, l_brconfig );
+    if (  res.bwd_compute_kernel_strd_bf8f32.gemm  == NULL ) {
+      fprintf( stderr, "JIT for BRGEMM TPP bwd_compute_kernel_strd_bf8f32 failed. Bailing...!\n");
+      exit(-1);
+    }
+
+    if (res.avoid_fmas_in_rim > 0) {
+      l_shape.n =  res.bwd_ofh_rb*(res.bwd_ofw_rb-1);
+      res.bwd_compute_kernel2_strd_bf8f32.gemm = libxsmm_dispatch_brgemm_v2( l_shape, l_flags, l_prefetch_flags, l_brconfig );
+      if (  res.bwd_compute_kernel2_strd_bf8f32.gemm  == NULL ) {
+        fprintf( stderr, "JIT for BRGEMM TPP bwd_compute_kernel2_strd_bf8f32 failed. Bailing...!\n");
+        exit(-1);
+      }
+    }
+    l_shape.out_type  = LIBXSMM_DATATYPE_BF8;
+
+    /* Offset-based kernel */
+    int n_blocks = res.R * res.S * res.blocksofm_blocking;
+    int i = 0, ofm, ki, kj;
+    l_shape.n = res.bwd_ofh_rb*res.bwd_ofw_rb;
+
+    if ((res.avoid_fmas_in_rim == 0) && (res.R > 1 || res.S > 1)) {
+      res.A_offsets_bwd= (unsigned long long*) libxsmm_aligned_malloc(n_blocks * sizeof(unsigned long long), 2097152);
+      res.B_offsets_bwd = (unsigned long long*) libxsmm_aligned_malloc(n_blocks * sizeof(unsigned long long), 2097152);
+      for (ofm = 0; ofm < res.blocksofm_blocking; ofm++) {
+        for (kj = 0; kj < res.R; kj++) {
+          for (ki = 0; ki < res.S; ki++) {
+            res.A_offsets_bwd[i] = (ofm * res.R * res.S * res.ifmblock * res.ofmblock +
+                kj * res.S * res.ifmblock * res.ofmblock +
+                ki * res.ifmblock * res.ofmblock) * sizeof(libxsmm_bfloat8);
+            res.B_offsets_bwd[i] = (ofm * res.ofhp * res.ofwp * res.ofmblock +
+                kj * res.ofwp * res.ofmblock +
+                ki * res.ofmblock) * sizeof(libxsmm_bfloat8);
+            i++;
+          }
+        }
+      }
+
+      l_brconfig.br_type = LIBXSMM_GEMM_BATCH_REDUCE_OFFSET;
+      l_brconfig.br_stride_a_hint = 0;
+      l_brconfig.br_stride_b_hint = 0;
+
+      res.bwd_compute_kernel_offs_bf8.gemm = libxsmm_dispatch_brgemm_v2( l_shape, l_flags, l_prefetch_flags, l_brconfig );
+      if (  res.bwd_compute_kernel_offs_bf8.gemm  == NULL ) {
+        fprintf( stderr, "JIT for BRGEMM TPP bwd_compute_kernel_offs_bf8 failed. Bailing...!\n");
+        exit(-1);
+      }
+    }
+
+    /* Regular GEMM for fallback codepath */
+    ldC = (libxsmm_blasint)(res.v*res.ifmblock);
+    l_shape.m = res.ifmblock;
+    l_shape.n = res.ofw;
+    l_shape.k = res.ofmblock;
+    l_shape.lda = res.ifmblock;
+    l_shape.ldb = res.ofmblock;
+    l_shape.ldc = ldC;
+    l_shape.a_in_type = LIBXSMM_DATATYPE_BF8;
+    l_shape.b_in_type = LIBXSMM_DATATYPE_BF8;
+    l_shape.out_type  = LIBXSMM_DATATYPE_BF8;
+    l_shape.comp_type = LIBXSMM_DATATYPE_BF8;
+    l_flags = LIBXSMM_GEMM_VNNI_FLAGS('N', 'N', 'V', 'N');
+
+    res.bwd_compute_kernel_fallback_bf8.gemm = libxsmm_dispatch_gemm_v2( l_shape, l_flags, l_prefetch_flags );
+
+    /* Eltwise TPPs */
+    stride_in             = res.ofmblock;
+    stride_out            = res.ifmblock;
+    unary_shape.m         = res.ofmblock;
+    unary_shape.n         = res.ifmblock;
+    unary_shape.in0_type  = LIBXSMM_DATATYPE_BF8;
+    unary_shape.comp_type = LIBXSMM_DATATYPE_BF8;
+    unary_shape.out_type  = LIBXSMM_DATATYPE_BF8;
+    unary_shape.ldi       = stride_in;
+    unary_shape.ldo       = stride_out;
+
+    res.tr_kernel= libxsmm_dispatch_meltw_unary_v2( LIBXSMM_MELTW_TYPE_UNARY_TRANSFORM_VNNI4_TO_VNNI4T, unary_shape, LIBXSMM_MELTW_FLAG_UNARY_NONE ) ;
+    if (  res.tr_kernel  == NULL ) {
+      fprintf( stderr, "JIT for TPP tr_kernel failed. Bailing...!\n");
+      exit(-1);
+    }
+
+    stride_out            = (res.pack_input_bwd == 1) ? res.ofw * res.ifmblock : res.ifwp * res.ifmblock;
+    stride_in             = stride_out;
+    unary_shape.m         = res.ofw * res.ifmblock;
+    unary_shape.n         = res.ofh;
+    unary_shape.ldi       = stride_in;
+    unary_shape.ldo       = stride_out;
+    res.ofh_x_ofw_x_ifmblock_zero_kernel_bf8 = libxsmm_dispatch_meltw_unary_v2( LIBXSMM_MELTW_TYPE_UNARY_XOR, unary_shape, LIBXSMM_MELTW_FLAG_UNARY_NONE ) ;
+
+    if (  res.ofh_x_ofw_x_ifmblock_zero_kernel_bf8  == NULL ) {
+      fprintf( stderr, "JIT for TPP ofh_x_ofw_x_ifmblock_zero_kernel_bf8 failed. Bailing...!\n");
+      exit(-1);
+    }
+
+    unary_shape.in0_type  = LIBXSMM_DATATYPE_F32;
+    unary_shape.comp_type = LIBXSMM_DATATYPE_F32;
+    unary_shape.out_type  = LIBXSMM_DATATYPE_F32;
+    stride_out            = (res.pack_input_bwd == 1) ? res.ofw * res.ifmblock : res.ifwp * res.ifmblock;
+    stride_in             = stride_out;
+    unary_shape.m         = res.ofw * res.ifmblock;
+    unary_shape.n         = res.ofh;
+    unary_shape.ldi       = stride_in;
+    unary_shape.ldo       = stride_out;
+    res.ofh_x_ofw_x_ifmblock_zero_kernel_f32 = libxsmm_dispatch_meltw_unary_v2( LIBXSMM_MELTW_TYPE_UNARY_XOR, unary_shape, LIBXSMM_MELTW_FLAG_UNARY_NONE ) ;
+
+    if (  res.ofh_x_ofw_x_ifmblock_zero_kernel_f32  == NULL ) {
+      fprintf( stderr, "JIT for TPP ofh_x_ofw_x_ifmblock_zero_kernel_f32 failed. Bailing...!\n");
+      exit(-1);
+    }
+
+    unary_shape.out_type  = LIBXSMM_DATATYPE_BF8;
+    stride_out            = (res.pack_input_bwd == 1) ? res.ofw * res.ifmblock : res.ifwp * res.ifmblock;
+    unary_shape.m         = res.ofw * res.ifmblock;
+    unary_shape.n         = 1;
+    unary_shape.ldi       = stride_out;
+    unary_shape.ldo       = stride_out;
+    res.cvt_kernel_bwd_fp32bf8 = libxsmm_dispatch_meltw_unary_v2( LIBXSMM_MELTW_TYPE_UNARY_IDENTITY, unary_shape, LIBXSMM_MELTW_FLAG_UNARY_NONE ) ;
+    if (  res.cvt_kernel_bwd_fp32bf8  == NULL ) {
+      fprintf( stderr, "JIT for TPP cvt_kernel_bwd_fp32bf8 failed. Bailing...!\n");
+      exit(-1);
+    }
+
+    unary_shape.in0_type  = LIBXSMM_DATATYPE_BF8;
+    unary_shape.comp_type = LIBXSMM_DATATYPE_BF8;
+    unary_shape.out_type  = LIBXSMM_DATATYPE_BF8;
+
+    unary_shape.m         = (res.W + (2 * res.pad_w)) * (res.H + (2 * res.pad_h)) * res.ifmblock;
+    unary_shape.n         = 1;
+    stride_out            = unary_shape.m;
+    stride_in             = stride_out;
+    unary_shape.ldi       = stride_in;
+    unary_shape.ldo       = stride_out;
+    res.paddedH_x_paddedW_x_ifmblock_zero_kernel_bf8 = libxsmm_dispatch_meltw_unary_v2( LIBXSMM_MELTW_TYPE_UNARY_XOR, unary_shape, LIBXSMM_MELTW_FLAG_UNARY_NONE ) ;
+
+    if (  res.paddedH_x_paddedW_x_ifmblock_zero_kernel_bf8  == NULL ) {
+      fprintf( stderr, "JIT for TPP paddedH_x_paddedW_x_ifmblock_zero_kernel_bf8 failed. Bailing...!\n");
+      exit(-1);
+    }
+
+    unary_shape.m         = res.ifwp * res.ifhp * res.ifmblock;
+    unary_shape.n         = 1;
+    stride_out            = unary_shape.m;
+    stride_in             = stride_out;
+    unary_shape.ldi       = stride_in;
+    unary_shape.ldo       = stride_out;
+    res.ifhp_x_ifwp_x_ifmblock_zero_kernel_bf8 = libxsmm_dispatch_meltw_unary_v2( LIBXSMM_MELTW_TYPE_UNARY_XOR, unary_shape, LIBXSMM_MELTW_FLAG_UNARY_NONE ) ;
+
+    if (  res.ifhp_x_ifwp_x_ifmblock_zero_kernel_bf8  == NULL ) {
+      fprintf( stderr, "JIT for TPP ifhp_x_ifwp_x_ifmblock_zero_kernel_bf8 failed. Bailing...!\n");
       exit(-1);
     }
   }
@@ -2707,6 +3323,414 @@ LIBXSMM_API_INLINE void libxsmm_dnn_conv_generate_upd_kernels( libxsmm_dnn_conv_
         }
       }
     }
+  } else if ( res.datatype_in == LIBXSMM_DATATYPE_BF8 ) {
+    const int IFHP = (res.upd_padding_copy == 1) ? res.ifhp + 2*res.pad_h :  res.ifhp;
+    libxsmm_blasint LDA = res.ofmblock;
+    libxsmm_blasint LDB = IFHP*res.ifwp_extended;
+    libxsmm_blasint LDC = res.ofmblock;
+    float beta;
+    libxsmm_meltw_unary_shape unary_shape;
+    libxsmm_blasint stride_in;
+    libxsmm_blasint stride_out;
+    libxsmm_gemm_shape l_shape;
+    libxsmm_gemm_batch_reduce_config l_brconfig;
+    libxsmm_bitfield l_flags = LIBXSMM_GEMM_VNNI_FLAGS('N', 'N', 'V', 'N');
+    libxsmm_bitfield l_prefetch_flags = 0;
+    int prefetch_mode = libxsmm_get_gemm_prefetch(LIBXSMM_GEMM_PREFETCH_NONE);
+    int brgemm_pf_oob = 0;
+    const char *const env_brgemm_pf_oob = getenv("BRGEMM_PF_OOB");
+    beta = (res.use_intermediate_f32_wt_tensor ? 1.f : 0.f);
+    l_flags |= ( beta == 0 ) ? LIBXSMM_GEMM_FLAG_BETA_0 : 0;
+    if ( 0 == env_brgemm_pf_oob ) {
+    } else {
+      brgemm_pf_oob = atoi(env_brgemm_pf_oob);
+    }
+    if (brgemm_pf_oob > 0) {
+      prefetch_mode = libxsmm_get_gemm_prefetch(LIBXSMM_GEMM_PREFETCH_BRGEMM_OOB);
+    }
+    l_prefetch_flags = prefetch_mode;
+
+    /* Strided kernel  */
+    libxsmm_blasint stride_a = res.ofwp_extended * res.ofmblock * sizeof(libxsmm_bfloat8);
+    libxsmm_blasint stride_b = res.ifwp_extended * sizeof(libxsmm_bfloat8);
+    l_shape.m = res.ofmblock;
+    l_shape.n = res.ifmblock;
+    if (res.ofw % 4 == 0) {
+      l_shape.k = res.ofw;
+    } else {
+      l_shape.k = res.ofw + (res.ofw%4);
+    }
+    l_shape.lda = LDA;
+    l_shape.ldb = LDB;
+    l_shape.ldc = LDC;
+    l_shape.a_in_type = LIBXSMM_DATATYPE_BF8;
+    l_shape.b_in_type = LIBXSMM_DATATYPE_BF8;
+    l_shape.out_type  = LIBXSMM_DATATYPE_F32;
+    l_shape.comp_type = LIBXSMM_DATATYPE_BF8;
+    l_brconfig.br_type = LIBXSMM_GEMM_BATCH_REDUCE_STRIDE;
+    l_brconfig.br_stride_a_hint = stride_a;
+    l_brconfig.br_stride_b_hint = stride_b;
+    l_brconfig.br_unroll_hint   = 0;
+
+    if ((stride_a > 0) && (stride_b > 0)) {
+      /* Stride-based kernels  */
+      res.upd_compute_kernel1_bf8f32.gemm = libxsmm_dispatch_brgemm_v2( l_shape, l_flags, l_prefetch_flags, l_brconfig );
+      if (  res.upd_compute_kernel1_bf8f32.gemm  == NULL ) {
+        fprintf( stderr, "JIT for BRGEMM TPP upd_compute_kernel1_bf8f32 failed. Bailing...!\n");
+        exit(-1);
+      }
+
+      if (res.ofw % 4 > 0) {
+         l_shape.k = res.ofw+(res.ofw%4);
+      }
+      res.upd_compute_kernel2_bf8f32.gemm = libxsmm_dispatch_brgemm_v2( l_shape, l_flags, l_prefetch_flags, l_brconfig );
+      if (  res.upd_compute_kernel2_bf8f32.gemm  == NULL ) {
+        fprintf( stderr, "JIT for BRGEMM TPP upd_compute_kernel2_bf8f32 failed. Bailing...!\n");
+        exit(-1);
+      }
+    }
+
+    if (res.pixel_blocking % 4 == 0) {
+      l_shape.k = LIBXSMM_MAX(4,res.pixel_blocking);
+      l_shape.ldb = LIBXSMM_MAX(l_shape.k, res.input_pixels);
+      l_brconfig.br_unroll_hint = 0;
+      stride_a = res.blocksofm * res.output_pixels * res.ofmblock * sizeof(libxsmm_bfloat8);
+      stride_b = res.blocksifm * res.ifmblock * res.input_pixels * sizeof(libxsmm_bfloat8);
+      l_brconfig.br_stride_a_hint = stride_a;
+      l_brconfig.br_stride_b_hint = stride_b;
+
+      res.upd_compute_kernel3_bf8f32.gemm = libxsmm_dispatch_brgemm_v2( l_shape, l_flags, l_prefetch_flags, l_brconfig );
+      if (  res.upd_compute_kernel3_bf8f32.gemm  == NULL ) {
+        fprintf( stderr, "JIT for BRGEMM TPP upd_compute_kernel3_bf8f32 failed. Bailing...!\n");
+        exit(-1);
+      }
+
+      /* Regular GEMM */
+      l_shape.m = res.ofmblock;
+      l_shape.n = res.ifmblock;
+      l_shape.k =  LIBXSMM_MAX(4,res.pixel_blocking);
+      res.upd_compute_kernel4_bf8f32.gemm = libxsmm_dispatch_gemm_v2( l_shape, l_flags, l_prefetch_flags );
+      if (  res.upd_compute_kernel4_bf8f32.gemm  == NULL ) {
+        fprintf( stderr, "JIT for GEMM TPP upd_compute_kernel4_bf8f32 failed. Bailing...!\n");
+        exit(-1);
+      }
+    }
+
+    /* Generate unary kernels */
+    stride_in             = res.ofmblock;
+    stride_out            = res.ofmblock;
+    unary_shape.m         = res.ofmblock;
+    unary_shape.n         = res.ifmblock;
+    unary_shape.ldi       = stride_in;
+    unary_shape.ldo       = stride_out;
+    unary_shape.in0_type  = LIBXSMM_DATATYPE_BF8;
+    unary_shape.comp_type = LIBXSMM_DATATYPE_BF8;
+    unary_shape.out_type  = LIBXSMM_DATATYPE_BF8;
+
+    res.upd_weight_vnni_format_bf8 = libxsmm_dispatch_meltw_unary_v2( LIBXSMM_MELTW_TYPE_UNARY_TRANSFORM_NORM_TO_VNNI4, unary_shape, LIBXSMM_MELTW_FLAG_UNARY_NONE ) ;
+    if (  res.upd_weight_vnni_format_bf8  == NULL ) {
+      fprintf( stderr, "JIT for TPP upd_weight_vnni_format_bf8 failed. Bailing...!\n");
+      exit(-1);
+    }
+
+    stride_in             = res.ofmblock;
+    stride_out            = res.ofmblock;
+    unary_shape.m         = res.ofmblock;
+    unary_shape.n         = res.ifmblock;
+    unary_shape.ldi       = stride_in;
+    unary_shape.ldo       = stride_out;
+    unary_shape.in0_type   = LIBXSMM_DATATYPE_F32;
+    unary_shape.comp_type = LIBXSMM_DATATYPE_F32;
+    unary_shape.out_type  = LIBXSMM_DATATYPE_BF8;
+
+    res.upd_weight_cvt_f32bf8 = libxsmm_dispatch_meltw_unary_v2( LIBXSMM_MELTW_TYPE_UNARY_IDENTITY, unary_shape, LIBXSMM_MELTW_FLAG_UNARY_NONE ) ;
+    if (  res.upd_weight_cvt_f32bf8  == NULL ) {
+      fprintf( stderr, "JIT for TPP upd_weight_cvt_f32bf8 failed. Bailing...!\n");
+      exit(-1);
+    }
+
+    stride_in             = res.ifmblock * res.ofmblock * res.S;
+    stride_out            = res.ifmblock * res.ofmblock * res.S;
+    unary_shape.m         = res.ifmblock * res.ofmblock * res.S;
+    unary_shape.n         = 1;
+    unary_shape.ldi       = stride_in;
+    unary_shape.ldo       = stride_out;
+    unary_shape.in0_type  = LIBXSMM_DATATYPE_F32;
+    unary_shape.comp_type = LIBXSMM_DATATYPE_F32;
+    unary_shape.out_type  = LIBXSMM_DATATYPE_F32;
+
+    res.zero_partial_weights_f32 = libxsmm_dispatch_meltw_unary_v2( LIBXSMM_MELTW_TYPE_UNARY_XOR, unary_shape, LIBXSMM_MELTW_FLAG_UNARY_NONE ) ;
+    if (  res.zero_partial_weights_f32  == NULL ) {
+      fprintf( stderr, "JIT for TPP zero_partial_weights_f32 failed. Bailing...!\n");
+      exit(-1);
+    }
+
+    stride_in             = res.C * res.K * res.R * res.S;
+    stride_out            = res.C * res.K * res.R * res.S;
+    unary_shape.m         = res.C * res.K * res.R * res.S;
+    unary_shape.n         = 1;
+    unary_shape.ldi       = stride_in;
+    unary_shape.ldo       = stride_out;
+    unary_shape.in0_type   = LIBXSMM_DATATYPE_F32;
+    unary_shape.comp_type = LIBXSMM_DATATYPE_F32;
+    unary_shape.out_type  = LIBXSMM_DATATYPE_F32;
+
+    res.zero_full_weights_f32 = libxsmm_dispatch_meltw_unary_v2( LIBXSMM_MELTW_TYPE_UNARY_XOR, unary_shape, LIBXSMM_MELTW_FLAG_UNARY_NONE ) ;
+    if (  res.zero_full_weights_f32  == NULL ) {
+      fprintf( stderr, "JIT for TPP zero_full_weights_f32 failed. Bailing...!\n");
+      exit(-1);
+    }
+
+    stride_in             = res.ifmblock * res.input_pixels;
+    stride_out            = res.ifmblock * res.input_pixels;
+    unary_shape.m         = res.ifmblock * res.input_pixels;
+    unary_shape.n         = 1;
+    unary_shape.ldi       = stride_in;
+    unary_shape.ldo       = stride_out;
+    unary_shape.in0_type  = LIBXSMM_DATATYPE_BF8;
+    unary_shape.comp_type = LIBXSMM_DATATYPE_BF8;
+    unary_shape.out_type  = LIBXSMM_DATATYPE_BF8;
+
+    res.zero_ifmblock_input_pixels_bf8 = libxsmm_dispatch_meltw_unary_v2( LIBXSMM_MELTW_TYPE_UNARY_XOR, unary_shape, LIBXSMM_MELTW_FLAG_UNARY_NONE ) ;
+    if (  res.zero_ifmblock_input_pixels_bf8  == NULL ) {
+      fprintf( stderr, "JIT for TPP zero_ifmblock_input_pixels_bf8 failed. Bailing...!\n");
+      exit(-1);
+    }
+
+    stride_in             = res.C * res.ifhp * res.ifwp_extended;
+    stride_out            = res.C * res.ifhp * res.ifwp_extended;
+    unary_shape.m         = res.C * res.ifhp * res.ifwp_extended;
+    unary_shape.n         = 1;
+    unary_shape.ldi       = stride_in;
+    unary_shape.ldo       = stride_out;
+    unary_shape.in0_type  = LIBXSMM_DATATYPE_BF8;
+    unary_shape.comp_type = LIBXSMM_DATATYPE_BF8;
+    unary_shape.out_type  = LIBXSMM_DATATYPE_BF8;
+
+    res.zero_ifmblock_input_pixels_extended_bf8 = libxsmm_dispatch_meltw_unary_v2( LIBXSMM_MELTW_TYPE_UNARY_XOR, unary_shape, LIBXSMM_MELTW_FLAG_UNARY_NONE ) ;
+    if (  res.zero_ifmblock_input_pixels_extended_bf8  == NULL ) {
+      fprintf( stderr, "JIT for TPP zero_ifmblock_input_pixels_extended_bf8 failed. Bailing...!\n");
+      exit(-1);
+    }
+
+    stride_in             = res.ofmblock * res.output_pixels;
+    stride_out            = res.ofmblock * res.output_pixels;
+    unary_shape.m         = res.ofmblock * res.output_pixels;
+    unary_shape.n         = 1;
+    unary_shape.ldi       = stride_in;
+    unary_shape.ldo       = stride_out;
+
+    res.zero_ofmblock_output_pixels_bf8 = libxsmm_dispatch_meltw_unary_v2( LIBXSMM_MELTW_TYPE_UNARY_XOR, unary_shape, LIBXSMM_MELTW_FLAG_UNARY_NONE ) ;
+    if (  res.zero_ofmblock_output_pixels_bf8  == NULL ) {
+      fprintf( stderr, "JIT for TPP zero_ofmblock_output_pixels_bf8 failed. Bailing...!\n");
+      exit(-1);
+    }
+
+    if (res.input_pixels > 0) {
+      stride_in             = res.ifmblock;
+      stride_out            = res.input_pixels;
+      unary_shape.m         = res.ifmblock;
+      unary_shape.n         = res.ifwp;
+      unary_shape.ldi       = stride_in;
+      unary_shape.ldo       = stride_out;
+      unary_shape.in0_type  = LIBXSMM_DATATYPE_BF8;
+      unary_shape.comp_type = LIBXSMM_DATATYPE_BF8;
+      unary_shape.out_type  = LIBXSMM_DATATYPE_BF8;
+
+      res.transpose_input_pixels_bf8 = libxsmm_dispatch_meltw_unary_v2( LIBXSMM_MELTW_TYPE_UNARY_TRANSFORM_NORM_TO_NORMT, unary_shape, LIBXSMM_MELTW_FLAG_UNARY_NONE ) ;
+      if (  res.transpose_input_pixels_bf8  == NULL ) {
+        fprintf( stderr, "JIT for TPP transpose_input_pixels_bf8 failed. Bailing...!\n");
+        exit(-1);
+      }
+
+      stride_in             = res.v * res.ifmblock;
+      stride_out            = res.input_pixels;
+      unary_shape.m         = res.ifmblock;
+      unary_shape.n         = res.ifwp/res.v;
+      unary_shape.ldi       = stride_in;
+      unary_shape.ldo       = stride_out;
+      unary_shape.in0_type  = LIBXSMM_DATATYPE_BF8;
+      unary_shape.comp_type = LIBXSMM_DATATYPE_BF8;
+      unary_shape.out_type  = LIBXSMM_DATATYPE_BF8;
+
+      res.transposeNpack_input_pixels_bf8 = libxsmm_dispatch_meltw_unary_v2( LIBXSMM_MELTW_TYPE_UNARY_TRANSFORM_NORM_TO_NORMT, unary_shape, LIBXSMM_MELTW_FLAG_UNARY_NONE ) ;
+      if (  res.transposeNpack_input_pixels_bf8  == NULL ) {
+        fprintf( stderr, "JIT for TPP transposeNpack_input_pixels_bf8 failed. Bailing...!\n");
+        exit(-1);
+      }
+    }
+
+    stride_in             = res.ofmblock;
+    stride_out            = res.ofmblock;
+    unary_shape.m         = res.ofmblock;
+    unary_shape.n         = res.ofwp;
+    unary_shape.ldi       = stride_in;
+    unary_shape.ldo       = stride_out;
+    unary_shape.in0_type  = LIBXSMM_DATATYPE_BF8;
+    unary_shape.comp_type = LIBXSMM_DATATYPE_BF8;
+    unary_shape.out_type  = LIBXSMM_DATATYPE_BF8;
+
+    if (res.ofwp % 4 > 0) {
+      res.vnni_output_w_pixels_bf8 = libxsmm_dispatch_meltw_unary_v2( LIBXSMM_MELTW_TYPE_UNARY_TRANSFORM_NORM_TO_VNNI4_PAD, unary_shape, LIBXSMM_MELTW_FLAG_UNARY_NONE ) ;
+    } else {
+      res.vnni_output_w_pixels_bf8 = libxsmm_dispatch_meltw_unary_v2( LIBXSMM_MELTW_TYPE_UNARY_TRANSFORM_NORM_TO_VNNI4, unary_shape, LIBXSMM_MELTW_FLAG_UNARY_NONE ) ;
+    }
+    if (  res.vnni_output_w_pixels_bf8  == NULL ) {
+      fprintf( stderr, "JIT for TPP vnni_output_w_pixels_bf8 failed. Bailing...!\n");
+      exit(-1);
+    }
+
+    stride_in             = res.ofmblock;
+    stride_out            = res.ofmblock;
+    unary_shape.m         = res.ofmblock;
+    unary_shape.n         = res.ofwp-1;
+    unary_shape.ldi       = stride_in;
+    unary_shape.ldo       = stride_out;
+    unary_shape.in0_type  = LIBXSMM_DATATYPE_BF8;
+    unary_shape.comp_type = LIBXSMM_DATATYPE_BF8;
+    unary_shape.out_type  = LIBXSMM_DATATYPE_BF8;
+
+    if ((res.ofwp-1) % 4 > 0) {
+      res.vnni_output_w2_pixels_bf8 = libxsmm_dispatch_meltw_unary_v2( LIBXSMM_MELTW_TYPE_UNARY_TRANSFORM_NORM_TO_VNNI4_PAD, unary_shape, LIBXSMM_MELTW_FLAG_UNARY_NONE ) ;
+    } else {
+      res.vnni_output_w2_pixels_bf8 = libxsmm_dispatch_meltw_unary_v2( LIBXSMM_MELTW_TYPE_UNARY_TRANSFORM_NORM_TO_VNNI4, unary_shape, LIBXSMM_MELTW_FLAG_UNARY_NONE ) ;
+    }
+    if (  res.vnni_output_w2_pixels_bf8  == NULL ) {
+      fprintf( stderr, "JIT for TPP vnni_output_w2_pixels_bf8 failed. Bailing...!\n");
+      exit(-1);
+    }
+
+    stride_in             = res.ofmblock;
+    stride_out            = res.ofmblock;
+    unary_shape.m         = res.ofmblock;
+    unary_shape.n         = res.compute_pixels;
+    unary_shape.ldi       = stride_in;
+    unary_shape.ldo       = stride_out;
+    unary_shape.in0_type  = LIBXSMM_DATATYPE_BF8;
+    unary_shape.comp_type = LIBXSMM_DATATYPE_BF8;
+    unary_shape.out_type  = LIBXSMM_DATATYPE_BF8;
+
+    if (res.compute_pixels % 4 > 0) {
+      res.vnni_output_compute_pixels_bf8 = libxsmm_dispatch_meltw_unary_v2( LIBXSMM_MELTW_TYPE_UNARY_TRANSFORM_NORM_TO_VNNI4_PAD, unary_shape, LIBXSMM_MELTW_FLAG_UNARY_NONE ) ;
+    } else {
+      res.vnni_output_compute_pixels_bf8 = libxsmm_dispatch_meltw_unary_v2( LIBXSMM_MELTW_TYPE_UNARY_TRANSFORM_NORM_TO_VNNI4, unary_shape, LIBXSMM_MELTW_FLAG_UNARY_NONE ) ;
+    }
+    if (  res.vnni_output_compute_pixels_bf8  == NULL ) {
+      fprintf( stderr, "JIT for TPP vnni_output_compute_pixels_bf8 failed. Bailing...!\n");
+      exit(-1);
+    }
+
+    res.upd_remaining_pixels = res.output_pixels - ((res.compute_pixels+1)/4)*4;
+    if (res.upd_remaining_pixels > 0) {
+      stride_in             = res.upd_remaining_pixels * res.ofmblock;
+      stride_out            = res.upd_remaining_pixels * res.ofmblock;
+      unary_shape.m         = res.upd_remaining_pixels * res.ofmblock;
+      unary_shape.n         = 1;
+      unary_shape.ldi       = stride_in;
+      unary_shape.ldo       = stride_out;
+
+      res.vnni_output_zero_remaining_pixels_bf8 = libxsmm_dispatch_meltw_unary_v2( LIBXSMM_MELTW_TYPE_UNARY_XOR, unary_shape, LIBXSMM_MELTW_FLAG_UNARY_NONE ) ;
+      if (  res.vnni_output_zero_remaining_pixels_bf8  == NULL ) {
+        fprintf( stderr, "JIT for TPP vnni_output_zero_remaining_pixels_bf8 failed. Bailing...!\n");
+        exit(-1);
+      }
+    }
+
+    stride_in             = res.ifmblock;
+    stride_out            = res.ifhp * res.ifwp_extended;
+    unary_shape.m         = res.ifmblock;
+    unary_shape.n         = res.ifwp;
+    unary_shape.ldi       = stride_in;
+    unary_shape.ldo       = stride_out;
+    unary_shape.in0_type  = LIBXSMM_DATATYPE_BF8;
+    unary_shape.comp_type = LIBXSMM_DATATYPE_BF8;
+    unary_shape.out_type  = LIBXSMM_DATATYPE_BF8;
+
+    res.transpose_input_pixels_ifwp_extended_bf8 = libxsmm_dispatch_meltw_unary_v2( LIBXSMM_MELTW_TYPE_UNARY_TRANSFORM_NORM_TO_NORMT, unary_shape, LIBXSMM_MELTW_FLAG_UNARY_NONE ) ;
+    if (  res.transpose_input_pixels_ifwp_extended_bf8  == NULL ) {
+      fprintf( stderr, "JIT for TPP transpose_input_pixels_ifwp_extended_bf8 failed. Bailing...!\n");
+      exit(-1);
+    }
+
+    stride_in             = res.ifmblock * res.v;
+    stride_out            = IFHP * res.ifwp_extended;
+    unary_shape.m         = res.ifmblock;
+    unary_shape.n         = res.ofw;
+    unary_shape.ldi       = stride_in;
+    unary_shape.ldo       = stride_out;
+    unary_shape.in0_type  = LIBXSMM_DATATYPE_BF8;
+    unary_shape.comp_type = LIBXSMM_DATATYPE_BF8;
+    unary_shape.out_type  = LIBXSMM_DATATYPE_BF8;
+
+    res.transpose_input_pixels_ifwp_strided_extended_bf8 = libxsmm_dispatch_meltw_unary_v2( LIBXSMM_MELTW_TYPE_UNARY_TRANSFORM_NORM_TO_NORMT, unary_shape, LIBXSMM_MELTW_FLAG_UNARY_NONE ) ;
+    if (  res.transpose_input_pixels_ifwp_strided_extended_bf8  == NULL ) {
+      fprintf( stderr, "JIT for TPP transpose_input_pixels_ifwp_strided_extended_bf8 failed. Bailing...!\n");
+      exit(-1);
+    }
+
+    stride_in             = res.ifmblock;
+    stride_out            = IFHP * res.ifwp_extended;
+    unary_shape.m         = res.ifmblock;
+    unary_shape.n         = res.ifwp;
+    unary_shape.ldi       = stride_in;
+    unary_shape.ldo       = stride_out;
+    unary_shape.in0_type  = LIBXSMM_DATATYPE_BF8;
+    unary_shape.comp_type = LIBXSMM_DATATYPE_BF8;
+    unary_shape.out_type  = LIBXSMM_DATATYPE_BF8;
+
+    res.transpose_input_pixels_ifwp_extended2_bf8 = libxsmm_dispatch_meltw_unary_v2( LIBXSMM_MELTW_TYPE_UNARY_TRANSFORM_NORM_TO_NORMT, unary_shape, LIBXSMM_MELTW_FLAG_UNARY_NONE ) ;
+    if (  res.transpose_input_pixels_ifwp_extended2_bf8  == NULL ) {
+      fprintf( stderr, "JIT for TPP transpose_input_pixels_ifwp_extended2_bf8 failed. Bailing...!\n");
+      exit(-1);
+    }
+
+    /* Reduction kernels.. we generate 2 variants depending on threads/available work */
+    if (res.weight_copies > 1) {
+      int active_copies = res.weight_copies;
+      const int fm_blocking = (res.ofmblock % 16 == 0) ? 16 : res.ofmblock;
+      const int reduce_work = res.blocksofm * res.blocksifm * res.R * res.S * (res.ofmblock/fm_blocking) * res.ifmblock;
+      const int reduce_chunksize = (reduce_work % res.threads == 0) ? (reduce_work / res.threads) : (reduce_work / res.threads) + 1;
+      const int chunk0 = reduce_chunksize * fm_blocking;
+      const int chunk1 = (reduce_work - (reduce_work/reduce_chunksize) * reduce_chunksize) * fm_blocking;
+      const int img_work = res.N;
+      const int img_chunksize = (img_work % res.threads == 0) ? (img_work / res.threads) : (img_work / res.threads) + 1;
+
+      stride_in             = res.K * res.C * res.R * res.S;
+      stride_out            = chunk0;
+      unary_shape.m         = chunk0;
+      unary_shape.in0_type  = LIBXSMM_DATATYPE_BF8;
+      unary_shape.comp_type = LIBXSMM_DATATYPE_F32;
+      unary_shape.out_type  = LIBXSMM_DATATYPE_BF8;
+
+      /* In this case calculate how many weight copies have been indeed computed  */
+      if (res.N != res.threads) {
+        active_copies = 1;
+        while (active_copies * img_chunksize < res.N) {
+          active_copies++;
+        }
+      }
+
+      unary_shape.n         = active_copies;
+      unary_shape.ldi       = stride_in;
+      unary_shape.ldo       = stride_out;
+      res.wt_reduce_kernel0_bf8 = libxsmm_dispatch_meltw_unary_v2( LIBXSMM_MELTW_TYPE_UNARY_REDUCE_X_OP_ADD, unary_shape, LIBXSMM_MELTW_FLAG_UNARY_REDUCE_COLS ) ;
+      if (  res.wt_reduce_kernel0_bf8  == NULL ) {
+        fprintf( stderr, "JIT for TPP wt_reduce_kernel0_bf8 failed. Bailing...!\n");
+        exit(-1);
+      }
+
+      if (chunk1 > 0) {
+        stride_out            = chunk1;
+        unary_shape.m         = chunk1;
+        unary_shape.ldi       = stride_in;
+        unary_shape.ldo       = stride_out;
+        res.wt_reduce_kernel1_bf8 = libxsmm_dispatch_meltw_unary_v2( LIBXSMM_MELTW_TYPE_UNARY_REDUCE_X_OP_ADD, unary_shape, LIBXSMM_MELTW_FLAG_UNARY_REDUCE_COLS ) ;
+        if (  res.wt_reduce_kernel1_bf8  == NULL ) {
+          fprintf( stderr, "JIT for TPP wt_reduce_kernel1_bf8 failed. Bailing...!\n");
+          exit(-1);
+        }
+      }
+    }
   }
 
   *inout_cfg = res;
@@ -2831,6 +3855,8 @@ LIBXSMM_API libxsmm_dnn_conv_config setup_libxsmm_dnn_conv( libxsmm_datatype cnn
 
   if (cnn_dtype_in == LIBXSMM_DATATYPE_BF16) {
     libxsmm_dnn_conv_setup_bf16_upd_algorithms(&res);
+  } else if (cnn_dtype_in == LIBXSMM_DATATYPE_BF8) {
+    libxsmm_dnn_conv_setup_bf8_upd_algorithms(&res);
   }
 
   /* Generate UPD kernels  */
