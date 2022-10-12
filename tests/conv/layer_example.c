@@ -568,7 +568,7 @@ int main(int argc, char* argv[])
     printf("##########################################\n");
     /* let's do some additional init such that we can run passes standalone */
     tensor_copy_NCHW_to_NCHWc (naive_output_bp , doutput_libxsmm,  nImg, nOfm, ofhp, ofwp, libxsmm_dnn_conv_cfg.ofmblock);
-    //tensor_copy_NCHW_to_NCHWc (naive_input_save, dinput_libxsmm, nImg, nIfm, ifhp, ifwp, libxsmm_dnn_conv_cfg.ifmblock);
+    /*tensor_copy_NCHW_to_NCHWc (naive_input_save, dinput_libxsmm, nImg, nIfm, ifhp, ifwp, libxsmm_dnn_conv_cfg.ifmblock);*/
     tensor_copy_NCHW_to_NCHWc (naive_input, dinput_libxsmm, nImg, nIfm, ifhp, ifwp, libxsmm_dnn_conv_cfg.ifmblock);
     if (prec == 2) {
       libxsmm_rne_convert_fp32_bf16( dinput_libxsmm,     dinput_libxsmm_bf16,     nImg*nIfm*ifhp*ifwp );
