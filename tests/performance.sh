@@ -37,7 +37,8 @@ while test $# -gt 0; do
     shift 1;;
   esac
 done
-if [ "$(cd "$(dirname "${IFILE}")" && pwd)/$(basename "${IFILE}")" = \
+if [ "${IFILE}" ] && [ "${IFILE}" ] && \
+   [ "$(cd "$(dirname "${IFILE}")" && pwd)/$(basename "${IFILE}")" = \
      "$(cd "$(dirname "${OFILE}")" && pwd)/$(basename "${OFILE}")" ];
 then
   >&2 echo "ERROR: infile and outfile are equal!"
@@ -64,8 +65,7 @@ fi
 echo "FLOPS${SEP}TIME" >"${OFILE}"
 PATTERN="[[:space:]]*=[[:space:]]*\(..*\)/\1/p"
 ${SED} -n "s/^GFLOP${PATTERN};s/^fp time${PATTERN}" "${IFILE}" \
- | ${PASTE} -d"${SEP}" - - \
->>"${OFILE}"
+  | ${SED} "s/\r//g" | ${PASTE} -d"${SEP}" - - >>"${OFILE}"
 
 RESULT=($(${DATAMASH} <"${OFILE}" --header-in -t"${SEP}" --output-delimiter=" " sum 1 sum 2))
 printf "%.1f GFLOPS/s\n" "$(${BC} -l <<<"${RESULT[0]}/${RESULT[1]}")"
