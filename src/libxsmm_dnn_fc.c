@@ -20,6 +20,7 @@ LIBXSMM_API libxsmm_dnn_fc_fwd_config setup_libxsmm_dnn_fc_fwd(libxsmm_blasint N
   libxsmm_blasint ldc = bk;
   libxsmm_blasint ld_zero = bk*bn;
   libxsmm_blasint unroll_hint = 0;
+  int arch_cpuid = libxsmm_cpuid();
   int l_is_aarch64 = ( arch_cpuid >= LIBXSMM_AARCH64_V81 && arch_cpuid <= LIBXSMM_AARCH64_ALLFEAT ) ? 1 : 0;
 
   libxsmm_bitfield l_flags, l_tc_flags, l_tr_flags;
