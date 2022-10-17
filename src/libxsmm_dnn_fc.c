@@ -917,7 +917,7 @@ LIBXSMM_API libxsmm_dnn_fc_bwd_config setup_libxsmm_dnn_fc_bwd(libxsmm_blasint N
     res.bwd_2d_blocking = 0;
     res.bwd_col_teams = 1;
     res.bwd_row_teams = 1;
-    res.upd_bf = (res.N > 1024) ? 2 : 1;
+    res.upd_bf = (res.N > 1024 && res.K > 256) ? 2 : 1;
     res.upd_2d_blocking = 0;
     res.upd_col_teams = 1;
     res.upd_row_teams = 1;
