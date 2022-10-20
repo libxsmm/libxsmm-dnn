@@ -8,6 +8,7 @@
 # SPDX-License-Identifier: BSD-3-Clause                                       #
 ###############################################################################
 # shellcheck disable=SC2207
+set -eo pipefail
 
 DATAMASH=$(command -v datamash)
 PASTE=$(command -v paste)
@@ -15,9 +16,18 @@ SED=$(command -v sed)
 BC=$(command -v bc)
 SEP=";"
 
-if [ ! "${DATAMASH}" ] || [ ! "${PASTE}" ] || [ ! "${SED}" ] || [ ! "${BC}" ]; then
+if [ ! "${DATAMASH}" ]; then
+  >&2 echo "ERROR: missing GNU Datamash!"
+  exit 1
+fi
+if [ ! "${PASTE}" ] || [ ! "${SED}" ] || [ ! "${BC}" ]; then
   >&2 echo "ERROR: missing prerequisites!"
   exit 1
+fi
+# ensure proper permissions
+if [ "${UMASK}" ]; then
+  UMASK_CMD="umask ${UMASK};"
+  eval "${UMASK_CMD}"
 fi
 
 ARGC=$#
@@ -64,7 +74,7 @@ fi
 
 echo "FLOPS${SEP}TIME" >"${OFILE}"
 PATTERN="[[:space:]]*=[[:space:]]*\(..*\)/\1/p"
-${SED} -n "s/^GFLOP${PATTERN};s/^fp time${PATTERN}" "${IFILE}" \
+${SED} -n "s/^GFLOP${PATTERN};s/^fp time${PATTERN}" "${IFILE}" 2>/dev/null \
   | ${SED} "s/\r//g" | ${PASTE} -d"${SEP}" - - >>"${OFILE}"
 
 RESULT=($(${DATAMASH} <"${OFILE}" --header-in -t"${SEP}" --output-delimiter=" " sum 1 sum 2))
