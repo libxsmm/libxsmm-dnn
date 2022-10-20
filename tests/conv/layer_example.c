@@ -22,17 +22,20 @@
 
 int main(int argc, char* argv[])
 {
-  float *naive_input, *naive_output, *naive_output_save, *naive_filter, *naive_filter_wu, *naive_output_bp, *naive_output_wu, *naive_libxsmm_output;
-  float *naive_libxsmm_input, *naive_libxsmm_filter, *naive_input_save, *naive_filter_save, *naive_filter_kcrs;
-  float *input_nhwc, *output_nhwc, *filter_rsck, *dinput_nhwc, *doutput_nhwc, *dfilter_rsck, *naive_output_nhwc, *naive_input_nhwc;
-  float *input_libxsmm, *filter_libxsmm, *output_libxsmm, *dinput_libxsmm, *dfilter_libxsmm, *doutput_libxsmm, *filtertr_libxsmm;
-  float *bias_libxsmm;
+  float *naive_input = NULL, *naive_output = NULL, *naive_output_save = NULL, *naive_filter = NULL, *naive_filter_wu = NULL;
+  float *naive_output_bp = NULL, *naive_output_wu, *naive_libxsmm_output = NULL, *naive_libxsmm_input = NULL, *naive_libxsmm_filter = NULL;
+  float *naive_input_save = NULL, *naive_filter_save = NULL, *naive_filter_kcrs = NULL, *input_nhwc = NULL, *output_nhwc = NULL;
+  float *filter_rsck = NULL, *dinput_nhwc = NULL, *doutput_nhwc = NULL, *dfilter_rsck = NULL, *naive_output_nhwc = NULL, *naive_input_nhwc = NULL;
+  float *input_libxsmm = NULL, *filter_libxsmm = NULL, *output_libxsmm = NULL, *dinput_libxsmm = NULL, *dfilter_libxsmm = NULL;
+  float *doutput_libxsmm = NULL, *filtertr_libxsmm = NULL, *bias_libxsmm = NULL;
 
-  libxsmm_bfloat16 *input_libxsmm_bf16, *filter_libxsmm_bf16, *output_libxsmm_bf16, *dinput_libxsmm_bf16, *dfilter_libxsmm_bf16, *doutput_libxsmm_bf16, *filtertr_libxsmm_bf16 , *bias_libxsmm_bf16;
-  libxsmm_bfloat16 *naive_output_bf16, *naive_filter_wu_bf16, *naive_input_bf16;
+  libxsmm_bfloat16 *input_libxsmm_bf16 = NULL, *filter_libxsmm_bf16 = NULL, *output_libxsmm_bf16 = NULL, *dinput_libxsmm_bf16 = NULL;
+  libxsmm_bfloat16 *dfilter_libxsmm_bf16 = NULL, *doutput_libxsmm_bf16 = NULL, *filtertr_libxsmm_bf16 = NULL, *bias_libxsmm_bf16 = NULL;
+  libxsmm_bfloat16 *naive_output_bf16 = NULL, *naive_filter_wu_bf16 = NULL, *naive_input_bf16 = NULL;
 
-  libxsmm_bfloat8 *input_libxsmm_bf8, *filter_libxsmm_bf8, *output_libxsmm_bf8, *dinput_libxsmm_bf8, *dfilter_libxsmm_bf8, *doutput_libxsmm_bf8, *filtertr_libxsmm_bf8, *bias_libxsmm_bf8;
-  libxsmm_bfloat8 *naive_output_bf8, *naive_filter_wu_bf8, *naive_input_bf8;
+  libxsmm_bfloat8 *input_libxsmm_bf8 = NULL, *filter_libxsmm_bf8 = NULL, *output_libxsmm_bf8 = NULL, *dinput_libxsmm_bf8 = NULL;
+  libxsmm_bfloat8 *dfilter_libxsmm_bf8 = NULL, *doutput_libxsmm_bf8 = NULL, *filtertr_libxsmm_bf8 = NULL, *bias_libxsmm_bf8 = NULL;
+  libxsmm_bfloat8 *naive_output_bf8 = NULL, *naive_filter_wu_bf8 = NULL, *naive_input_bf8 = NULL;
 
   unsigned char *relumask_libxsmm = NULL;
   libxsmm_dnn_conv_eltwise_fuse my_fuse = LIBXSMM_DNN_CONV_ELTWISE_FUSE_NONE;
@@ -86,52 +89,6 @@ int main(int argc, char* argv[])
   libxsmm_matdiff_clear(&norms_bwd);
   libxsmm_matdiff_clear(&norms_upd);
   libxsmm_matdiff_clear(&diff);
-
-  naive_input = NULL;
-  naive_output = NULL;
-  naive_output_save = NULL;
-  naive_filter = NULL;
-  naive_filter_wu = NULL;
-  naive_output_bp = NULL;
-  naive_output_wu = NULL;
-  naive_libxsmm_output = NULL;
-  naive_libxsmm_input = NULL;
-  naive_libxsmm_filter = NULL;
-  naive_input_save = NULL;
-  naive_filter_save = NULL;
-  naive_filter_kcrs = NULL;
-  input_nhwc = NULL;
-  output_nhwc = NULL;
-  filter_rsck = NULL;
-  dinput_nhwc = NULL;
-  doutput_nhwc = NULL;
-  dfilter_rsck = NULL;
-  naive_output_nhwc = NULL;
-  naive_input_nhwc = NULL;
-  input_libxsmm = NULL;
-  filter_libxsmm = NULL;
-  output_libxsmm = NULL;
-  dinput_libxsmm = NULL;
-  dfilter_libxsmm = NULL;
-  doutput_libxsmm = NULL;
-  filtertr_libxsmm = NULL;
-  bias_libxsmm = NULL;
-  input_libxsmm_bf16 = NULL;
-  filter_libxsmm_bf16 = NULL;
-  output_libxsmm_bf16 = NULL;
-  dinput_libxsmm_bf16 = NULL;
-  dfilter_libxsmm_bf16 = NULL;
-  doutput_libxsmm_bf16 = NULL;
-  filtertr_libxsmm_bf16 = NULL;
-  bias_libxsmm_bf16 = NULL;
-  input_libxsmm_bf8 = NULL;
-  filter_libxsmm_bf8 = NULL;
-  output_libxsmm_bf8 = NULL;
-  dinput_libxsmm_bf8 = NULL;
-  dfilter_libxsmm_bf8 = NULL;
-  doutput_libxsmm_bf8 = NULL;
-  filtertr_libxsmm_bf8 = NULL;
-  bias_libxsmm_bf8 = NULL;
 
   if (argc > 1 && !strncmp(argv[1], "-h", 3)) {
     printf("Usage: %s iters inpWidth inpHeight nImg nIfm nOfm kw kh pad stride type format padding_mode\n", argv[0]);
@@ -897,4 +854,3 @@ int main(int argc, char* argv[])
 
   return 0;
 }
-
