@@ -8,12 +8,12 @@ CUT=$(command -v cut)
 WC=$(command -v wc)
 TR=$(command -v tr)
 
-if [ "" = "${CHECK}" ] || [ "0" = "${CHECK}" ]; then
-  if [ "" = "${CHECK_DNN_MB}" ]; then CHECK_DNN_MB=64; fi
-  if [ "" = "${CHECK_DNN_ITERS}" ]; then CHECK_DNN_ITERS=1000; fi
+if [ ! "${CHECK}" ] || [ "0" = "${CHECK}" ]; then
+  if [ ! "${CHECK_DNN_MB}" ]; then CHECK_DNN_MB=64; fi
+  if [ ! "${CHECK_DNN_ITERS}" ]; then CHECK_DNN_ITERS=1000; fi
 else # check
-  if [ "" = "${CHECK_DNN_MB}" ]; then CHECK_DNN_MB=64; fi
-  if [ "" = "${CHECK_DNN_ITERS}" ]; then CHECK_DNN_ITERS=1; fi
+  if [ ! "${CHECK_DNN_MB}" ]; then CHECK_DNN_MB=64; fi
+  if [ ! "${CHECK_DNN_ITERS}" ]; then CHECK_DNN_ITERS=1; fi
 fi
 
 if [ $# -ne 10 ]
@@ -86,14 +86,14 @@ else
   NUMACTL="${TOOL_COMMAND}"
 fi
 
-if [ "" = "${OMP_NUM_THREADS}" ] || [ "0" = "${OMP_NUM_THREADS}" ]; then
-  if [ "" = "${KMP_AFFINITY}" ]; then
+if [ ! "${OMP_NUM_THREADS}" ] || [ "0" = "${OMP_NUM_THREADS}" ]; then
+  if [ ! "${KMP_AFFINITY}" ] && [ ! "${OMP_PROC_BIND}" ]; then
     export KMP_AFFINITY=compact,granularity=fine KMP_HW_SUBSET=1T
   fi
   export OMP_NUM_THREADS=$((NC))
 fi
 
-if [ "" = "${LIBXSMM_TARGET_HIDDEN}" ] || [ "0" = "${LIBXSMM_TARGET_HIDDEN}" ]; then
+if [ ! "${LIBXSMM_TARGET_HIDDEN}" ] || [ "0" = "${LIBXSMM_TARGET_HIDDEN}" ]; then
   echo "OMP_NUM_THREADS=${OMP_NUM_THREADS} NUMACTL=\"${NUMACTL}\""
   echo
 fi
