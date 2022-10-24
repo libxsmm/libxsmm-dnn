@@ -8,7 +8,6 @@
 # SPDX-License-Identifier: BSD-3-Clause                                       #
 ###############################################################################
 # shellcheck disable=SC2207
-set -eo pipefail
 
 DATAMASH=$(command -v datamash)
 PASTE=$(command -v paste)
@@ -20,7 +19,11 @@ if [ ! "${DATAMASH}" ]; then
   >&2 echo "ERROR: missing GNU Datamash!"
   exit 1
 fi
-if [ ! "${PASTE}" ] || [ ! "${SED}" ] || [ ! "${BC}" ]; then
+if [ ! "${BC}" ]; then
+  >&2 echo "ERROR: missing Basic Calculator!"
+  exit 1
+fi
+if [ ! "${PASTE}" ] || [ ! "${SED}" ]; then
   >&2 echo "ERROR: missing prerequisites!"
   exit 1
 fi
@@ -66,6 +69,9 @@ if [ "${HELP}" ] || [ "0" = "${ARGC}" ]; then
   eval "${HELP}"
   if [ "0" = "${ARGC}" ]; then exit 1; else exit 0; fi
 fi
+
+# handle errors more strictly
+set -eo pipefail
 
 if [ ! "${OFILE}" ]; then
   OFILE=$(mktemp)
