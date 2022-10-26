@@ -8,7 +8,6 @@
 ******************************************************************************/
 /* Evangelos Georganas (Intel Corp.)
 ******************************************************************************/
-
 #include <libxsmm_dnn.h>
 #include <dnn_common.h>
 
@@ -70,7 +69,7 @@ int main(int argc, char* argv[])
   char format = 'A';      /* 'A': ALL, 'L': LIBXSMM, 'T': Tensorflow, 'M', Mixed */
 
   const char *const env_check = getenv("CHECK");
-  const double check = LIBXSMM_ABS(0 == env_check ? 1 : atof(env_check));
+  const double check = LIBXSMM_ABS(NULL == env_check ? 1 : atof(env_check));
 
 #if defined(_OPENMP)
   int nThreads = omp_get_max_threads(); /* number of threads */
@@ -842,7 +841,7 @@ int main(int argc, char* argv[])
   destroy_libxsmm_dnn_conv(&libxsmm_dnn_conv_cfg );
 
   { const char *const env_check_scale = getenv("CHECK_SCALE");
-    const double check_scale = LIBXSMM_ABS(0 == env_check_scale ? 100.0 : atof(env_check_scale));
+    const double check_scale = LIBXSMM_ABS(NULL == env_check_scale ? 100.0 : atof(env_check_scale));
     if (LIBXSMM_NEQ(0, check) && (check < 100.0 * check_scale * diff.normf_rel)) {
       fprintf(stderr, "FAILED with an error of %f%%!\n", 100.0 * diff.normf_rel);
       exit(EXIT_FAILURE);

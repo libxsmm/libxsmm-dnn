@@ -58,7 +58,7 @@ int main(int argc, char* argv[])
   int prec = 4;   /* 4=f32, 2=bf16, 1=bf8 */
 
   const char *const env_check = getenv("CHECK");
-  const double check = LIBXSMM_ABS(0 == env_check ? 1 : atof(env_check));
+  const double check = LIBXSMM_ABS(NULL == env_check ? 1 : atof(env_check));
 
 #if defined(_OPENMP)
   int nThreads = omp_get_max_threads(); /* number of threads */
@@ -694,7 +694,7 @@ int main(int argc, char* argv[])
   }
 
   { const char *const env_check_scale = getenv("CHECK_SCALE");
-    const double check_scale = LIBXSMM_ABS(0 == env_check_scale ? 1.0 : atof(env_check_scale));
+    const double check_scale = LIBXSMM_ABS(NULL == env_check_scale ? 1.0 : atof(env_check_scale));
     if (LIBXSMM_NEQ(0, check) && (check < 100.0 * check_scale * diff.normf_rel)) {
       fprintf(stderr, "FAILED with an error of %f%%!\n", 100.0 * diff.normf_rel);
       exit(EXIT_FAILURE);
@@ -706,4 +706,3 @@ int main(int argc, char* argv[])
 
   return 0;
 }
-
