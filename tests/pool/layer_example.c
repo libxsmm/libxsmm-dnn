@@ -557,7 +557,7 @@ int main(int argc, char* argv[])
 
   if (LIBXSMM_NEQ(0, check)) {
     const double error = check * libxsmm_matdiff_epsilon(&diff);
-    const double espilon = (0 == prec_bf16 ? 4E-5 : 4E-2);
+    const double espilon = (0 == prec_bf16 ? 8E-5 : 8E-2);
     if (error <= espilon) {
       fprintf(stderr, "\nSUCCESS (error=%.24f)\n\n\n", error);
     }
