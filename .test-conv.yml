@@ -4,7 +4,7 @@ script:
     for MB_NT in ${MB_THREADS:-32_0}; do
       MB=$(echo ${MB_NT} | cut -d_ -f1);
       export OMP_NUM_THREADS=$(echo ${MB_NT} | cut -d_ -f2);
-      for PREC in PRECISIONS; do
+      for PREC in ${PRECISIONS}; do
         for PAD in 0 1; do
           echo; echo "--- TEST ResNet-50 (precision=${PREC} pad=${PAD} mb=${MB} nt=${OMP_NUM_THREADS})";
           ./run_convs.sh ${MB} ${ITERS} -1 ${PREC} F ${PAD} 0 64 64 1 &&
@@ -19,7 +19,7 @@ script:
     for MB_NT in ${MB_THREADS:-32_0}; do
       MB=$(echo ${MB_NT} | cut -d_ -f1);
       export OMP_NUM_THREADS=$(echo ${MB_NT} | cut -d_ -f2);
-      for PREC in PRECISIONS; do
+      for PREC in ${PRECISIONS}; do
         for PAD in 0 1; do
           echo; echo "--- TEST AlexNet (precision=${PREC} pad=${PAD} mb=${MB} nt=${OMP_NUM_THREADS})";
           ./run_convs.sh ${MB} ${ITERS} -1 ${PREC} F ${PAD} 0 64 64 2 &&
@@ -34,7 +34,7 @@ script:
     for MB_NT in ${MB_THREADS:-32_0}; do
       MB=$(echo ${MB_NT} | cut -d_ -f1);
       export OMP_NUM_THREADS=$(echo ${MB_NT} | cut -d_ -f2);
-      for PREC in PRECISIONS; do
+      for PREC in ${PRECISIONS}; do
         for PAD in 0 1; do
           echo; echo "--- TEST Overfeat (precision=${PREC} pad=${PAD} mb=${MB} nt=${OMP_NUM_THREADS})";
           ./run_convs.sh ${MB} ${ITERS} -1 ${PREC} F ${PAD} 0 64 64 8 &&
@@ -49,7 +49,7 @@ script:
     for MB_NT in ${MB_THREADS:-32_0}; do
       MB=$(echo ${MB_NT} | cut -d_ -f1);
       export OMP_NUM_THREADS=$(echo ${MB_NT} | cut -d_ -f2);
-      for PREC in PRECISIONS; do
+      for PREC in ${PRECISIONS}; do
         for PAD in 0 1; do
           echo; echo "--- TEST GoogleNet-v1 (precision=${PREC} pad=${PAD} mb=${MB} nt=${OMP_NUM_THREADS})";
           ./run_convs.sh ${MB} ${ITERS} -1 ${PREC} F ${PAD} 0 64 64 5 &&
@@ -64,7 +64,7 @@ script:
     for MB_NT in ${MB_THREADS:-32_0}; do
       MB=$(echo ${MB_NT} | cut -d_ -f1);
       export OMP_NUM_THREADS=$(echo ${MB_NT} | cut -d_ -f2);
-      for PREC in PRECISIONS; do
+      for PREC in ${PRECISIONS}; do
         for PAD in 0 1; do
           echo; echo "--- TEST GoogleNet-v3 (precision=${PREC} pad=${PAD} mb=${MB} nt=${OMP_NUM_THREADS})";
           ./run_convs.sh ${MB} ${ITERS} -1 ${PREC} F ${PAD} 0 64 64 6 &&
@@ -79,7 +79,7 @@ script:
     for MB_NT in ${MB_THREADS:-32_0}; do
       MB=$(echo ${MB_NT} | cut -d_ -f1);
       export OMP_NUM_THREADS=$(echo ${MB_NT} | cut -d_ -f2);
-      for PREC in PRECISIONS; do
+      for PREC in ${PRECISIONS}; do
         for PAD in 0 1; do
           echo; echo "--- TEST dcGAN (precision=${PREC} pad=${PAD} mb=${MB} nt=${OMP_NUM_THREADS})";
           ./run_convs.sh ${MB} ${ITERS} -1 ${PREC} F ${PAD} 0 64 64 3 &&
@@ -94,7 +94,7 @@ script:
     for MB_NT in ${MB_THREADS:-32_0}; do
       MB=$(echo ${MB_NT} | cut -d_ -f1);
       export OMP_NUM_THREADS=$(echo ${MB_NT} | cut -d_ -f2);
-      for PREC in PRECISIONS; do
+      for PREC in ${PRECISIONS}; do
         for PAD in 0 1; do
           echo; echo "--- TEST VGGa (precision=${PREC} pad=${PAD} mb=${MB} nt=${OMP_NUM_THREADS})";
           ./run_convs.sh ${MB} ${ITERS} -1 ${PREC} F ${PAD} 0 64 64 9 &&
@@ -107,7 +107,7 @@ script:
   - cd libxsmm && make -e ${MAKEJ} && cd ../tests/conv && make -e ${MAKEJ} &&
    (export OMP_NUM_THREADS=$(if [ "" != "${MB_THREADS}" ]; then echo "${MB_THREADS}" | cut -d_ -f1; else echo "0"; fi);
     export CHECK=1 ITERS=1 PRECISIONS=${PRECISIONS:-f32};
-    for PREC in PRECISIONS; do
+    for PREC in ${PRECISIONS}; do
       for PAD in 0 1; do
         echo; echo "--- TEST DeepBench (precision=${PREC} pad=${PAD})";
         ./run_convs.sh ${ITERS} -1 ${PREC} F ${PAD} 0 64 64 4 &&
