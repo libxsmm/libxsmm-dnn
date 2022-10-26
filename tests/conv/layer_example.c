@@ -504,7 +504,7 @@ int main(int argc, char* argv[])
     printf("L2 rel.error  : %.24f\n", norms_fwd.l2_rel);
     printf("Linf abs.error: %.24f\n", norms_fwd.linf_abs);
     printf("Linf rel.error: %.24f\n", norms_fwd.linf_rel);
-    printf("Check-norm    : %.24f\n", norms_fwd.normf_rel);
+    printf("Check-norm    : %.24f\n", libxsmm_matdiff_epsilon(&norms_fwd));
     libxsmm_matdiff_reduce(&diff, &norms_fwd);
   }
 
@@ -576,7 +576,7 @@ int main(int argc, char* argv[])
     printf("L2 rel.error  : %.24f\n", norms_bwd.l2_rel);
     printf("Linf abs.error: %.24f\n", norms_bwd.linf_abs);
     printf("Linf rel.error: %.24f\n", norms_bwd.linf_rel);
-    printf("Check-norm    : %.24f\n", norms_bwd.normf_rel);
+    printf("Check-norm    : %.24f\n", libxsmm_matdiff_epsilon(&norms_bwd));
     libxsmm_matdiff_reduce(&diff, &norms_bwd);
   }
 
@@ -637,7 +637,7 @@ int main(int argc, char* argv[])
     printf("L2 rel.error  : %.24f\n", norms_upd.l2_rel);
     printf("Linf abs.error: %.24f\n", norms_upd.linf_abs);
     printf("Linf rel.error: %.24f\n", norms_upd.linf_rel);
-    printf("Check-norm    : %.24f\n", norms_upd.normf_rel);
+    printf("Check-norm    : %.24f\n", libxsmm_matdiff_epsilon(&norms_upd));
     libxsmm_matdiff_reduce(&diff, &norms_upd);
   }
 
@@ -840,16 +840,18 @@ int main(int argc, char* argv[])
 
   destroy_libxsmm_dnn_conv(&libxsmm_dnn_conv_cfg );
 
-  { const char *const env_check_scale = getenv("CHECK_SCALE");
-    const double check_scale = LIBXSMM_ABS(NULL == env_check_scale ? 100.0 : atof(env_check_scale));
-    if (LIBXSMM_NEQ(0, check) && (check < 100.0 * check_scale * diff.normf_rel)) {
-      fprintf(stderr, "FAILED with an error of %f%%!\n", 100.0 * diff.normf_rel);
+  if (LIBXSMM_NEQ(0, check)) {
+    const double error = check * libxsmm_matdiff_epsilon(&diff);
+    const double espilon = (4 == prec ? 1E-6 : (2 == prec ? 1E-4 : 1E-2));
+    if (error <= espilon) {
+      fprintf(stderr, "\nSUCCESS (error=%.24f)\n\n\n", error);
+    }
+    else {
+      fprintf(stderr, "\nFAILED (error=%.24f)\n\n\n", error);
       exit(EXIT_FAILURE);
     }
   }
-
-  /* some empty lines at the end */
-  printf("\n\n\n");
+  else printf("\n\n\n");
 
   return 0;
 }
