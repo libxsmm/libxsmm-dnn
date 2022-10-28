@@ -7,6 +7,8 @@
 # Further information: https://github.com/libxsmm/libxsmm/                    #
 # SPDX-License-Identifier: BSD-3-Clause                                       #
 ###############################################################################
+# Hans Pabst (Intel Corp.)
+###############################################################################
 # shellcheck disable=SC2207
 
 DATAMASH=$(command -v datamash)
@@ -87,3 +89,4 @@ RESULT=($(${DATAMASH} <"${OFILE}" --header-in -t"${SEP}" --output-delimiter=" " 
   | ${SED} "s/\([+-]\{0,1\}[0-9]*\.\{0,1\}[0-9]\{1,\}\)[eE]+\{0,1\}\(-\{0,1\}\)\([0-9]\{1,\}\)/(\1*10^\2\3)/g"))
 printf "%.1f GFLOPS/s\n" "$(${BC} -l <<<"${RESULT[0]}/${RESULT[1]}")"
 printf "%.1f Hz (fps)\n" "$(${BC} -l <<<"1/${RESULT[1]}")"
+printf "%.1f ms\n" "$(${BC} -l <<<"1000*${RESULT[1]}")"
