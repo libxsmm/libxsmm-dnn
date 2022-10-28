@@ -87,6 +87,6 @@ ${SED} -n "s/^GFLOP${PATTERN};s/^fp time${PATTERN}" "${IFILE}" 2>/dev/null \
 
 RESULT=($(${DATAMASH} <"${OFILE}" --header-in -t"${SEP}" --output-delimiter=" " sum 1 sum 2 \
   | ${SED} "s/\([+-]\{0,1\}[0-9]*\.\{0,1\}[0-9]\{1,\}\)[eE]+\{0,1\}\(-\{0,1\}\)\([0-9]\{1,\}\)/(\1*10^\2\3)/g"))
-printf "%.1f GFLOPS/s\n" "$(${BC} -l <<<"${RESULT[0]}/${RESULT[1]}")"
-printf "%.1f Hz (fps)\n" "$(${BC} -l <<<"1/${RESULT[1]}")"
-printf "%.1f ms\n" "$(${BC} -l <<<"1000*${RESULT[1]}")"
+printf "%.0f GFLOPS/s\n" "$(${BC} -l <<<"${RESULT[0]}/${RESULT[1]}")"
+printf "%.0f Hz (fps)\n" "$(${BC} -l <<<"1/${RESULT[1]}")"
+printf "%f ms\n" "$(${BC} -l <<<"1000*${RESULT[1]}")"
