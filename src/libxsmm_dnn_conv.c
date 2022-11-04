@@ -1244,8 +1244,8 @@ LIBXSMM_API_INLINE void libxsmm_dnn_conv_generate_fwd_kernels( libxsmm_dnn_conv_
     l_prefetch_flags = prefetch_mode;
 
     /* Strided kernel  */
-    libxsmm_blasint IFW = (res.pack_input == 1) ? res.ofwp : res.ifwp;
-    libxsmm_blasint IFH = (res.pack_input == 1) ? res.ofhp : res.ifhp;
+    libxsmm_blasint IFW = (res.pack_input == 1) ? res.ofwp : ((res.fwd_padding_copy == 1) ? res.ifwp + 2 * res.pad_w : res.ifwp);
+    libxsmm_blasint IFH = (res.pack_input == 1) ? res.ofhp : ((res.fwd_padding_copy == 1) ? res.ifhp + 2 * res.pad_h : res.ifhp);
     libxsmm_blasint stride_a = res.R * res.S * res.ifmblock * res.ofmblock * sizeof(float);
     libxsmm_blasint stride_b = IFW * IFH * res.ifmblock * sizeof(float);
 
@@ -1485,8 +1485,8 @@ LIBXSMM_API_INLINE void libxsmm_dnn_conv_generate_fwd_kernels( libxsmm_dnn_conv_
     l_prefetch_flags = prefetch_mode;
 
     /* Strided kernel  */
-    libxsmm_blasint IFW = (res.pack_input == 1) ? res.ofwp : res.ifwp;
-    libxsmm_blasint IFH = (res.pack_input == 1) ? res.ofhp : res.ifhp;
+    libxsmm_blasint IFW = (res.pack_input == 1) ? res.ofwp : ((res.fwd_padding_copy == 1) ? res.ifwp + 2 * res.pad_w : res.ifwp);
+    libxsmm_blasint IFH = (res.pack_input == 1) ? res.ofhp : ((res.fwd_padding_copy == 1) ? res.ifhp + 2 * res.pad_h : res.ifhp);
     libxsmm_blasint stride_a = res.R * res.S * res.ifmblock * res.ofmblock * sizeof(libxsmm_bfloat16);
     libxsmm_blasint stride_b = IFW * IFH * res.ifmblock * sizeof(libxsmm_bfloat16);
 
