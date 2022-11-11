@@ -47,6 +47,9 @@ while test $# -gt 0; do
   -s|--sep)
     SEP=$2
     shift 2;;
+  -q|--sum)
+    SUM=1
+    shift 1;;
   *)
     if [ ! "${IFILE}" ]; then IFILE=$1; fi
     shift 1;;
@@ -65,6 +68,7 @@ if [ "${HELP}" ] || [ "0" = "${ARGC}" ]; then
   eval "${HELP} \"Usage: $0 [options] IFILE\""
   eval "${HELP} \"       -o|--out file: name of CSV-file\""
   eval "${HELP} \"       -s|--sep char: delimiter (CSV)\""
+  eval "${HELP} \"       -q|--sum: show summary only\""
   eval "${HELP}"
   eval "${HELP} \"Example: ./run_convs.sh 1 10 -1 f32 F 0 0 64 64 1 \\\\\""
   eval "${HELP} \"         | $0 -o performance.csv /dev/stdin\""
@@ -85,8 +89,19 @@ PATTERN="[[:space:]]*=[[:space:]]*\(..*\)/\1/p"
 ${SED} -n "s/^GFLOP${PATTERN};s/^fp time${PATTERN}" "${IFILE}" 2>/dev/null \
   | ${SED} "s/\r//g" | ${PASTE} -d"${SEP}" - - >>"${OFILE}"
 
+if [ ! "${SUM}" ] || [ "0" = "${SUM}" ]; then
+  LAYER=1
+  while read -r LINE; do
+    RESULT=($(echo "${LINE}" | ${SED} \
+      -e "s/\([+-]\{0,1\}[0-9]*\.\{0,1\}[0-9]\{1,\}\)[eE]+\{0,1\}\(-\{0,1\}\)\([0-9]\{1,\}\)/(\1*10^\2\3)/g" \
+      -e "s/;/ /"))
+    printf "Layer %i: %.0f GFLOPS/s\n" "${LAYER}" "$(${BC} -l <<<"${RESULT[0]}/${RESULT[1]}")"
+    LAYER=$((LAYER+1))
+  done < "${OFILE}"
+fi
+
 RESULT=($(${DATAMASH} <"${OFILE}" --header-in -t"${SEP}" --output-delimiter=" " sum 1 sum 2 \
   | ${SED} "s/\([+-]\{0,1\}[0-9]*\.\{0,1\}[0-9]\{1,\}\)[eE]+\{0,1\}\(-\{0,1\}\)\([0-9]\{1,\}\)/(\1*10^\2\3)/g"))
+printf "%f ms\n" "$(${BC} -l <<<"1000*${RESULT[1]}")"
 printf "%.0f GFLOPS/s\n" "$(${BC} -l <<<"${RESULT[0]}/${RESULT[1]}")"
 printf "%.0f Hz (fps)\n" "$(${BC} -l <<<"1/${RESULT[1]}")"
-printf "%f ms\n" "$(${BC} -l <<<"1000*${RESULT[1]}")"
