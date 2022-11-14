@@ -87,21 +87,26 @@ fi
 echo "FLOPS${SEP}TIME" >"${OFILE}"
 PATTERN="[[:space:]]*=[[:space:]]*\(..*\)/\1/p"
 ${SED} -n "s/^GFLOP${PATTERN};s/^fp time${PATTERN}" "${IFILE}" 2>/dev/null \
-  | ${SED} "s/\r//g" | ${PASTE} -d"${SEP}" - - >>"${OFILE}"
+  | ${SED} "s/\r//g" | ${PASTE} -d"${SEP}" - - >>"${OFILE}" 2>/dev/null
 
+NUMPAT="s/\([+-]\{0,1\}[0-9]*\.\{0,1\}[0-9]\{1,\}\)[eE]+\{0,1\}\(-\{0,1\}\)\([0-9]\{1,\}\)/(\1*10^\2\3)/g"
 if [ ! "${SUM}" ] || [ "0" = "${SUM}" ]; then
-  LAYER=1
+  LAYER=0
   while read -r LINE; do
-    RESULT=($(echo "${LINE}" | ${SED} \
-      -e "s/\([+-]\{0,1\}[0-9]*\.\{0,1\}[0-9]\{1,\}\)[eE]+\{0,1\}\(-\{0,1\}\)\([0-9]\{1,\}\)/(\1*10^\2\3)/g" \
-      -e "s/;/ /"))
-    printf "Layer %i: %.0f GFLOPS/s\n" "${LAYER}" "$(${BC} -l <<<"${RESULT[0]}/${RESULT[1]}")"
+    if [ "0" != "${LAYER}" ]; then # skip header line
+      RESULT=($(echo "${LINE}" | ${SED} 2>/dev/null -e "${NUMPAT}" -e "s/;/ /"))
+      if [ "${RESULT[0]}" ] && [ "${RESULT[1]}" ]; then
+        printf "Layer %i: %.0f GFLOPS/s\n" "${LAYER}" "$(${BC} 2>/dev/null -l <<<"${RESULT[0]}/${RESULT[1]}")"
+      fi
+    fi
     LAYER=$((LAYER+1))
   done < "${OFILE}"
 fi
 
-RESULT=($(${DATAMASH} <"${OFILE}" --header-in -t"${SEP}" --output-delimiter=" " sum 1 sum 2 \
-  | ${SED} "s/\([+-]\{0,1\}[0-9]*\.\{0,1\}[0-9]\{1,\}\)[eE]+\{0,1\}\(-\{0,1\}\)\([0-9]\{1,\}\)/(\1*10^\2\3)/g"))
-printf "%f ms\n" "$(${BC} -l <<<"1000*${RESULT[1]}")"
-printf "%.0f GFLOPS/s\n" "$(${BC} -l <<<"${RESULT[0]}/${RESULT[1]}")"
-printf "%.0f Hz (fps)\n" "$(${BC} -l <<<"1/${RESULT[1]}")"
+RESULT=($(${DATAMASH} 2>/dev/null <"${OFILE}" --header-in -t"${SEP}" --output-delimiter=" " sum 1 sum 2 \
+  | ${SED} 2>/dev/null "${NUMPAT}"))
+if [ "${RESULT[0]}" ] && [ "${RESULT[1]}" ]; then
+  printf "%f ms\n" "$(${BC} 2>/dev/null -l <<<"1000*${RESULT[1]}")"
+  printf "%.0f GFLOPS/s\n" "$(${BC} 2>/dev/null -l <<<"${RESULT[0]}/${RESULT[1]}")"
+  printf "%.0f Hz (fps)\n" "$(${BC} 2>/dev/null -l <<<"1/${RESULT[1]}")"
+fi
