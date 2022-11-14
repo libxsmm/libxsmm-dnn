@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -eo pipefail
 
+HERE=$(cd "$(dirname "$0")" && pwd -P)
 UNAME=$(command -v uname)
 SORT=$(command -v sort)
 GREP=$(command -v grep)
@@ -109,3 +110,7 @@ ${NUMACTL} ./layer_example ${ITERS} ${MB} 128 256 ${FUSE} ${TYPE} ${BN} ${BK} ${
 ${NUMACTL} ./layer_example ${ITERS} ${MB} 512 1024 ${FUSE} ${TYPE} ${BN} ${BK} ${BC} ${PREC}
 ${NUMACTL} ./layer_example ${ITERS} ${MB} 1024 1024 ${FUSE} ${TYPE} ${BN} ${BK} ${BC} ${PREC}
 ${NUMACTL} ./layer_example ${ITERS} ${MB} 2048 512 ${FUSE} ${TYPE} ${BN} ${BK} ${BC} ${PREC}
+
+if [ "${LOGFILE}" ] && [ -e "${LOGFILE}" ]; then
+  ${HERE}/../performance.sh "${LOGFILE}"
+fi

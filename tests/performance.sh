@@ -84,6 +84,12 @@ if [ ! "${OFILE}" ]; then
   trap 'rm -f ${OFILE}' EXIT
 fi
 
+if [ "${SLURM_JOB_PARTITION}" ]; then
+  echo "+++ PERFORMANCE ${SLURM_JOB_PARTITION}"
+else
+  echo "+++ PERFORMANCE ${HOSTNAME}"
+fi
+
 echo "FLOPS${SEP}TIME" >"${OFILE}"
 PATTERN="[[:space:]]*=[[:space:]]*\(..*\)/\1/p"
 ${SED} -n "s/^GFLOP${PATTERN};s/^fp time${PATTERN}" "${IFILE}" 2>/dev/null \
