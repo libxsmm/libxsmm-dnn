@@ -20,6 +20,8 @@ script:
       MB=$(echo "${MB_NT}" | cut -d_ -f1);
       export OMP_NUM_THREADS=$(echo "${MB_NT}" | cut -d_ -f2);
       for P in ${PASSES}; do
+        PREC=$(echo "${P}" | cut -d_ -f1);
+        PASS=$(echo "${P}" | cut -d_ -f2);
         for PAD in 0 1; do
           echo; echo "--- TEST AlexNet (precision=${PREC} pad=${PAD} mb=${MB} nt=${OMP_NUM_THREADS})";
           ./run_convs.sh ${MB} ${ITERS} -1 ${PREC} ${PASS} ${PAD} 0 64 64 2;
@@ -33,6 +35,8 @@ script:
       MB=$(echo "${MB_NT}" | cut -d_ -f1);
       export OMP_NUM_THREADS=$(echo "${MB_NT}" | cut -d_ -f2);
       for P in ${PASSES}; do
+        PREC=$(echo "${P}" | cut -d_ -f1);
+        PASS=$(echo "${P}" | cut -d_ -f2);
         for PAD in 0 1; do
           echo; echo "--- TEST Overfeat (precision=${PREC} pad=${PAD} mb=${MB} nt=${OMP_NUM_THREADS})";
           ./run_convs.sh ${MB} ${ITERS} -1 ${PREC} ${PASS} ${PAD} 0 64 64 8;
@@ -46,6 +50,8 @@ script:
       MB=$(echo "${MB_NT}" | cut -d_ -f1);
       export OMP_NUM_THREADS=$(echo "${MB_NT}" | cut -d_ -f2);
       for P in ${PASSES}; do
+        PREC=$(echo "${P}" | cut -d_ -f1);
+        PASS=$(echo "${P}" | cut -d_ -f2);
         for PAD in 0 1; do
           echo; echo "--- TEST GoogleNet-v1 (precision=${PREC} pad=${PAD} mb=${MB} nt=${OMP_NUM_THREADS})";
           ./run_convs.sh ${MB} ${ITERS} -1 ${PREC} ${PASS} ${PAD} 0 64 64 5;
@@ -59,6 +65,8 @@ script:
       MB=$(echo "${MB_NT}" | cut -d_ -f1);
       export OMP_NUM_THREADS=$(echo "${MB_NT}" | cut -d_ -f2);
       for P in ${PASSES}; do
+        PREC=$(echo "${P}" | cut -d_ -f1);
+        PASS=$(echo "${P}" | cut -d_ -f2);
         for PAD in 0 1; do
           echo; echo "--- TEST GoogleNet-v3 (precision=${PREC} pad=${PAD} mb=${MB} nt=${OMP_NUM_THREADS})";
           ./run_convs.sh ${MB} ${ITERS} -1 ${PREC} ${PASS} ${PAD} 0 64 64 6;
@@ -72,6 +80,8 @@ script:
       MB=$(echo "${MB_NT}" | cut -d_ -f1);
       export OMP_NUM_THREADS=$(echo "${MB_NT}" | cut -d_ -f2);
       for P in ${PASSES}; do
+        PREC=$(echo "${P}" | cut -d_ -f1);
+        PASS=$(echo "${P}" | cut -d_ -f2);
         for PAD in 0 1; do
           echo; echo "--- TEST dcGAN (precision=${PREC} pad=${PAD} mb=${MB} nt=${OMP_NUM_THREADS})";
           ./run_convs.sh ${MB} ${ITERS} -1 ${PREC} ${PASS} ${PAD} 0 64 64 3;
@@ -85,6 +95,8 @@ script:
       MB=$(echo "${MB_NT}" | cut -d_ -f1);
       export OMP_NUM_THREADS=$(echo "${MB_NT}" | cut -d_ -f2);
       for P in ${PASSES}; do
+        PREC=$(echo "${P}" | cut -d_ -f1);
+        PASS=$(echo "${P}" | cut -d_ -f2);
         for PAD in 0 1; do
           echo; echo "--- TEST VGGa (precision=${PREC} pad=${PAD} mb=${MB} nt=${OMP_NUM_THREADS})";
           ./run_convs.sh ${MB} ${ITERS} -1 ${PREC} ${PASS} ${PAD} 0 64 64 9;
@@ -96,6 +108,8 @@ script:
    (export OMP_NUM_THREADS=$(if [ "" != "${MB_THREADS}" ]; then echo "${MB_THREADS}" | cut -d_ -f1; else echo "0"; fi);
     export CHECK=1 ITERS=1 PASSES=${PASSES:-f32_A};
     for P in ${PASSES}; do
+      PREC=$(echo "${P}" | cut -d_ -f1);
+      PASS=$(echo "${P}" | cut -d_ -f2);
       for PAD in 0 1; do
         echo; echo "--- TEST DeepBench (precision=${PREC} pad=${PAD})";
         ./run_convs.sh ${ITERS} -1 ${PREC} ${PASS} ${PAD} 0 64 64 4;
