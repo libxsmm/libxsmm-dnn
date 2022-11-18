@@ -561,12 +561,17 @@ int main(int argc, char* argv[])
     if (error <= espilon) {
       fprintf(stderr, "\nSUCCESS (error=%.24f)\n\n\n", error);
     }
+    else if (LIBXSMM_NOTNAN(diff.v_tst)) {
+      fprintf(stderr, "\nFAILED (error=%.24f %g != %g)\n\n\n",
+        error, diff.v_ref, diff.v_tst);
+      return EXIT_FAILURE;
+    }
     else {
       fprintf(stderr, "\nFAILED (error=%.24f)\n\n\n", error);
-      exit(EXIT_FAILURE);
+      return EXIT_FAILURE;
     }
   }
   else printf("\n\n\n");
 
-  return 0;
+  return EXIT_SUCCESS;
 }

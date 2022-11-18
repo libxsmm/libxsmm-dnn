@@ -949,5 +949,5 @@ int main(int argc, char* argv[])
   /* some empty lines at the end */
   printf("\n\n\n");
 
-  return 0;
+  return EXIT_SUCCESS;
 }

@@ -695,16 +695,21 @@ int main(int argc, char* argv[])
 
   if (LIBXSMM_NEQ(0, check)) {
     const double error = check * libxsmm_matdiff_epsilon(&diff);
-    const double espilon = (4 == prec ? 8E-5 : (2 == prec ? 2E-2 : 8E-1));
+    const double espilon = (4 == prec ? 4E-3 : (2 == prec ? 4E-2 : 8E-1));
     if (error <= espilon) {
       fprintf(stderr, "\nSUCCESS (error=%.24f)\n\n\n", error);
     }
+    else if (LIBXSMM_NOTNAN(diff.v_tst)) {
+      fprintf(stderr, "\nFAILED (error=%.24f %g != %g)\n\n\n",
+        error, diff.v_ref, diff.v_tst);
+      return EXIT_FAILURE;
+    }
     else {
       fprintf(stderr, "\nFAILED (error=%.24f)\n\n\n", error);
-      exit(EXIT_FAILURE);
+      return EXIT_FAILURE;
     }
   }
   else printf("\n\n\n");
 
-  return 0;
+  return EXIT_SUCCESS;
 }

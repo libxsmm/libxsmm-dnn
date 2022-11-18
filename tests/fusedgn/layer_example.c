@@ -736,5 +736,5 @@ int main( int argc, char* argv[] ) {
   libxsmm_free(naive_eqn_dinp_add);
   libxsmm_free(naive_eqn_out);
 
-  return 0;
+  return EXIT_SUCCESS;
 }
