@@ -105,35 +105,39 @@ echo "PREC_BF16 = ${PREC_BF16}"
 CB=64
 
 FUSE=4
-${NUMACTL} ./layer_example ${ITERS}  ${MB} 64   112 112 ${CB}  0 0 0 0 1 ${NORM} ${FUSE} ${PREC_BF16}
+${NUMACTL} "${HERE}/layer_example" ${ITERS}  ${MB} 64   112 112 ${CB}  0 0 0 0 1 ${NORM} ${FUSE} ${PREC_BF16}
 FUSE=4
-${NUMACTL} ./layer_example ${ITERS}  ${MB} 64   56  56  ${CB}  0 0 0 0 1 ${NORM} ${FUSE} ${PREC_BF16}
+${NUMACTL} "${HERE}/layer_example" ${ITERS}  ${MB} 64   56  56  ${CB}  0 0 0 0 1 ${NORM} ${FUSE} ${PREC_BF16}
 
 FUSE=0
-${NUMACTL} ./layer_example ${ITERS}  ${MB} 256  56  56  ${CB}  0 0 0 0 1 ${NORM} ${FUSE} ${PREC_BF16}
+${NUMACTL} "${HERE}/layer_example" ${ITERS}  ${MB} 256  56  56  ${CB}  0 0 0 0 1 ${NORM} ${FUSE} ${PREC_BF16}
 FUSE=5
-${NUMACTL} ./layer_example ${ITERS}  ${MB} 256  56  56  ${CB}  0 0 0 0 1 ${NORM} ${FUSE} ${PREC_BF16}
+${NUMACTL} "${HERE}/layer_example" ${ITERS}  ${MB} 256  56  56  ${CB}  0 0 0 0 1 ${NORM} ${FUSE} ${PREC_BF16}
 
 FUSE=4
-${NUMACTL} ./layer_example ${ITERS}  ${MB} 128  28  28  ${CB}  0 0 0 0 1 ${NORM} ${FUSE} ${PREC_BF16}
+${NUMACTL} "${HERE}/layer_example" ${ITERS}  ${MB} 128  28  28  ${CB}  0 0 0 0 1 ${NORM} ${FUSE} ${PREC_BF16}
 
 FUSE=0
-${NUMACTL} ./layer_example ${ITERS}  ${MB} 512  28  28  ${CB}  0 0 0 0 1 ${NORM} ${FUSE} ${PREC_BF16}
+${NUMACTL} "${HERE}/layer_example" ${ITERS}  ${MB} 512  28  28  ${CB}  0 0 0 0 1 ${NORM} ${FUSE} ${PREC_BF16}
 FUSE=5
-${NUMACTL} ./layer_example ${ITERS}  ${MB} 512  28  28  ${CB}  0 0 0 0 1 ${NORM} ${FUSE} ${PREC_BF16}
+${NUMACTL} "${HERE}/layer_example" ${ITERS}  ${MB} 512  28  28  ${CB}  0 0 0 0 1 ${NORM} ${FUSE} ${PREC_BF16}
 
 FUSE=4
-${NUMACTL} ./layer_example ${ITERS}  ${MB} 256  14  14  ${CB}  0 0 0 0 1 ${NORM} ${FUSE} ${PREC_BF16}
+${NUMACTL} "${HERE}/layer_example" ${ITERS}  ${MB} 256  14  14  ${CB}  0 0 0 0 1 ${NORM} ${FUSE} ${PREC_BF16}
 
 FUSE=0
-${NUMACTL} ./layer_example ${ITERS}  ${MB} 1024 14  14  ${CB}  0 0 0 0 1 ${NORM} ${FUSE} ${PREC_BF16}
+${NUMACTL} "${HERE}/layer_example" ${ITERS}  ${MB} 1024 14  14  ${CB}  0 0 0 0 1 ${NORM} ${FUSE} ${PREC_BF16}
 FUSE=5
-${NUMACTL} ./layer_example ${ITERS}  ${MB} 1024 14  14  ${CB}  0 0 0 0 1 ${NORM} ${FUSE} ${PREC_BF16}
+${NUMACTL} "${HERE}/layer_example" ${ITERS}  ${MB} 1024 14  14  ${CB}  0 0 0 0 1 ${NORM} ${FUSE} ${PREC_BF16}
 
 FUSE=4
-${NUMACTL} ./layer_example ${ITERS}  ${MB} 512   7   7  ${CB}  1 1 0 0 1 ${NORM} ${FUSE} ${PREC_BF16}
+${NUMACTL} "${HERE}/layer_example" ${ITERS}  ${MB} 512   7   7  ${CB}  1 1 0 0 1 ${NORM} ${FUSE} ${PREC_BF16}
 
 FUSE=0
-${NUMACTL} ./layer_example ${ITERS}  ${MB} 2048  7   7  ${CB}  0 0 0 0 1 ${NORM} ${FUSE} ${PREC_BF16}
+${NUMACTL} "${HERE}/layer_example" ${ITERS}  ${MB} 2048  7   7  ${CB}  0 0 0 0 1 ${NORM} ${FUSE} ${PREC_BF16}
 FUSE=5
-${NUMACTL} ./layer_example ${ITERS}  ${MB} 2048  7   7  ${CB}  0 0 0 0 1 ${NORM} ${FUSE} ${PREC_BF16}
+${NUMACTL} "${HERE}/layer_example" ${ITERS}  ${MB} 2048  7   7  ${CB}  0 0 0 0 1 ${NORM} ${FUSE} ${PREC_BF16}
+
+if [ "${LOGFILE}" ] && [ -e "${LOGFILE}" ]; then
+  "${HERE}/../performance.sh" "${LOGFILE}"
+fi
