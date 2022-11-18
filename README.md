@@ -17,4 +17,18 @@ To build from source:
 make -j $(nproc)
 ```
 
-> **NOTE**: To rely on a specific version of LIBXSMM (Git submodule not required), set `LIBXSMMROOT` environment/make variable and rely on a [prebuilt](https://libxsmm.readthedocs.io/#build-instructions) LIBXSMM.
+> **NOTE**: To rely on a specific version of LIBXSMM (Git submodule not required), set `LIBXSMMROOT` environment/make variable and rely on a [separately built](https://libxsmm.readthedocs.io/#build-instructions) LIBXSMM.
+
+To mimic the performance of ResNet-50 inference:
+
+```bash
+tests/conv/run_convs.sh 1 1000 -1 f32 F 0 0 64 64 1 | tee output.log
+```
+
+> **NOTE**: To mimic performance, FLOPS are shown and the time spent for convolutional layers is measured. This is different from running inference end-to-end using a real framework such as PyTorch).
+
+To summarize timings:
+
+```bash
+tests/performance.sh output.log
+```
