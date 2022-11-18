@@ -91,8 +91,8 @@ else
 fi
 
 echo "FLOPS${SEP}TIME" >"${OFILE}"
-PATTERN="[[:space:]]*=[[:space:]]*\(..*\)/\1/p"
-${SED} -n "s/^GFLOP${PATTERN};s/^fp time${PATTERN}" "${IFILE}" 2>/dev/null \
+PATTERN="[[:space:]]*=[[:space:]]*\(..*\)/\2/p"
+${SED} -n "s/^\(GFLOP\)${PATTERN};s/^\(fp\|wu\|bp\) time${PATTERN}" "${IFILE}" 2>/dev/null \
   | ${SED} "s/\r//g" | ${PASTE} -d"${SEP}" - - >>"${OFILE}" 2>/dev/null
 
 NUMPAT="s/\([+-]\{0,1\}[0-9]*\.\{0,1\}[0-9]\{1,\}\)[eE]+\{0,1\}\(-\{0,1\}\)\([0-9]\{1,\}\)/(\1*10^\2\3)/g"
@@ -106,7 +106,7 @@ if [ ! "${SUM}" ] || [ "0" = "${SUM}" ]; then
       fi
     fi
     LAYER=$((LAYER+1))
-  done < "${OFILE}"
+  done <"${OFILE}"
 fi
 
 RESULT=($(${DATAMASH} 2>/dev/null <"${OFILE}" --header-in -t"${SEP}" --output-delimiter=" " sum 1 sum 2 \
