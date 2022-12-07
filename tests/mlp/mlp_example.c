@@ -161,7 +161,7 @@ int main(int argc, char* argv[])
   if ( prec_bf16 > 0 ) {
     in_dt = LIBXSMM_DATATYPE_BF16;
     out_dt = LIBXSMM_DATATYPE_BF16;
-    comp_dt = LIBXSMM_DATATYPE_BF16;
+    comp_dt = LIBXSMM_DATATYPE_F32;
   } else {
     in_dt = LIBXSMM_DATATYPE_F32;
     out_dt = LIBXSMM_DATATYPE_F32;

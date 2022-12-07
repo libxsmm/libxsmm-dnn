@@ -34,7 +34,7 @@ LIBXSMM_API libxsmm_dnn_opt_config setup_libxsmm_dnn_opt(libxsmm_blasint C, libx
     res.scratch_size = 0;
   } else if ( (datatype_in == LIBXSMM_DATATYPE_BF16) &&
               (datatype_out == LIBXSMM_DATATYPE_BF16) &&
-              (datatype_comp == LIBXSMM_DATATYPE_BF16) ) {
+              (datatype_comp == LIBXSMM_DATATYPE_F32) ) {
     res.scratch_size = 0;
   } else {
     fprintf( stderr, "Unsupported precision for smax bwd pass Bailing...!\n");
