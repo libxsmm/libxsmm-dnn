@@ -84,10 +84,11 @@ if [ ! "${OFILE}" ]; then
   trap 'rm -f ${OFILE}' EXIT
 fi
 
-if [ "${SLURM_JOB_PARTITION}" ]; then
-  echo "+++ PERFORMANCE ${SLURM_JOB_PARTITION}"
-else
-  echo "+++ PERFORMANCE ${HOSTNAME}"
+if [ ! "${IFILE}" ]; then
+  IFILE=/dev/stdin
+elif [ ! -e "${IFILE}" ]; then
+  >&2 echo "ERROR: logfile \"${IFILE}\" does not exist!"
+  exit 1
 fi
 
 echo "FLOPS${SEP}TIME" >"${OFILE}"
@@ -112,6 +113,11 @@ fi
 RESULT=($(${DATAMASH} 2>/dev/null <"${OFILE}" --header-in -t"${SEP}" --output-delimiter=" " sum 1 sum 2 \
   | ${SED} 2>/dev/null "${NUMPAT}"))
 if [ "${RESULT[0]}" ] && [ "${RESULT[1]}" ]; then
+  if [ "${SLURM_JOB_PARTITION}" ]; then
+    echo "+++ PERFORMANCE ${SLURM_JOB_PARTITION}"
+  else
+    echo "+++ PERFORMANCE ${HOSTNAME}"
+  fi
   printf "%f ms\n" "$(${BC} 2>/dev/null -l <<<"1000*${RESULT[1]}")"
   printf "%.0f GFLOPS/s\n" "$(${BC} 2>/dev/null -l <<<"${RESULT[0]}/${RESULT[1]}")"
   printf "%.0f Hz (fps)\n" "$(${BC} 2>/dev/null -l <<<"1/${RESULT[1]}")"
