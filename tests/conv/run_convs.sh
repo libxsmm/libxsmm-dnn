@@ -479,6 +479,6 @@ ${NUMACTL} "${HERE}/layer_example" ${ITERS}  120   68 ${MB} 512 512 3 3 1 1 1 ${
 ${NUMACTL} "${HERE}/layer_example" ${ITERS}  120   68 ${MB} 512 512 3 3 1 1 1 ${TYPE} L ${PAD} ${FUSE} ${BC} ${BK} ${PREC}
 fi
 
-if [ "${LOGFILE}" ] && [ -e "${LOGFILE}" ]; then
+if [ "${LOGFILE}" ]; then
   "${HERE}/../performance.sh" "${LOGFILE}"
 fi

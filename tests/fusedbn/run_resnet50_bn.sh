@@ -138,6 +138,6 @@ ${NUMACTL} "${HERE}/layer_example" ${ITERS}  ${MB} 2048  7   7  ${CB}  0 0 0 0 1
 FUSE=5
 ${NUMACTL} "${HERE}/layer_example" ${ITERS}  ${MB} 2048  7   7  ${CB}  0 0 0 0 1 ${NORM} ${FUSE} ${PREC_BF16}
 
-if [ "${LOGFILE}" ] && [ -e "${LOGFILE}" ]; then
+if [ "${LOGFILE}" ]; then
   "${HERE}/../performance.sh" "${LOGFILE}"
 fi
