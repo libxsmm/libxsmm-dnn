@@ -91,33 +91,39 @@ elif [ ! -e "${IFILE}" ]; then
   exit 1
 fi
 
-echo "FLOPS${SEP}TIME" >"${OFILE}"
+NUMPAT="s/\([+-]\{0,1\}[0-9]*\.\{0,1\}[0-9]\{1,\}\)[eE]+\{0,1\}\(-\{0,1\}\)\([0-9]\{1,\}\)/(\1*10^\2\3)/g"
 PATTERN="[[:space:]]*=[[:space:]]*\(..*\)/\2/p"
+
+# Write CSV-file header line
+echo "FLOPS${SEP}TIME" >"${OFILE}"
+# Write CSV-file records
 ${SED} -n "s/^\(GFLOP\)${PATTERN};s/^\(fp\|wu\|bp\) time${PATTERN}" "${IFILE}" 2>/dev/null \
   | ${SED} "s/\r//g" | ${PASTE} -d"${SEP}" - - >>"${OFILE}" 2>/dev/null
 
-NUMPAT="s/\([+-]\{0,1\}[0-9]*\.\{0,1\}[0-9]\{1,\}\)[eE]+\{0,1\}\(-\{0,1\}\)\([0-9]\{1,\}\)/(\1*10^\2\3)/g"
-if [ ! "${SUM}" ] || [ "0" = "${SUM}" ]; then
-  LAYER=0
-  while read -r LINE; do
-    if [ "0" != "${LAYER}" ]; then # skip header line
-      RESULT=($(echo "${LINE}" | ${SED} 2>/dev/null -e "${NUMPAT}" -e "s/${SEP}/ /"))
-      if [ "${RESULT[0]}" ] && [ "${RESULT[1]}" ]; then
-        printf "Layer %i: %f ms\n" "${LAYER}" "$(${BC} 2>/dev/null -l <<<"1000*${RESULT[1]}")"
-      fi
-    fi
-    LAYER=$((LAYER+1))
-  done <"${OFILE}"
-fi
-
+# Summarize CSV-file (GNU Datamash)
 RESULT=($(${DATAMASH} 2>/dev/null <"${OFILE}" --header-in -t"${SEP}" --output-delimiter=" " sum 1 sum 2 \
   | ${SED} 2>/dev/null "${NUMPAT}"))
+
 if [ "${RESULT[0]}" ] && [ "${RESULT[1]}" ]; then
   if [ "${SLURM_JOB_PARTITION}" ]; then
     echo "+++ PERFORMANCE ${SLURM_JOB_PARTITION}"
   else
     echo "+++ PERFORMANCE ${HOSTNAME}"
   fi
+  # Print detailed results (per-layer)
+  if [ ! "${SUM}" ] || [ "0" = "${SUM}" ]; then
+    LAYER=0
+    while read -r LINE; do
+      if [ "0" != "${LAYER}" ]; then # skip header line
+        RESULT=($(echo "${LINE}" | ${SED} 2>/dev/null -e "${NUMPAT}" -e "s/${SEP}/ /"))
+        if [ "${RESULT[0]}" ] && [ "${RESULT[1]}" ]; then
+          printf "Layer %i: %f ms\n" "${LAYER}" "$(${BC} 2>/dev/null -l <<<"1000*${RESULT[1]}")"
+        fi
+      fi
+      LAYER=$((LAYER+1))
+    done <"${OFILE}"
+  fi
+  # Print summary (over all layers)
   printf "%f ms\n" "$(${BC} 2>/dev/null -l <<<"1000*${RESULT[1]}")"
   printf "%.0f GFLOPS/s\n" "$(${BC} 2>/dev/null -l <<<"${RESULT[0]}/${RESULT[1]}")"
   printf "%.0f Hz (fps)\n" "$(${BC} 2>/dev/null -l <<<"1/${RESULT[1]}")"
