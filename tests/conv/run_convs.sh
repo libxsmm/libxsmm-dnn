@@ -479,10 +479,4 @@ ${NUMACTL} "${HERE}/layer_example" ${ITERS}  120   68 ${MB} 512 512 3 3 1 1 1 ${
 ${NUMACTL} "${HERE}/layer_example" ${ITERS}  120   68 ${MB} 512 512 3 3 1 1 1 ${TYPE} L ${PAD} ${FUSE} ${BC} ${BK} ${PREC}
 fi
 
-if [ "${LOGFILE}" ]; then
-  if [ "${LIBXSMMROOT}" ] && [ -e "${LIBXSMMROOT}/scripts/tool_perflog.sh" ]; then
-    "${LIBXSMMROOT}/scripts/tool_perflog.sh" "${LOGFILE}"
-  elif [ -e "${HERE}/../../libxsmm/scripts/tool_perflog.sh" ]; then
-    "${HERE}/../../libxsmm/scripts/tool_perflog.sh" "${LOGFILE}"
-  fi
-fi
+"${HERE}/../performance.sh"
