@@ -3,7 +3,7 @@
 * This file is part of the LIBXSMM library.                                   *
 *                                                                             *
 * For information on the license, see the LICENSE file.                       *
-* Further information: https://github.com/libxsmm/libxsmm_dnn/                *
+* Further information: https://github.com/libxsmm/libxsmm-dnn/                *
 * SPDX-License-Identifier: BSD-3-Clause                                       *
 ******************************************************************************/
 /* Evangelos Georganas (Intel Corp.)
@@ -68,7 +68,7 @@ int main(int argc, char* argv[])
   int idx;
 
   const char *const env_check = getenv("CHECK");
-  const double check = LIBXSMM_ABS(0 == env_check ? 1 : atof(env_check));
+  const double check = LIBXSMM_ABS(NULL == env_check ? 1 : atof(env_check));
 
 #if defined(_OPENMP)
   int nThreads = omp_get_max_threads(); /* number of threads */
@@ -721,6 +721,5 @@ int main(int argc, char* argv[])
   /* Finalize the MPI environment */
   MPI_Finalize();
 
-  return 0;
+  return EXIT_SUCCESS;
 }
-

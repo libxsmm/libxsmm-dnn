@@ -3,12 +3,11 @@
 * This file is part of the LIBXSMM library.                                   *
 *                                                                             *
 * For information on the license, see the LICENSE file.                       *
-* Further information: https://github.com/libxsmm/libxsmm_dnn/                *
+* Further information: https://github.com/libxsmm/libxsmm-dnn/                *
 * SPDX-License-Identifier: BSD-3-Clause                                       *
 ******************************************************************************/
 /* Alexander Heinecke, Evangelos Georganas (Intel Corp.)
 ******************************************************************************/
-
 #include <libxsmm_dnn.h>
 #include <dnn_common.h>
 
@@ -68,7 +67,7 @@ int main(int argc, char* argv[])
   int prec_bf16 = 0;
 
   const char *const env_check = getenv("CHECK");
-  const double check = LIBXSMM_ABS(0 == env_check ? 1 : atof(env_check));
+  const double check = LIBXSMM_ABS(NULL == env_check ? 1 : atof(env_check));
 
 #if defined(_OPENMP)
   libxsmm_blasint nThreads = (libxsmm_blasint)omp_get_max_threads(); /* number of threads */
@@ -387,7 +386,7 @@ int main(int argc, char* argv[])
       printf("L2 rel.error  : %.24f\n", norms_fwd.l2_rel);
       printf("Linf abs.error: %.24f\n", norms_fwd.linf_abs);
       printf("Linf rel.error: %.24f\n", norms_fwd.linf_rel);
-      printf("Check-norm    : %.24f\n", norms_fwd.normf_rel);
+      printf("Check-norm    : %.24f\n", libxsmm_matdiff_epsilon(&norms_fwd));
       libxsmm_matdiff_reduce(&diff, &norms_fwd);
     }
 
@@ -432,7 +431,7 @@ int main(int argc, char* argv[])
       printf("L2 rel.error  : %.24f\n", norms_bwd.l2_rel);
       printf("Linf abs.error: %.24f\n", norms_bwd.linf_abs);
       printf("Linf rel.error: %.24f\n", norms_bwd.linf_rel);
-      printf("Check-norm    : %.24f\n", norms_bwd.normf_rel);
+      printf("Check-norm    : %.24f\n", libxsmm_matdiff_epsilon(&norms_bwd));
       libxsmm_matdiff_reduce(&diff, &norms_bwd);
     }
 
@@ -556,17 +555,23 @@ int main(int argc, char* argv[])
     libxsmm_free(deloutput_libxsmm_bf16);
   }
 
-  { const char *const env_check_scale = getenv("CHECK_SCALE");
-    const double check_scale = LIBXSMM_ABS(0 == env_check_scale ? 1.0 : atof(env_check_scale));
-    if (LIBXSMM_NEQ(0, check) && (check < 100.0 * check_scale * diff.normf_rel)) {
-      fprintf(stderr, "FAILED with an error of %f%%!\n", 100.0 * diff.normf_rel);
-      exit(EXIT_FAILURE);
+  if (LIBXSMM_NEQ(0, check)) {
+    const double error = check * libxsmm_matdiff_epsilon(&diff);
+    const double espilon = (0 == prec_bf16 ? 8E-5 : 2E-2);
+    if (error <= espilon) {
+      fprintf(stderr, "\nSUCCESS (error=%.24f)\n\n\n", error);
+    }
+    else if (LIBXSMM_NOTNAN(diff.v_tst)) {
+      fprintf(stderr, "\nFAILED (error=%.24f %g != %g)\n\n\n",
+        error, diff.v_ref, diff.v_tst);
+      return EXIT_FAILURE;
+    }
+    else {
+      fprintf(stderr, "\nFAILED (error=%.24f)\n\n\n", error);
+      return EXIT_FAILURE;
     }
   }
+  else printf("\n\n\n");
 
-  /* some empty lines at the end */
-  printf("\n\n\n");
-
-  return 0;
+  return EXIT_SUCCESS;
 }
-

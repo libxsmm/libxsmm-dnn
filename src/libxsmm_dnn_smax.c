@@ -3,10 +3,10 @@
 * This file is part of the LIBXSMM library.                                   *
 *                                                                             *
 * For information on the license, see the LICENSE file.                       *
-* Further information: https://github.com/libxsmm/libxsmm_dnn/                *
+* Further information: https://github.com/libxsmm/libxsmm-dnn/                *
 * SPDX-License-Identifier: BSD-3-Clause                                       *
 ******************************************************************************/
-/* Alexander Heineckei (Intel Corp.)
+/* Alexander Heinecke (Intel Corp.)
 ******************************************************************************/
 
 #include <libxsmm_dnn_smax.h>
@@ -33,7 +33,7 @@ LIBXSMM_API libxsmm_dnn_smax_fwd_config setup_libxsmm_dnn_smax_fwd(libxsmm_blasi
     res.scratch_size = 0;
   } else if ( (datatype_in == LIBXSMM_DATATYPE_BF16) &&
               (datatype_out == LIBXSMM_DATATYPE_BF16) &&
-              (datatype_comp == LIBXSMM_DATATYPE_BF16) ) {
+              (datatype_comp == LIBXSMM_DATATYPE_F32) ) {
     res.scratch_size = (sizeof(float)*res.C*res.N*2);
   } else {
     fprintf( stderr, "Unsupported precision for smax fwd pass Bailing...!\n");
@@ -66,7 +66,7 @@ libxsmm_dnn_smax_bwd_config setup_libxsmm_dnn_smax_bwd(libxsmm_blasint N, libxsm
     res.scratch_size = 0;
   } else if ( (datatype_in == LIBXSMM_DATATYPE_BF16) &&
               (datatype_out == LIBXSMM_DATATYPE_BF16) &&
-              (datatype_comp == LIBXSMM_DATATYPE_BF16) ) {
+              (datatype_comp == LIBXSMM_DATATYPE_F32) ) {
     res.scratch_size = (sizeof(float)*res.C*res.N*2);
   } else {
     fprintf( stderr, "Unsupported precision for smax bwd pass Bailing...!\n");

@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -eo pipefail
 
+HERE=$(cd "$(dirname "$0")" && pwd -P)
 UNAME=$(command -v uname)
 SORT=$(command -v sort)
 GREP=$(command -v grep)
@@ -9,17 +10,17 @@ WC=$(command -v wc)
 TR=$(command -v tr)
 NUMA=-1
 
-if [ "" = "${CHECK}" ] || [ "0" = "${CHECK}" ]; then
-  if [ "" = "${CHECK_DNN_MB}" ]; then CHECK_DNN_MB=64; fi
-  if [ "" = "${CHECK_DNN_ITERS}" ]; then CHECK_DNN_ITERS=1000; fi
+if [ ! "${CHECK}" ] || [ "0" = "${CHECK}" ]; then
+  if [ ! "${CHECK_DNN_MB}" ]; then CHECK_DNN_MB=64; fi
+  if [ ! "${CHECK_DNN_ITERS}" ]; then CHECK_DNN_ITERS=1000; fi
 else # check
-  if [ "" = "${CHECK_DNN_MB}" ]; then CHECK_DNN_MB=64; fi
-  if [ "" = "${CHECK_DNN_ITERS}" ]; then CHECK_DNN_ITERS=1; fi
+  if [ ! "${CHECK_DNN_MB}" ]; then CHECK_DNN_MB=64; fi
+  if [ ! "${CHECK_DNN_ITERS}" ]; then CHECK_DNN_ITERS=1; fi
 fi
 
 if [ $# -ne 8 ]
 then
-  echo "Usage: $(basename $0) bin=(f32, bf16) iters MB type=(A, F, B, U, M) fuse=(0 (None), 1 (Bias), 2 (ReLU), 4 (Bias+ReLU)) bn bc bk"
+  echo "Usage: $(basename $0) bin=(f32, bf16, bf8) iters MB type=(A, F, B, U, M) fuse=(0 (None), 1 (Bias), 2 (ReLU), 4 (Bias+ReLU)) bn bc bk"
   BIN=f32
   ITERS=${CHECK_DNN_ITERS}
   MB=${CHECK_DNN_MB}
@@ -42,12 +43,12 @@ fi
 if [ "${GREP}" ] && [ "${SORT}" ] && [ "${CUT}" ] && [ "${TR}" ] && [ "${WC}" ]; then
   if [ "$(command -v lscpu)" ]; then
     NS=$(lscpu | ${GREP} -m1 "Socket(s)" | ${TR} -d " " | ${CUT} -d: -f2)
-    if [ "" = "${NS}" ]; then NS=1; fi
+    if [ ! "${NS}" ]; then NS=1; fi
     NC=$((NS*$(lscpu | ${GREP} -m1 "Core(s) per socket" | ${TR} -d " " | ${CUT} -d: -f2)))
     NT=$((NC*$(lscpu | ${GREP} -m1 "Thread(s) per core" | ${TR} -d " " | ${CUT} -d: -f2)))
   elif [ -e /proc/cpuinfo ]; then
     NS=$(${GREP} "physical id" /proc/cpuinfo | ${SORT} -u | ${WC} -l | ${TR} -d " ")
-    if [ "" = "${NS}" ] || [ "" = "${NS}" ]; then NS=1; fi
+    if [ ! "${NS}" ] || [ ! "${NS}" ]; then NS=1; fi
     NC=$((NS*$(${GREP} -m1 "cpu cores" /proc/cpuinfo | ${TR} -d " " | ${CUT} -d: -f2)))
     NT=$(${GREP} "core id" /proc/cpuinfo  | ${WC} -l | ${TR} -d " ")
   elif [ "Darwin" = "$(uname)" ]; then
@@ -81,30 +82,33 @@ else
   NUMACTL="${TOOL_COMMAND}"
 fi
 
-if [ "" = "${OMP_NUM_THREADS}" ] || [ "0" = "${OMP_NUM_THREADS}" ]; then
-  if [ "" = "${KMP_AFFINITY}" ]; then
+if [ ! "${OMP_NUM_THREADS}" ] || [ "0" = "${OMP_NUM_THREADS}" ]; then
+  if [ ! "${KMP_AFFINITY}" ] && [ ! "${OMP_PROC_BIND}" ]; then
     export KMP_AFFINITY=compact,granularity=fine KMP_HW_SUBSET=1T
   fi
   export OMP_NUM_THREADS=$((NC))
 fi
 
-if [ "" = "${MB}" ] || [ "0" = "${MB}" ]; then
+if [ ! "${MB}" ] || [ "0" = "${MB}" ]; then
   MB=${OMP_NUM_THREADS}
 fi
 
-if [ "" = "${LIBXSMM_TARGET_HIDDEN}" ] || [ "0" = "${LIBXSMM_TARGET_HIDDEN}" ]; then
+if [ ! "${LIBXSMM_TARGET_HIDDEN}" ] || [ "0" = "${LIBXSMM_TARGET_HIDDEN}" ]; then
   echo "OMP_NUM_THREADS=${OMP_NUM_THREADS} NUMACTL=\"${NUMACTL}\""
   echo
 fi
 
 if [ "f32" == "${BIN}" ]; then
-  PREC_BF16=0
+  PREC=4
+elif [ "bf16" == "${BIN}" ]; then
+  PREC=2
 else
-  PREC_BF16=1
+  PREC=1
 fi
 
-${NUMACTL} ./layer_example ${ITERS} ${MB} 128 256 ${FUSE} ${TYPE} ${BN} ${BK} ${BC} ${PREC_BF16}
-${NUMACTL} ./layer_example ${ITERS} ${MB} 512 1024 ${FUSE} ${TYPE} ${BN} ${BK} ${BC} ${PREC_BF16}
-${NUMACTL} ./layer_example ${ITERS} ${MB} 1024 1024 ${FUSE} ${TYPE} ${BN} ${BK} ${BC} ${PREC_BF16}
-${NUMACTL} ./layer_example ${ITERS} ${MB} 2048 512 ${FUSE} ${TYPE} ${BN} ${BK} ${BC} ${PREC_BF16}
+${NUMACTL} "${HERE}/layer_example" ${ITERS} ${MB} 128 256 ${FUSE} ${TYPE} ${BN} ${BK} ${BC} ${PREC}
+${NUMACTL} "${HERE}/layer_example" ${ITERS} ${MB} 512 1024 ${FUSE} ${TYPE} ${BN} ${BK} ${BC} ${PREC}
+${NUMACTL} "${HERE}/layer_example" ${ITERS} ${MB} 1024 1024 ${FUSE} ${TYPE} ${BN} ${BK} ${BC} ${PREC}
+${NUMACTL} "${HERE}/layer_example" ${ITERS} ${MB} 2048 512 ${FUSE} ${TYPE} ${BN} ${BK} ${BC} ${PREC}
 
+"${HERE}/../performance.sh"

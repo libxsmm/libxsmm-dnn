@@ -3,7 +3,7 @@
 * This file is part of the LIBXSMM library.                                   *
 *                                                                             *
 * For information on the license, see the LICENSE file.                       *
-* Further information: https://github.com/libxsmm/libxsmm_dnn/                *
+* Further information: https://github.com/libxsmm/libxsmm-dnn/                *
 * SPDX-License-Identifier: BSD-3-Clause                                       *
 ******************************************************************************/
 /* Alexander Heinecke (Intel Corp.)
@@ -135,6 +135,9 @@ LIBXSMM_API void libxsmm_dnn_fc_fwd_exec_f32( libxsmm_dnn_fc_fwd_config cfg, con
 LIBXSMM_API void libxsmm_dnn_fc_fwd_exec_bf16( libxsmm_dnn_fc_fwd_config cfg, const libxsmm_bfloat16* wt_ptr, const libxsmm_bfloat16* in_act_ptr, libxsmm_bfloat16* out_act_ptr,
                           const libxsmm_bfloat16* bias_ptr, unsigned char* relu_ptr, int start_tid, int my_tid, void* scratch );
 
+LIBXSMM_API void libxsmm_dnn_fc_fwd_exec_bf8( libxsmm_dnn_fc_fwd_config cfg, const libxsmm_bfloat8* wt_ptr, const libxsmm_bfloat8* in_act_ptr, libxsmm_bfloat8* out_act_ptr,
+                          const libxsmm_bfloat8* bias_ptr, unsigned char* relu_ptr, int start_tid, int my_tid, void* scratch );
+
 LIBXSMM_API void libxsmm_dnn_fc_bwd_exec_f32( libxsmm_dnn_fc_bwd_config cfg, const float* wt_ptr, float* din_act_ptr,
     const float* dout_act_ptr, float* dwt_ptr, const float* in_act_ptr,
     float* dbias_ptr, const unsigned char* relu_ptr, libxsmm_dnn_fc_pass pass, int start_tid, int my_tid, void* scratch );
@@ -142,6 +145,10 @@ LIBXSMM_API void libxsmm_dnn_fc_bwd_exec_f32( libxsmm_dnn_fc_bwd_config cfg, con
 LIBXSMM_API void libxsmm_dnn_fc_bwd_exec_bf16( libxsmm_dnn_fc_bwd_config cfg,  const libxsmm_bfloat16* wt_ptr, libxsmm_bfloat16* din_act_ptr,
                           const libxsmm_bfloat16* dout_act_ptr, libxsmm_bfloat16* dwt_ptr, const libxsmm_bfloat16* in_act_ptr,
                           libxsmm_bfloat16* dbias_ptr, const unsigned char* relu_ptr, libxsmm_dnn_fc_pass pass, int start_tid, int my_tid, void* scratch );
+
+LIBXSMM_API void libxsmm_dnn_fc_bwd_exec_bf8( libxsmm_dnn_fc_bwd_config cfg,  const libxsmm_bfloat8* wt_ptr, libxsmm_bfloat8* din_act_ptr,
+                          const libxsmm_bfloat8* dout_act_ptr, libxsmm_bfloat8* dwt_ptr, const libxsmm_bfloat8* in_act_ptr,
+                          libxsmm_bfloat8* dbias_ptr, const unsigned char* relu_ptr, libxsmm_dnn_fc_pass pass, int start_tid, int my_tid, void* scratch );
 
 LIBXSMM_API void destroy_libxsmm_dnn_fc_fwd(libxsmm_dnn_fc_fwd_config* cfg);
 

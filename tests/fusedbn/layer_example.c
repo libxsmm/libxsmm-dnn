@@ -3,7 +3,7 @@
 * This file is part of the LIBXSMM library.                                   *
 *                                                                             *
 * For information on the license, see the LICENSE file.                       *
-* Further information: https://github.com/libxsmm/libxsmm_dnn/                *
+* Further information: https://github.com/libxsmm/libxsmm-dnn/                *
 * SPDX-License-Identifier: BSD-3-Clause                                       *
 ******************************************************************************/
 /* Kirill Voronin (Intel Corp.)
@@ -67,7 +67,7 @@ int main( int argc, char* argv[] ) {
   libxsmm_datatype bn_dtype = LIBXSMM_DATATYPE_F32;
 
   const char *const env_check = getenv("CHECK");
-  const double check = LIBXSMM_ABS(0 == env_check ? 1 : atof(env_check));
+  const double check = LIBXSMM_ABS(NULL == env_check ? 1 : atof(env_check));
 
 #if defined(_OPENMP)
   int nThreads = omp_get_max_threads(); /* number of threads */
@@ -425,7 +425,7 @@ int main( int argc, char* argv[] ) {
     printf("L2 rel.error  : %.24f\n", norms_fwd_out.l2_rel);
     printf("Linf abs.error: %.24f\n", norms_fwd_out.linf_abs);
     printf("Linf rel.error: %.24f\n", norms_fwd_out.linf_rel);
-    printf("Check-norm    : %.24f\n\n", norms_fwd_out.normf_rel);
+    printf("Check-norm    : %.24f\n\n", libxsmm_matdiff_epsilon(&norms_fwd_out));
 
     printf("############################################\n");
     printf("# Correctness FWD Batchnorm - Mean         #\n");
@@ -437,7 +437,7 @@ int main( int argc, char* argv[] ) {
     printf("L2 rel.error  : %.24f\n", norms_fwd_mean.l2_rel);
     printf("Linf abs.error: %.24f\n", norms_fwd_mean.linf_abs);
     printf("Linf rel.error: %.24f\n", norms_fwd_mean.linf_rel);
-    printf("Check-norm    : %.24f\n\n", norms_fwd_mean.normf_rel);
+    printf("Check-norm    : %.24f\n\n", libxsmm_matdiff_epsilon(&norms_fwd_mean));
 
     printf("############################################\n");
     printf("# Correctness FWD Batchnorm - Var          #\n");
@@ -449,7 +449,7 @@ int main( int argc, char* argv[] ) {
     printf("L2 rel.error  : %.24f\n", norms_fwd_var.l2_rel);
     printf("Linf abs.error: %.24f\n", norms_fwd_var.linf_abs);
     printf("Linf rel.error: %.24f\n", norms_fwd_var.linf_rel);
-    printf("Check-norm    : %.24f\n\n", norms_fwd_var.normf_rel);
+    printf("Check-norm    : %.24f\n\n", libxsmm_matdiff_epsilon(&norms_fwd_var));
 
     if (fuse_type == 4 || fuse_type == 5) {
       printf("############################################\n");
@@ -462,7 +462,7 @@ int main( int argc, char* argv[] ) {
       printf("L2 rel.error  : %.24f\n", norms_fwd_mask.l2_rel);
       printf("Linf abs.error: %.24f\n", norms_fwd_mask.linf_abs);
       printf("Linf rel.error: %.24f\n", norms_fwd_mask.linf_rel);
-      printf("Check-norm    : %.24f\n\n", norms_fwd_mask.normf_rel);
+      printf("Check-norm    : %.24f\n\n", libxsmm_matdiff_epsilon(&norms_fwd_mask));
     }
 
   } /* checking correctness for FWD */
@@ -566,7 +566,7 @@ int main( int argc, char* argv[] ) {
     printf("L2 rel.error  : %.24f\n", norms_bwd_din.l2_rel);
     printf("Linf abs.error: %.24f\n", norms_bwd_din.linf_abs);
     printf("Linf rel.error: %.24f\n", norms_bwd_din.linf_rel);
-    printf("Check-norm    : %.24f\n\n", norms_bwd_din.normf_rel);
+    printf("Check-norm    : %.24f\n\n", libxsmm_matdiff_epsilon(&norms_bwd_din));
 
     /* Current batchnorm bwd implementation does not change the rim for dout (while naive implementation zeroes it out)
        so the rim is zeroed out here for TPP dout (naive_eqn_dout) */
@@ -594,7 +594,7 @@ int main( int argc, char* argv[] ) {
     printf("L2 rel.error  : %.24f\n", norms_bwd_dout.l2_rel);
     printf("Linf abs.error: %.24f\n", norms_bwd_dout.linf_abs);
     printf("Linf rel.error: %.24f\n", norms_bwd_dout.linf_rel);
-    printf("Check-norm    : %.24f\n\n", norms_bwd_dout.normf_rel);
+    printf("Check-norm    : %.24f\n\n", libxsmm_matdiff_epsilon(&norms_bwd_dout));
 
     if (fuse_type == 2 || fuse_type == 5) {
       printf("################################################\n");
@@ -607,7 +607,7 @@ int main( int argc, char* argv[] ) {
       printf("L2 rel.error  : %.24f\n", norms_bwd_din.l2_rel);
       printf("Linf abs.error: %.24f\n", norms_bwd_din.linf_abs);
       printf("Linf rel.error: %.24f\n", norms_bwd_din.linf_rel);
-      printf("Check-norm    : %.24f\n\n", norms_bwd_din.normf_rel);
+      printf("Check-norm    : %.24f\n\n", libxsmm_matdiff_epsilon(&norms_bwd_din));
     }
 
     printf("###########################################\n");
@@ -620,7 +620,7 @@ int main( int argc, char* argv[] ) {
     printf("L2 rel.error  : %.24f\n", norms_bwd_beta.l2_rel);
     printf("Linf abs.error: %.24f\n", norms_bwd_beta.linf_abs);
     printf("Linf rel.error: %.24f\n", norms_bwd_beta.linf_rel);
-    printf("Check-norm    : %.24f\n\n", norms_bwd_beta.normf_rel);
+    printf("Check-norm    : %.24f\n\n", libxsmm_matdiff_epsilon(&norms_bwd_beta));
 
     printf("############################################\n");
     printf("# Correctness BWD Batchnorm - Dgamma       #\n");
@@ -632,7 +632,7 @@ int main( int argc, char* argv[] ) {
     printf("L2 rel.error  : %.24f\n", norms_bwd_gamma.l2_rel);
     printf("Linf abs.error: %.24f\n", norms_bwd_gamma.linf_abs);
     printf("Linf rel.error: %.24f\n", norms_bwd_gamma.linf_rel);
-    printf("Check-norm    : %.24f\n\n", norms_bwd_gamma.normf_rel);
+    printf("Check-norm    : %.24f\n\n", libxsmm_matdiff_epsilon(&norms_bwd_gamma));
   } /* correctness for BWD */
 
   for (i = 0; i < 1024 * 1024; i++ ) {
@@ -757,6 +757,5 @@ int main( int argc, char* argv[] ) {
   libxsmm_free(naive_eqn_dinp_add);
   libxsmm_free(naive_eqn_out);
 
-  return 0;
+  return EXIT_SUCCESS;
 }
-
