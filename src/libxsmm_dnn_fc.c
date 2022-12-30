@@ -1780,7 +1780,7 @@ LIBXSMM_API void libxsmm_dnn_fc_fwd_exec_bf16_vnni_format( libxsmm_dnn_fc_fwd_co
   const libxsmm_blasint nBlocksMB  = cfg.N / cfg.bn;
   const libxsmm_blasint bn = cfg.bn;
   const libxsmm_blasint bk = cfg.bk;
-  const libxsmm_blasint lpb = 2;
+  const libxsmm_blasint lpb = libxsmm_cpuid_dot_pack_factor(LIBXSMM_DATATYPE_BF16);
   const libxsmm_blasint bc_lp = (cfg.bc/lpb > 0) ? cfg.bc/lpb : 1;
   /* const libxsmm_blasint bc = cfg.bc;*/
   libxsmm_blasint use_2d_blocking = cfg.fwd_2d_blocking;
@@ -1998,7 +1998,7 @@ LIBXSMM_API void libxsmm_dnn_fc_fwd_exec_bf8_vnni_format( libxsmm_dnn_fc_fwd_con
   const libxsmm_blasint nBlocksMB  = cfg.N / cfg.bn;
   const libxsmm_blasint bn = cfg.bn;
   const libxsmm_blasint bk = cfg.bk;
-  const libxsmm_blasint lpb = 4;
+  const libxsmm_blasint lpb = libxsmm_cpuid_dot_pack_factor(LIBXSMM_DATATYPE_BF8);
   const libxsmm_blasint bc_lp = (cfg.bc/lpb > 0) ? cfg.bc/lpb : 1;
   /* const libxsmm_blasint bc = cfg.bc;*/
   libxsmm_blasint use_2d_blocking = cfg.fwd_2d_blocking;
@@ -2533,7 +2533,7 @@ LIBXSMM_API void libxsmm_dnn_fc_bwd_exec_bf16_vnni_format( libxsmm_dnn_fc_bwd_co
   const libxsmm_blasint bn = cfg.bn;
   const libxsmm_blasint bk = cfg.bk;
   const libxsmm_blasint bc = cfg.bc;
-  libxsmm_blasint lpb = 2;
+  libxsmm_blasint lpb = libxsmm_cpuid_dot_pack_factor(LIBXSMM_DATATYPE_BF16);
   const libxsmm_blasint bc_lp = (bc/lpb > 0) ? bc/lpb : 1;
   const libxsmm_blasint bk_lp = (bk/lpb > 0) ? bk/lpb : 1;
   const libxsmm_blasint bn_lp = (bn/lpb > 0) ? bn/lpb : 1;
@@ -3003,7 +3003,7 @@ LIBXSMM_API void libxsmm_dnn_fc_bwd_exec_bf8_vnni_format( libxsmm_dnn_fc_bwd_con
   const libxsmm_blasint bn = cfg.bn;
   const libxsmm_blasint bk = cfg.bk;
   const libxsmm_blasint bc = cfg.bc;
-  libxsmm_blasint lpb = 4;
+  libxsmm_blasint lpb = libxsmm_cpuid_dot_pack_factor(LIBXSMM_DATATYPE_BF8);
   const libxsmm_blasint bc_lp = (bc/lpb > 0) ? bc/lpb : 1;
   const libxsmm_blasint bk_lp = (bk/lpb > 0) ? bk/lpb : 1;
   const libxsmm_blasint bn_lp = (bn/lpb > 0) ? bn/lpb : 1;
