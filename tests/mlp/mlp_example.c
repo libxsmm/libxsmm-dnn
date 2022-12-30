@@ -529,7 +529,7 @@ int main(int argc, char* argv[])
             libxsmm_dnn_fc_fwd_exec_bf16( libxsmm_dnn_fc_fwd[i], fil_libxsmm_bf16[i], act_libxsmm_bf16[i], act_libxsmm_bf16[i+1],
                                  bias_libxsmm_bf16[i], relumask_libxsmm[i], 0, tid, scratch );
           }
-#if USE_SOFTMAX
+#ifdef USE_SOFTMAX
           libxsmm_dnn_smax_fwd_exec_bf16( libxsmm_dnn_smax_fwd, act_libxsmm_bf16[num_layers], act_libxsmm_bf16[num_layers+1], label_libxsmm, &loss,
                                  0, tid, scratch );
           libxsmm_dnn_smax_bwd_exec_bf16( libxsmm_dnn_smax_bwd, delact_libxsmm_bf16[num_layers], act_libxsmm_bf16[num_layers+1], label_libxsmm,
