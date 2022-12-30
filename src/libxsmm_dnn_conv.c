@@ -750,14 +750,12 @@ LIBXSMM_API_INLINE int libxsmm_dnn_conv_setup_weight_copies_upd( libxsmm_dnn_con
 LIBXSMM_API_INLINE void libxsmm_dnn_conv_setup_bf16_upd_algorithms( libxsmm_dnn_conv_config* inout_cfg ) {
   libxsmm_dnn_conv_config res = *inout_cfg;
   int remainder_pixels, max_init_offset, max_compute_offset_input, input_compute_pad, accum_length_pixels, compute_pixels;
-  int arch_cpuid = libxsmm_cpuid(NULL);
-  int l_is_aarch64 = ( arch_cpuid >= LIBXSMM_AARCH64_V81 && arch_cpuid <= LIBXSMM_AARCH64_ALLFEAT ) ? 1 : 0;
-  const int multiple_target = (l_is_aarch64 == 0) ? 2 : 8;
+  const int multiple_target = libxsmm_cpuid_dot_pack_factor(LIBXSMM_DATATYPE_BF16);
   int IFHP = (res.upd_padding_copy == 1) ? res.ifhp + 2 * res.pad_h : res.ifhp;
   int IFWP = (res.upd_padding_copy == 1) ? res.ifwp + 2 * res.pad_w : res.ifwp;
   int OFHP = (res.upd_padding_copy == 1) ? res.ofhp + 2 * res.pad_h : res.ofhp;
   int OFWP = (res.upd_padding_copy == 1) ? res.ofwp + 2 * res.pad_w : res.ofwp;
-  res.multiple_target = (l_is_aarch64 == 0) ? 2 : 4;
+  res.multiple_target = multiple_target;
   res.ifwp_extended = IFWP;
   res.upd_linearized_pixels = 1;
   if (res.S != 1 && res.v != 1) {
@@ -1099,9 +1097,6 @@ LIBXSMM_API_INLINE int libxsmm_dnn_conv_setup_upd_padding_copy( libxsmm_dnn_conv
 }
 
 LIBXSMM_API_INLINE void libxsmm_dnn_conv_setup_upd_scratch( libxsmm_dnn_conv_config* cfg ) {
-  int arch_cpuid = libxsmm_cpuid(NULL);
-  int l_is_aarch64 = ( arch_cpuid >= LIBXSMM_AARCH64_V81 && arch_cpuid <= LIBXSMM_AARCH64_ALLFEAT ) ? 1 : 0;
-
   cfg->upd_packing_padding_scratch_size = 0;
   /* packing of input */
   if ( cfg->upd_pack_input != 0 ) {
@@ -1136,12 +1131,7 @@ LIBXSMM_API_INLINE void libxsmm_dnn_conv_setup_upd_scratch( libxsmm_dnn_conv_con
     } else {
 #endif
     if (1) {
-      int multiple_target = 0;
-      if ( cfg->datatype_in == LIBXSMM_DATATYPE_BF8 ) {
-        multiple_target = 4;
-      } else {
-        multiple_target = (l_is_aarch64 == 0) ? 2 : 8;
-      }
+      int multiple_target = libxsmm_cpuid_dot_pack_factor(cfg->datatype_in);
       int IFHP = (cfg->upd_padding_copy == 1) ? cfg->ifhp + 2 * cfg->pad_h : cfg->ifhp;
       int IFWP = (cfg->upd_padding_copy == 1) ? cfg->ifwp + 2 * cfg->pad_w : cfg->ifwp;
       int OFHP = (cfg->upd_padding_copy == 1) ? cfg->ofhp + 2 * cfg->pad_h : cfg->ofhp;
@@ -2057,8 +2047,6 @@ LIBXSMM_API_INLINE void libxsmm_dnn_conv_generate_fwd_kernels( libxsmm_dnn_conv_
 
 LIBXSMM_API_INLINE void libxsmm_dnn_conv_generate_bwd_kernels( libxsmm_dnn_conv_config* inout_cfg) {
   libxsmm_dnn_conv_config res = *inout_cfg;
-  int arch_cpuid = libxsmm_cpuid(NULL);
-  int l_is_aarch64 = ( arch_cpuid >= LIBXSMM_AARCH64_V81 && arch_cpuid <= LIBXSMM_AARCH64_ALLFEAT ) ? 1 : 0;
   if ( res.datatype_in == LIBXSMM_DATATYPE_F32 ) {
     libxsmm_blasint ldA;
     libxsmm_blasint ldB;
@@ -2381,8 +2369,13 @@ LIBXSMM_API_INLINE void libxsmm_dnn_conv_generate_bwd_kernels( libxsmm_dnn_conv_
     unary_shape.out_type  = LIBXSMM_DATATYPE_BF16;
     unary_shape.ldi       = stride_in;
     unary_shape.ldo       = stride_out;
+
+    if ( (libxsmm_cpuid_dot_pack_factor(LIBXSMM_DATATYPE_BF16) != 2) && (libxsmm_cpuid_dot_pack_factor(LIBXSMM_DATATYPE_BF16) != 4) ) {
+      fprintf( stderr, "dot packing factor needs to be 2 or 4. Bailing...!\n");
+      exit(-1);
+    }
     
-    res.tr_kernel= libxsmm_dispatch_meltw_unary_v2( (l_is_aarch64 == 0) ? LIBXSMM_MELTW_TYPE_UNARY_TRANSFORM_VNNI2_TO_VNNI2T : LIBXSMM_MELTW_TYPE_UNARY_TRANSFORM_VNNI4_TO_VNNI4T, unary_shape, LIBXSMM_MELTW_FLAG_UNARY_NONE ) ;
+    res.tr_kernel= libxsmm_dispatch_meltw_unary_v2( (libxsmm_cpuid_dot_pack_factor(LIBXSMM_DATATYPE_BF16) == 2) ? LIBXSMM_MELTW_TYPE_UNARY_TRANSFORM_VNNI2_TO_VNNI2T : LIBXSMM_MELTW_TYPE_UNARY_TRANSFORM_VNNI4_TO_VNNI4T, unary_shape, LIBXSMM_MELTW_FLAG_UNARY_NONE ) ;
     if (  res.tr_kernel  == NULL ) {
       fprintf( stderr, "JIT for TPP tr_kernel failed. Bailing...!\n");
       exit(-1);
@@ -2689,10 +2682,8 @@ LIBXSMM_API_INLINE void libxsmm_dnn_conv_generate_bwd_kernels( libxsmm_dnn_conv_
 
 LIBXSMM_API_INLINE void libxsmm_dnn_conv_generate_upd_kernels( libxsmm_dnn_conv_config* inout_cfg) {
   libxsmm_dnn_conv_config res = *inout_cfg;
-  int arch_cpuid = libxsmm_cpuid(NULL);
-  int l_is_aarch64 = ( arch_cpuid >= LIBXSMM_AARCH64_V81 && arch_cpuid <= LIBXSMM_AARCH64_ALLFEAT ) ? 1 : 0;
-  const int multiple_target = (l_is_aarch64 == 0) ? 2 : 8;
-  const int vnni_target = (l_is_aarch64 == 0) ? 2 : 4; 
+  const int vnni_target = libxsmm_cpuid_dot_pack_factor(LIBXSMM_DATATYPE_BF16); 
+  const int multiple_target = vnni_target /* * 2 */;
 
   res.A_offsets_upd = NULL;
   res.B_offsets_upd = NULL;
@@ -3035,7 +3026,12 @@ LIBXSMM_API_INLINE void libxsmm_dnn_conv_generate_upd_kernels( libxsmm_dnn_conv_
     unary_shape.comp_type = LIBXSMM_DATATYPE_BF16;
     unary_shape.out_type  = LIBXSMM_DATATYPE_BF16;
 
-    res.upd_weight_vnni_format_bf16 = libxsmm_dispatch_meltw_unary_v2( (l_is_aarch64 == 0) ? LIBXSMM_MELTW_TYPE_UNARY_TRANSFORM_NORM_TO_VNNI2 : LIBXSMM_MELTW_TYPE_UNARY_TRANSFORM_NORM_TO_VNNI4, unary_shape, LIBXSMM_MELTW_FLAG_UNARY_NONE ) ;
+    if ( (libxsmm_cpuid_dot_pack_factor(LIBXSMM_DATATYPE_BF16) != 2) && (libxsmm_cpuid_dot_pack_factor(LIBXSMM_DATATYPE_BF16) != 4) ) {
+      fprintf( stderr, "dot packing factor needs to be 2 or 4. Bailing...!\n");
+      exit(-1);
+    }
+
+    res.upd_weight_vnni_format_bf16 = libxsmm_dispatch_meltw_unary_v2( (libxsmm_cpuid_dot_pack_factor(LIBXSMM_DATATYPE_BF16) == 2) ? LIBXSMM_MELTW_TYPE_UNARY_TRANSFORM_NORM_TO_VNNI2 : LIBXSMM_MELTW_TYPE_UNARY_TRANSFORM_NORM_TO_VNNI4, unary_shape, LIBXSMM_MELTW_FLAG_UNARY_NONE ) ;
     if (  res.upd_weight_vnni_format_bf16  == NULL ) {
       fprintf( stderr, "JIT for TPP upd_weight_vnni_format_bf16 failed. Bailing...!\n");
       exit(-1);
@@ -3179,9 +3175,9 @@ LIBXSMM_API_INLINE void libxsmm_dnn_conv_generate_upd_kernels( libxsmm_dnn_conv_
     unary_shape.out_type  = LIBXSMM_DATATYPE_BF16;
 
     if (res.ofwp % vnni_target != 0) {
-      res.vnni_output_w_pixels_bf16 = libxsmm_dispatch_meltw_unary_v2( (l_is_aarch64 == 0) ? LIBXSMM_MELTW_TYPE_UNARY_TRANSFORM_NORM_TO_VNNI2_PAD : LIBXSMM_MELTW_TYPE_UNARY_TRANSFORM_NORM_TO_VNNI4_PAD, unary_shape, LIBXSMM_MELTW_FLAG_UNARY_NONE ) ;
+      res.vnni_output_w_pixels_bf16 = libxsmm_dispatch_meltw_unary_v2( (libxsmm_cpuid_dot_pack_factor(LIBXSMM_DATATYPE_BF16) == 2) ? LIBXSMM_MELTW_TYPE_UNARY_TRANSFORM_NORM_TO_VNNI2_PAD : LIBXSMM_MELTW_TYPE_UNARY_TRANSFORM_NORM_TO_VNNI4_PAD, unary_shape, LIBXSMM_MELTW_FLAG_UNARY_NONE ) ;
     } else {
-      res.vnni_output_w_pixels_bf16 = libxsmm_dispatch_meltw_unary_v2( (l_is_aarch64 == 0) ? LIBXSMM_MELTW_TYPE_UNARY_TRANSFORM_NORM_TO_VNNI2 : LIBXSMM_MELTW_TYPE_UNARY_TRANSFORM_NORM_TO_VNNI4, unary_shape, LIBXSMM_MELTW_FLAG_UNARY_NONE ) ;
+      res.vnni_output_w_pixels_bf16 = libxsmm_dispatch_meltw_unary_v2( (libxsmm_cpuid_dot_pack_factor(LIBXSMM_DATATYPE_BF16) == 2) ? LIBXSMM_MELTW_TYPE_UNARY_TRANSFORM_NORM_TO_VNNI2 : LIBXSMM_MELTW_TYPE_UNARY_TRANSFORM_NORM_TO_VNNI4, unary_shape, LIBXSMM_MELTW_FLAG_UNARY_NONE ) ;
     }
     if (  res.vnni_output_w_pixels_bf16  == NULL ) {
       fprintf( stderr, "JIT for TPP vnni_output_w_pixels_bf16 failed. Bailing...!\n");
@@ -3199,9 +3195,9 @@ LIBXSMM_API_INLINE void libxsmm_dnn_conv_generate_upd_kernels( libxsmm_dnn_conv_
     unary_shape.out_type  = LIBXSMM_DATATYPE_BF16;
 
     if ((res.ofwp-1) % vnni_target != 0) {
-      res.vnni_output_w2_pixels_bf16 = libxsmm_dispatch_meltw_unary_v2( (l_is_aarch64 == 0) ? LIBXSMM_MELTW_TYPE_UNARY_TRANSFORM_NORM_TO_VNNI2_PAD : LIBXSMM_MELTW_TYPE_UNARY_TRANSFORM_NORM_TO_VNNI4_PAD, unary_shape, LIBXSMM_MELTW_FLAG_UNARY_NONE ) ;
+      res.vnni_output_w2_pixels_bf16 = libxsmm_dispatch_meltw_unary_v2( (libxsmm_cpuid_dot_pack_factor(LIBXSMM_DATATYPE_BF16) == 2) ? LIBXSMM_MELTW_TYPE_UNARY_TRANSFORM_NORM_TO_VNNI2_PAD : LIBXSMM_MELTW_TYPE_UNARY_TRANSFORM_NORM_TO_VNNI4_PAD, unary_shape, LIBXSMM_MELTW_FLAG_UNARY_NONE ) ;
     } else {
-      res.vnni_output_w2_pixels_bf16 = libxsmm_dispatch_meltw_unary_v2( (l_is_aarch64 == 0) ? LIBXSMM_MELTW_TYPE_UNARY_TRANSFORM_NORM_TO_VNNI2 : LIBXSMM_MELTW_TYPE_UNARY_TRANSFORM_NORM_TO_VNNI4, unary_shape, LIBXSMM_MELTW_FLAG_UNARY_NONE ) ;
+      res.vnni_output_w2_pixels_bf16 = libxsmm_dispatch_meltw_unary_v2( (libxsmm_cpuid_dot_pack_factor(LIBXSMM_DATATYPE_BF16) == 2) ? LIBXSMM_MELTW_TYPE_UNARY_TRANSFORM_NORM_TO_VNNI2 : LIBXSMM_MELTW_TYPE_UNARY_TRANSFORM_NORM_TO_VNNI4, unary_shape, LIBXSMM_MELTW_FLAG_UNARY_NONE ) ;
     }
     if (  res.vnni_output_w2_pixels_bf16  == NULL ) {
       fprintf( stderr, "JIT for TPP vnni_output_w2_pixels_bf16 failed. Bailing...!\n");
@@ -3219,9 +3215,9 @@ LIBXSMM_API_INLINE void libxsmm_dnn_conv_generate_upd_kernels( libxsmm_dnn_conv_
     unary_shape.out_type  = LIBXSMM_DATATYPE_BF16;
 
     if (res.compute_pixels % vnni_target != 0) {
-      res.vnni_output_compute_pixels_bf16 = libxsmm_dispatch_meltw_unary_v2( (l_is_aarch64 == 0) ? LIBXSMM_MELTW_TYPE_UNARY_TRANSFORM_NORM_TO_VNNI2_PAD : LIBXSMM_MELTW_TYPE_UNARY_TRANSFORM_NORM_TO_VNNI4_PAD, unary_shape, LIBXSMM_MELTW_FLAG_UNARY_NONE ) ;
+      res.vnni_output_compute_pixels_bf16 = libxsmm_dispatch_meltw_unary_v2( (libxsmm_cpuid_dot_pack_factor(LIBXSMM_DATATYPE_BF16) == 2) ? LIBXSMM_MELTW_TYPE_UNARY_TRANSFORM_NORM_TO_VNNI2_PAD : LIBXSMM_MELTW_TYPE_UNARY_TRANSFORM_NORM_TO_VNNI4_PAD, unary_shape, LIBXSMM_MELTW_FLAG_UNARY_NONE ) ;
     } else {
-      res.vnni_output_compute_pixels_bf16 = libxsmm_dispatch_meltw_unary_v2( (l_is_aarch64 == 0) ? LIBXSMM_MELTW_TYPE_UNARY_TRANSFORM_NORM_TO_VNNI2 : LIBXSMM_MELTW_TYPE_UNARY_TRANSFORM_NORM_TO_VNNI4, unary_shape, LIBXSMM_MELTW_FLAG_UNARY_NONE ) ;
+      res.vnni_output_compute_pixels_bf16 = libxsmm_dispatch_meltw_unary_v2( (libxsmm_cpuid_dot_pack_factor(LIBXSMM_DATATYPE_BF16) == 2) ? LIBXSMM_MELTW_TYPE_UNARY_TRANSFORM_NORM_TO_VNNI2 : LIBXSMM_MELTW_TYPE_UNARY_TRANSFORM_NORM_TO_VNNI4, unary_shape, LIBXSMM_MELTW_FLAG_UNARY_NONE ) ;
     }
     if (  res.vnni_output_compute_pixels_bf16  == NULL ) {
       fprintf( stderr, "JIT for TPP vnni_output_compute_pixels_bf16 failed. Bailing...!\n");
