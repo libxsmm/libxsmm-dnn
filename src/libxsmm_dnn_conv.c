@@ -750,12 +750,12 @@ LIBXSMM_API_INLINE int libxsmm_dnn_conv_setup_weight_copies_upd( libxsmm_dnn_con
 LIBXSMM_API_INLINE void libxsmm_dnn_conv_setup_bf16_upd_algorithms( libxsmm_dnn_conv_config* inout_cfg ) {
   libxsmm_dnn_conv_config res = *inout_cfg;
   int remainder_pixels, max_init_offset, max_compute_offset_input, input_compute_pad, accum_length_pixels, compute_pixels;
-  const int multiple_target = libxsmm_cpuid_dot_pack_factor(LIBXSMM_DATATYPE_BF16);
+  const int req_dot_modfree_divisor = libxsmm_cpuid_dot_pack_factor(LIBXSMM_DATATYPE_BF16);
   int IFHP = (res.upd_padding_copy == 1) ? res.ifhp + 2 * res.pad_h : res.ifhp;
   int IFWP = (res.upd_padding_copy == 1) ? res.ifwp + 2 * res.pad_w : res.ifwp;
   int OFHP = (res.upd_padding_copy == 1) ? res.ofhp + 2 * res.pad_h : res.ofhp;
   int OFWP = (res.upd_padding_copy == 1) ? res.ofwp + 2 * res.pad_w : res.ofwp;
-  res.multiple_target = multiple_target;
+  res.req_dot_modfree_divisor = req_dot_modfree_divisor;
   res.ifwp_extended = IFWP;
   res.upd_linearized_pixels = 1;
   if (res.S != 1 && res.v != 1) {
@@ -782,7 +782,7 @@ LIBXSMM_API_INLINE void libxsmm_dnn_conv_setup_bf16_upd_algorithms( libxsmm_dnn_
   if (res.upd_linearized_pixels == 1) {
     /* Logistics to pad accumulation chainlength */
     compute_pixels = res.ofw * res.ofh + 2 * res.pad_w * (res.ofh-1);
-    remainder_pixels = (compute_pixels % multiple_target == 0) ? 0 : (compute_pixels/multiple_target+1)*multiple_target - compute_pixels;
+    remainder_pixels = (compute_pixels % req_dot_modfree_divisor == 0) ? 0 : (compute_pixels/req_dot_modfree_divisor+1)*req_dot_modfree_divisor - compute_pixels;
     accum_length_pixels = compute_pixels + remainder_pixels;
 
     /* In this case compact input upfront */
@@ -822,11 +822,11 @@ LIBXSMM_API_INLINE void libxsmm_dnn_conv_setup_bf16_upd_algorithms( libxsmm_dnn_
     if (res.v !=1) {
       res.on_the_fly_input_packing = 1;
     }
-    remainder_pixels = (res.ofw % multiple_target == 0) ? 0 : (res.ofw/multiple_target+1)*multiple_target - res.ofw;
+    remainder_pixels = (res.ofw % req_dot_modfree_divisor == 0) ? 0 : (res.ofw/req_dot_modfree_divisor+1)*req_dot_modfree_divisor - res.ofw;
     res.ofwp_extended = OFWP + remainder_pixels;
     res.ifwp_extended = IFWP + remainder_pixels;
-    if (res.ifwp_extended % multiple_target != 0) {
-      res.ifwp_extended = res.ifwp_extended + multiple_target - res.ifwp_extended % multiple_target;
+    if (res.ifwp_extended % req_dot_modfree_divisor != 0) {
+      res.ifwp_extended = res.ifwp_extended + req_dot_modfree_divisor - res.ifwp_extended % req_dot_modfree_divisor;
     }
     res.output_pixels = OFHP * res.ofwp_extended;
     /* coverity[identical_branches] */
@@ -846,7 +846,7 @@ LIBXSMM_API_INLINE void libxsmm_dnn_conv_setup_bf16_upd_algorithms( libxsmm_dnn_
 LIBXSMM_API_INLINE void libxsmm_dnn_conv_setup_bf8_upd_algorithms( libxsmm_dnn_conv_config* inout_cfg ) {
   libxsmm_dnn_conv_config res = *inout_cfg;
   int remainder_pixels, max_init_offset, max_compute_offset_input, input_compute_pad, accum_length_pixels, compute_pixels;
-  const int multiple_target = 4;
+  const int req_dot_modfree_divisor = 4;
   int IFHP = (res.upd_padding_copy == 1) ? res.ifhp + 2 * res.pad_h : res.ifhp;
   int IFWP = (res.upd_padding_copy == 1) ? res.ifwp + 2 * res.pad_w : res.ifwp;
   int OFHP = (res.upd_padding_copy == 1) ? res.ofhp + 2 * res.pad_h : res.ofhp;
@@ -877,7 +877,7 @@ LIBXSMM_API_INLINE void libxsmm_dnn_conv_setup_bf8_upd_algorithms( libxsmm_dnn_c
   if (res.upd_linearized_pixels == 1) {
     /* Logistics to pad accumulation chainlength */
     compute_pixels = res.ofw * res.ofh + 2 * res.pad_w * (res.ofh-1);
-    remainder_pixels = (compute_pixels % multiple_target == 0) ? 0 : (compute_pixels/multiple_target+1)*multiple_target - compute_pixels;
+    remainder_pixels = (compute_pixels % req_dot_modfree_divisor == 0) ? 0 : (compute_pixels/req_dot_modfree_divisor+1)*req_dot_modfree_divisor - compute_pixels;
     accum_length_pixels = compute_pixels + remainder_pixels;
 
     /* In this case compact input upfront */
@@ -917,7 +917,7 @@ LIBXSMM_API_INLINE void libxsmm_dnn_conv_setup_bf8_upd_algorithms( libxsmm_dnn_c
     if (res.v !=1) {
       res.on_the_fly_input_packing = 1;
     }
-    remainder_pixels = (res.ofw % multiple_target == 0) ? 0 : (res.ofw/multiple_target+1)*multiple_target - res.ofw;
+    remainder_pixels = (res.ofw % req_dot_modfree_divisor == 0) ? 0 : (res.ofw/req_dot_modfree_divisor+1)*req_dot_modfree_divisor - res.ofw;
     res.ofwp_extended = OFWP + remainder_pixels;
     res.ifwp_extended = IFWP + remainder_pixels;
     if (res.ifwp_extended % 2 == 1) {
@@ -1131,7 +1131,7 @@ LIBXSMM_API_INLINE void libxsmm_dnn_conv_setup_upd_scratch( libxsmm_dnn_conv_con
     } else {
 #endif
     if (1) {
-      int multiple_target = libxsmm_cpuid_dot_pack_factor(cfg->datatype_in);
+      int req_dot_modfree_divisor = libxsmm_cpuid_dot_pack_factor(cfg->datatype_in);
       int IFHP = (cfg->upd_padding_copy == 1) ? cfg->ifhp + 2 * cfg->pad_h : cfg->ifhp;
       int IFWP = (cfg->upd_padding_copy == 1) ? cfg->ifwp + 2 * cfg->pad_w : cfg->ifwp;
       int OFHP = (cfg->upd_padding_copy == 1) ? cfg->ofhp + 2 * cfg->pad_h : cfg->ofhp;
@@ -1139,7 +1139,7 @@ LIBXSMM_API_INLINE void libxsmm_dnn_conv_setup_upd_scratch( libxsmm_dnn_conv_con
 
       if (cfg->upd_linearized_pixels == 1) {
         int compute_pixels = cfg->ofw * cfg->ofh + 2 * cfg->pad_w * (cfg->ofh-1);
-        int remainder_pixels = (compute_pixels % multiple_target == 0) ? 0 : (compute_pixels/multiple_target+1)*multiple_target - compute_pixels;
+        int remainder_pixels = (compute_pixels % req_dot_modfree_divisor == 0) ? 0 : (compute_pixels/req_dot_modfree_divisor+1)*req_dot_modfree_divisor - compute_pixels;
         int accum_length_pixels = compute_pixels + remainder_pixels;
 
         int max_init_offset = 2 * cfg->pad_h * IFWP + 2 * cfg->pad_w;
@@ -1156,7 +1156,7 @@ LIBXSMM_API_INLINE void libxsmm_dnn_conv_setup_upd_scratch( libxsmm_dnn_conv_con
       }
 
       if (cfg->upd_linearized_pixels == 0) {
-        int remainder_pixels = (cfg->ofw % multiple_target == 0) ? 0 : (cfg->ofw/multiple_target+1)*multiple_target - cfg->ofw;
+        int remainder_pixels = (cfg->ofw % req_dot_modfree_divisor == 0) ? 0 : (cfg->ofw/req_dot_modfree_divisor+1)*req_dot_modfree_divisor - cfg->ofw;
         int ofwp_extended = OFWP + remainder_pixels;
         int ifwp_extended = IFWP + remainder_pixels;
 
@@ -2683,7 +2683,7 @@ LIBXSMM_API_INLINE void libxsmm_dnn_conv_generate_bwd_kernels( libxsmm_dnn_conv_
 LIBXSMM_API_INLINE void libxsmm_dnn_conv_generate_upd_kernels( libxsmm_dnn_conv_config* inout_cfg) {
   libxsmm_dnn_conv_config res = *inout_cfg;
   const int vnni_target = libxsmm_cpuid_dot_pack_factor(LIBXSMM_DATATYPE_BF16); 
-  const int multiple_target = vnni_target /* * 2 */;
+  const int req_dot_modfree_divisor = vnni_target /* * 2 */;
 
   res.A_offsets_upd = NULL;
   res.B_offsets_upd = NULL;
@@ -2979,8 +2979,8 @@ LIBXSMM_API_INLINE void libxsmm_dnn_conv_generate_upd_kernels( libxsmm_dnn_conv_
         exit(-1);
       }
 
-      if (res.ofw % multiple_target != 0) {
-         l_shape.k = res.ofw+multiple_target - res.ofw % multiple_target;
+      if (res.ofw % req_dot_modfree_divisor != 0) {
+         l_shape.k = res.ofw+req_dot_modfree_divisor - res.ofw % req_dot_modfree_divisor;
       }
       res.upd_compute_kernel2_bf16f32.gemm = libxsmm_dispatch_brgemm_v2( l_shape, l_flags, l_prefetch_flags, l_brconfig );
       if (  res.upd_compute_kernel2_bf16f32.gemm  == NULL ) {
@@ -2989,7 +2989,7 @@ LIBXSMM_API_INLINE void libxsmm_dnn_conv_generate_upd_kernels( libxsmm_dnn_conv_
       }
     }
 
-    if (res.pixel_blocking % multiple_target == 0) {
+    if (res.pixel_blocking % req_dot_modfree_divisor == 0) {
       l_shape.k = LIBXSMM_MAX(2,res.pixel_blocking);
       l_shape.ldb = LIBXSMM_MAX(l_shape.k, res.input_pixels);
       l_brconfig.br_unroll_hint = 0;
