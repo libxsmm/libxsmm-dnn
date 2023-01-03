@@ -134,6 +134,7 @@ typedef struct libxsmm_dnn_conv_config {
   int block_bwd_ofm;
   int block_upd_ifm;
   int block_upd_ofm;
+  int req_dot_modfree_divisor;
 
   /* Hoisting the compute kernels for FWD  */
   libxsmm_xmmfunction fwd_compute_kernel_strd_fused_f32;
@@ -266,7 +267,7 @@ typedef struct libxsmm_dnn_conv_config {
   libxsmm_meltwfunction_unary vnni_output_w2_pixels_bf16;
   libxsmm_meltwfunction_unary vnni_output_compute_pixels_bf16;
   libxsmm_meltwfunction_unary vnni_output_zero_remaining_pixels_bf16;
-
+  libxsmm_meltwfunction_unary input_zero_remaining_pixels_bf16;
   libxsmm_meltwfunction_unary wt_reduce_kernel0_bf16;
   libxsmm_meltwfunction_unary wt_reduce_kernel1_bf16;
 
