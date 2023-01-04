@@ -139,7 +139,7 @@ int main(int argc, char* argv[])
   relumask_libxsmm = NULL;
 
   if (argc > 1 && !strncmp(argv[1], "-h", 3)) {
-    printf("Usage: %s iters nImg nIFm nOFm fuse_type type bn bk bc\n", argv[0]);
+    printf("Usage: %s iters nImg nIFm nOFm fuse_type type bn bk bc prec\n", argv[0]);
     return 0;
   }
   libxsmm_rng_set_seed(1);
