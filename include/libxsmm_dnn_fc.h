@@ -26,9 +26,7 @@ typedef enum libxsmm_dnn_fc_eltw_fuse {
   LIBXSMM_DNN_FC_ELTW_FUSE_NONE = 0,
   LIBXSMM_DNN_FC_ELTW_FUSE_BIAS = 1,
   LIBXSMM_DNN_FC_ELTW_FUSE_RELU = 2,
-  /* 3 is reserved for tanh */
   LIBXSMM_DNN_FC_ELTW_FUSE_BIAS_RELU = 3,
-  /* 5 is reserved for tanh + bias, see naive */
   LIBXSMM_DNN_FC_ELTW_FUSE_RELU_WITH_MASK = 4,
   LIBXSMM_DNN_FC_ELTW_FUSE_BIAS_RELU_WITH_MASK = 5
 } libxsmm_dnn_fc_eltw_fuse;
