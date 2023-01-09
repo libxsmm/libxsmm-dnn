@@ -619,7 +619,7 @@ int main(int argc, char* argv[])
       }
     }
     if (prec == 2) {
-      tensor_cvt_copy_KCRSck_vnni2_to_norm_f32( dfilter_libxsmm_bf16, dfilter_libxsmm, nOfm, nIfm, kh, kw, libxsmm_dnn_conv_cfg.ifmblock, libxsmm_dnn_conv_cfg.ofmblock );
+      tensor_cvt_copy_KCRSck_vnni_to_norm_f32( dfilter_libxsmm_bf16, dfilter_libxsmm, nOfm, nIfm, kh, kw, libxsmm_dnn_conv_cfg.ifmblock, libxsmm_dnn_conv_cfg.ofmblock );
       libxsmm_rne_convert_fp32_bf16( naive_filter_wu, naive_filter_wu_bf16, nOfm*nIfm*kh*kw );
       libxsmm_convert_bf16_f32( naive_filter_wu_bf16, naive_filter_wu, nOfm*nIfm*kh*kw );
     } else if (prec == 1) {
