@@ -1703,7 +1703,7 @@ LIBXSMM_INLINE void tensor_copy_KCRSck_to_KCRS(float *src, float *dst, int K, in
   }
 }
 
-LIBXSMM_INLINE void tensor_cvt_copy_KCRSck_vnni2_to_norm_f32(libxsmm_bfloat16 *src, float *dst, int K, int C, int R, int S, int bc, int bk)
+LIBXSMM_INLINE void tensor_cvt_copy_KCRSck_vnni_to_norm_f32(libxsmm_bfloat16 *src, float *dst, int K, int C, int R, int S, int bc, int bk)
 {
   int k1, k2, c1, c2, r, s;
   int cBlocks = C/bc;
