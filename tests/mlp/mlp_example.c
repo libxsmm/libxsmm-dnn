@@ -19,7 +19,9 @@
 # include <omp.h>
 #endif
 
+#if 1
 #define CHECK_L1
+#endif
 #if 0
 #define USE_SOFTMAX
 #endif
