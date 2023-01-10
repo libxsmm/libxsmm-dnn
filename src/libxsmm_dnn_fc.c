@@ -1827,8 +1827,8 @@ LIBXSMM_API void libxsmm_dnn_fc_fwd_exec_bf16_vnni_format( libxsmm_dnn_fc_fwd_co
     col_teams    = cfg.fwd_col_teams;
     row_teams = cfg.fwd_row_teams;
     hyperteam_id = ltid/(col_teams*row_teams);
-    _nBlocksOFm  = nBlocksOFm/cfg.fwd_M_hyperpartitions;
-    _nBlocksMB   = nBlocksMB/cfg.fwd_N_hyperpartitions;
+    _nBlocksOFm  = LIBXSMM_UPDIV(nBlocksOFm,cfg.fwd_M_hyperpartitions);
+    _nBlocksMB   = LIBXSMM_UPDIV(nBlocksMB,cfg.fwd_N_hyperpartitions);
     _ltid = ltid % (col_teams * row_teams);
     M_hyperpartition_id = hyperteam_id % cfg.fwd_M_hyperpartitions;
     N_hyperpartition_id = hyperteam_id / cfg.fwd_M_hyperpartitions;
@@ -1837,9 +1837,9 @@ LIBXSMM_API void libxsmm_dnn_fc_fwd_exec_bf16_vnni_format( libxsmm_dnn_fc_fwd_co
     N_tasks_per_thread = (_nBlocksMB + col_teams-1)/col_teams;
     M_tasks_per_thread = (_nBlocksOFm + row_teams-1)/row_teams;
     my_N_start = N_hyperpartition_id * _nBlocksMB + LIBXSMM_MIN( my_col_id * N_tasks_per_thread, _nBlocksMB);
-    my_N_end   = N_hyperpartition_id * _nBlocksMB + LIBXSMM_MIN( (my_col_id+1) * N_tasks_per_thread, _nBlocksMB);
+    my_N_end   = LIBXSMM_MIN(N_hyperpartition_id * _nBlocksMB + LIBXSMM_MIN( (my_col_id+1) * N_tasks_per_thread, _nBlocksMB), nBlocksMB);
     my_M_start = M_hyperpartition_id * _nBlocksOFm + LIBXSMM_MIN( my_row_id * M_tasks_per_thread, _nBlocksOFm);
-    my_M_end   = M_hyperpartition_id * _nBlocksOFm + LIBXSMM_MIN( (my_row_id+1) * M_tasks_per_thread, _nBlocksOFm);
+    my_M_end   = LIBXSMM_MIN(M_hyperpartition_id * _nBlocksOFm + LIBXSMM_MIN( (my_row_id+1) * M_tasks_per_thread, _nBlocksOFm), nBlocksOFm);
   }
 
   /* lazy barrier init */
@@ -2662,8 +2662,8 @@ LIBXSMM_API void libxsmm_dnn_fc_bwd_exec_bf16_vnni_format( libxsmm_dnn_fc_bwd_co
       col_teams    = cfg.bwd_col_teams;
       row_teams = cfg.bwd_row_teams;
       hyperteam_id = ltid/(col_teams*row_teams);
-      _nBlocksIFm  = nBlocksIFm/cfg.bwd_M_hyperpartitions;
-      _nBlocksMB   = nBlocksMB/cfg.bwd_N_hyperpartitions;
+      _nBlocksIFm  = LIBXSMM_UPDIV(nBlocksIFm,cfg.bwd_M_hyperpartitions);
+      _nBlocksMB   = LIBXSMM_UPDIV(nBlocksMB,cfg.bwd_N_hyperpartitions);
       _ltid = ltid % (col_teams * row_teams);
       M_hyperpartition_id = hyperteam_id % cfg.bwd_M_hyperpartitions;
       N_hyperpartition_id = hyperteam_id / cfg.bwd_M_hyperpartitions;
@@ -2672,9 +2672,9 @@ LIBXSMM_API void libxsmm_dnn_fc_bwd_exec_bf16_vnni_format( libxsmm_dnn_fc_bwd_co
       N_tasks_per_thread = (_nBlocksMB + col_teams-1)/col_teams;
       M_tasks_per_thread = (_nBlocksIFm + row_teams-1)/row_teams;
       my_N_start = N_hyperpartition_id * _nBlocksMB + LIBXSMM_MIN( my_col_id * N_tasks_per_thread, _nBlocksMB);
-      my_N_end   = N_hyperpartition_id * _nBlocksMB + LIBXSMM_MIN( (my_col_id+1) * N_tasks_per_thread, _nBlocksMB);
+      my_N_end   = LIBXSMM_MIN(N_hyperpartition_id * _nBlocksMB + LIBXSMM_MIN( (my_col_id+1) * N_tasks_per_thread, _nBlocksMB), nBlocksMB);
       my_M_start = M_hyperpartition_id * _nBlocksIFm + LIBXSMM_MIN( my_row_id * M_tasks_per_thread, _nBlocksIFm);
-      my_M_end   = M_hyperpartition_id * _nBlocksIFm + LIBXSMM_MIN( (my_row_id+1) * M_tasks_per_thread, _nBlocksIFm);
+      my_M_end   = LIBXSMM_MIN(M_hyperpartition_id * _nBlocksIFm + LIBXSMM_MIN( (my_row_id+1) * M_tasks_per_thread, _nBlocksIFm), nBlocksIFm);
     }
 
     /* transpose weight */
@@ -2831,8 +2831,8 @@ LIBXSMM_API void libxsmm_dnn_fc_bwd_exec_bf16_vnni_format( libxsmm_dnn_fc_bwd_co
       col_teams = cfg.upd_col_teams;
       row_teams = cfg.upd_row_teams;
       hyperteam_id = ltid/(col_teams*row_teams);
-      _nBlocksOFm  = nBlocksOFm/cfg.upd_M_hyperpartitions;
-      _nBlocksIFm  = nBlocksIFm/cfg.upd_N_hyperpartitions;
+      _nBlocksOFm  = LIBXSMM_UPDIV(nBlocksOFm,cfg.upd_M_hyperpartitions);
+      _nBlocksIFm  = LIBXSMM_UPDIV(nBlocksIFm,cfg.upd_N_hyperpartitions);
       _ltid = ltid % (col_teams * row_teams);
       M_hyperpartition_id = hyperteam_id % cfg.upd_M_hyperpartitions;
       N_hyperpartition_id = hyperteam_id / cfg.upd_M_hyperpartitions;
@@ -2841,9 +2841,9 @@ LIBXSMM_API void libxsmm_dnn_fc_bwd_exec_bf16_vnni_format( libxsmm_dnn_fc_bwd_co
       N_tasks_per_thread = (_nBlocksIFm + col_teams-1)/col_teams;
       M_tasks_per_thread = (_nBlocksOFm + row_teams-1)/row_teams;
       my_N_start = N_hyperpartition_id * _nBlocksIFm + LIBXSMM_MIN( my_col_id * N_tasks_per_thread, _nBlocksIFm);
-      my_N_end   = N_hyperpartition_id * _nBlocksIFm + LIBXSMM_MIN( (my_col_id+1) * N_tasks_per_thread, _nBlocksIFm);
+      my_N_end   = LIBXSMM_MIN(N_hyperpartition_id * _nBlocksIFm + LIBXSMM_MIN( (my_col_id+1) * N_tasks_per_thread, _nBlocksIFm), nBlocksIFm);
       my_M_start = M_hyperpartition_id * _nBlocksOFm + LIBXSMM_MIN( my_row_id * M_tasks_per_thread, _nBlocksOFm);
-      my_M_end   = M_hyperpartition_id * _nBlocksOFm + LIBXSMM_MIN( (my_row_id+1) * M_tasks_per_thread, _nBlocksOFm);
+      my_M_end   = LIBXSMM_MIN(M_hyperpartition_id * _nBlocksOFm + LIBXSMM_MIN( (my_row_id+1) * M_tasks_per_thread, _nBlocksOFm), nBlocksOFm);;
     }
 
     if (cfg.upd_2d_blocking == 0) {
