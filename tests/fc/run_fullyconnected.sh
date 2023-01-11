@@ -111,7 +111,7 @@ ${NUMACTL} "${HERE}/layer_example" ${ITERS} ${MB} 512 1024 ${FUSE} ${TYPE} ${BN}
 ${NUMACTL} "${HERE}/layer_example" ${ITERS} ${MB} 1024 1024 ${FUSE} ${TYPE} ${BN} ${BK} ${BC} ${PREC}
 ${NUMACTL} "${HERE}/layer_example" ${ITERS} ${MB} 2048 512 ${FUSE} ${TYPE} ${BN} ${BK} ${BC} ${PREC}
 
-# ResNet-50 fc layer
-${NUMACTL} "${HERE}/layer_example" ${ITERS} ${MB} 2048 1000 ${FUSE} ${TYPE} ${BN} ${BK} ${BC} ${PREC}
+# ResNet-50 fc layer with bias fusion
+${NUMACTL} "${HERE}/layer_example" ${ITERS} ${MB} 2048 1000 1 ${TYPE} ${BN} ${BK} ${BC} ${PREC}
 
 "${HERE}/../performance.sh"
