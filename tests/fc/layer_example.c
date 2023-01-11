@@ -50,7 +50,7 @@ int main(int argc, char* argv[])
   int nImg = 256;          /* mini-batch size, "N" */
   int nIFm = 1024;          /* number of input feature maps, "C" */
   int nOFm = 1024;          /* number of output feature maps, "K" */
-  int fuse_type = 0;      /* 0: nothing fused, 1: relu fused, 2: elementwise fused, 4: relu and elementwise fused, 6: relu fused with mask, 7: relu with mask and elementwise fused */
+  int fuse_type = 0;      /* 0: nothing fused, 1: elementwise fused, 2: relu fused, 3: relu and elementwise fused, 4: relu fused with mask, 5: relu with mask and elementwise fused */
   char type = 'A';        /* 'A': ALL, 'F': FP, 'B': BP, 'U', WU */
   int bn = 32;
   int bk = 32;
@@ -162,7 +162,7 @@ int main(int argc, char* argv[])
     return -1;
   }
   if ( (fuse_type < 0) || (fuse_type > 5) ) {
-    printf("fuse type needs to be 0 (None), 1 (Bias), 2 (ReLU,mask), 3 (Bias+ReLU,mask), 4 (ReLU), 5 (Bias+ReLU)\n");
+    printf("fuse type needs to be 0 (None), 1 (Bias), 2 (ReLU), 3 (Bias+ReLU), 4 (ReLU, mask), 5 (Bias+ReLU, mask)\n");
     return -1;
   }
 
