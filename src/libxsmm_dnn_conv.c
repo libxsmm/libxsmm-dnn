@@ -2990,7 +2990,7 @@ LIBXSMM_API_INLINE void libxsmm_dnn_conv_generate_upd_kernels( libxsmm_dnn_conv_
     }
 
     if (res.pixel_blocking % req_dot_modfree_divisor == 0) {
-      l_shape.k = LIBXSMM_MAX(2,res.pixel_blocking);
+      l_shape.k = LIBXSMM_MAX(req_dot_modfree_divisor,res.pixel_blocking);
       l_shape.ldb = LIBXSMM_MAX(l_shape.k, res.input_pixels);
       l_brconfig.br_unroll_hint = 0;
       stride_a = res.blocksofm * res.output_pixels * res.ofmblock * sizeof(libxsmm_bfloat16);
@@ -3007,7 +3007,7 @@ LIBXSMM_API_INLINE void libxsmm_dnn_conv_generate_upd_kernels( libxsmm_dnn_conv_
       /* Regular GEMM */
       l_shape.m = res.ofmblock;
       l_shape.n = res.ifmblock;
-      l_shape.k =  LIBXSMM_MAX(2,res.pixel_blocking);
+      l_shape.k =  LIBXSMM_MAX(req_dot_modfree_divisor,res.pixel_blocking);
       res.upd_compute_kernel4_bf16f32.gemm = libxsmm_dispatch_gemm_v2( l_shape, l_flags, l_prefetch_flags );
       if (  res.upd_compute_kernel4_bf16f32.gemm  == NULL ) {
         fprintf( stderr, "JIT for GEMM TPP upd_compute_kernel4_bf16f32 failed. Bailing...!\n");
