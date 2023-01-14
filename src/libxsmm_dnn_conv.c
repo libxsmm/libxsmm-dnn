@@ -1735,7 +1735,7 @@ LIBXSMM_API_INLINE void libxsmm_dnn_conv_generate_fwd_kernels( libxsmm_dnn_conv_
       binary_shape.n         = res.fwd_ofw_rb;
       binary_shape.in0_type  = LIBXSMM_DATATYPE_BF16;
       binary_shape.in1_type  = LIBXSMM_DATATYPE_BF16;
-      binary_shape.comp_type = LIBXSMM_DATATYPE_BF16;
+      binary_shape.comp_type = LIBXSMM_DATATYPE_F32;
       binary_shape.out_type  = LIBXSMM_DATATYPE_BF16;
       binary_shape.ldi       = stride_in;
       binary_shape.ldi2      = stride_in;
