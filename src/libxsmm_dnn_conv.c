@@ -1706,9 +1706,6 @@ LIBXSMM_API_INLINE void libxsmm_dnn_conv_generate_fwd_kernels( libxsmm_dnn_conv_
       fprintf( stderr, "JIT for TPP cvt_kernel_fp32bf16 failed. Bailing...!\n");
       exit(-1);
     }
-    unary_shape.in0_type   = LIBXSMM_DATATYPE_BF16;
-    unary_shape.comp_type = LIBXSMM_DATATYPE_BF16;
-    unary_shape.out_type  = LIBXSMM_DATATYPE_BF16;
 
     if ((res.fuse_type & LIBXSMM_DNN_CONV_ELTWISE_FUSE_RELU) > 0) {
       stride_in             = res.ofmblock;
@@ -1717,6 +1714,13 @@ LIBXSMM_API_INLINE void libxsmm_dnn_conv_generate_fwd_kernels( libxsmm_dnn_conv_
       unary_shape.n         = res.fwd_ofw_rb;
       unary_shape.ldi       = stride_in;
       unary_shape.ldo       = stride_out;
+      unary_shape.in0_type   = LIBXSMM_DATATYPE_BF16;
+#ifdef __x86_64__
+      unary_shape.comp_type = LIBXSMM_DATATYPE_BF16;
+#else
+      unary_shape.comp_type = LIBXSMM_DATATYPE_F32;
+#endif
+      unary_shape.out_type  = LIBXSMM_DATATYPE_BF16;
       res.relu_kernel_bf16 = libxsmm_dispatch_meltw_unary_v2( LIBXSMM_MELTW_TYPE_UNARY_RELU, unary_shape, LIBXSMM_MELTW_FLAG_UNARY_NONE );
       if (  res.relu_kernel_bf16  == NULL ) {
         fprintf( stderr, "JIT for TPP relu_kernel_bf16 failed. Bailing...!\n");
