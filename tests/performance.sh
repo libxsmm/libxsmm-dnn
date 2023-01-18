@@ -97,7 +97,9 @@ if [ "${LOGDIR}" ]; then
     fi
   fi
   if [ "${DBSCRT}" ]; then
-    DBFILE=${LOGDIR}/tool_report.json
+    PIPELINE=${PIPELINE:-${BUILDKITE_PIPELINE_SLUG}}
+    DBMAIN=${PIPELINE:-tool_report}
+    DBFILE=${LOGDIR}/${DBMAIN}.json
   else
     LOGDIR=""
   fi
