@@ -108,7 +108,7 @@ fi
 # generate report (report script was found, etc)
 if [ "${LOGDIR}" ]; then
   mkdir -p "${LOGDIR}/${JOBID}"
-  OUTPUT=$(flush "${DBSCRT}" -f "${DBFILE}" -g "${LOGDIR}/${JOBID}" \
+  OUTPUT=$(${DBSCRT} -f "${DBFILE}" -g "${LOGDIR}/${JOBID}" \
     -i "${LOGFILE}" -j "${JOBID}" -x -y "${STEPNAME}" -z -v 1)
   RESULT=$?
   if [ "0" = "${RESULT}" ] && [ "${OUTPUT}" ] && \
