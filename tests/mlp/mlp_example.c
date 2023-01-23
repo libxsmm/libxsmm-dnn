@@ -86,7 +86,7 @@ int main(int argc, char* argv[])
   int nThreads = 1; /* number of threads */
 #endif
 
-  unsigned long long l_start, l_end;
+  libxsmm_timer_tickint l_start, l_end;
   double l_total = 0.0;
   double gflop = 0.0;
   int i, j;
@@ -437,13 +437,13 @@ int main(int argc, char* argv[])
       gflop += (2.0*(double)MB*(double)C[i]*(double)C[i+1]*(double)iters) / (1000.0*1000.0*1000.0);
     }
     printf("GFLOP  = %.5g\n", gflop/(double)iters);
-    printf("fp time = %.5g\n", ((double)(l_total/iters)));
+    printf("fp time = %.5g\n", l_total/iters);
     printf("GFLOPS  = %.5g\n", gflop/l_total);
     printf("PERFDUMP,FP,%s,%i,%i,", LIBXSMM_VERSION, nThreads, MB );
     for ( i = 0; i < num_layers; ++i ) {
       printf("%i,", C[i] );
     }
-    printf("%f,%f\n", ((double)(l_total/iters)), gflop/l_total);
+    printf("%f,%f\n", l_total/iters, gflop/l_total);
   }
 
   if (type == 'B') {
@@ -500,13 +500,13 @@ int main(int argc, char* argv[])
     }
     gflop += (2.0*(double)MB*(double)C[0]*(double)C[1]*(double)iters) / (1000.0*1000.0*1000.0);
     printf("GFLOP  = %.5g\n", gflop/(double)iters);
-    printf("fp time = %.5g\n", ((double)(l_total/iters)));
+    printf("fp time = %.5g\n", l_total/iters);
     printf("GFLOPS  = %.5g\n", gflop/l_total);
     printf("PERFDUMP,BP,%s,%i,%i,", LIBXSMM_VERSION, nThreads, MB );
     for ( i = 0; i < num_layers; ++i ) {
       printf("%i,", C[i] );
     }
-    printf("%f,%f\n", ((double)(l_total/iters)), gflop/l_total);
+    printf("%f,%f\n", l_total/iters, gflop/l_total);
   }
 
   if (type == 'A') {
@@ -605,13 +605,13 @@ int main(int argc, char* argv[])
     }
     gflop += (4.0*(double)MB*(double)C[0]*(double)C[1]*(double)iters) / (1000.0*1000.0*1000.0);
     printf("GFLOP  = %.5g\n", gflop/(double)iters);
-    printf("fp time = %.5g\n", ((double)(l_total/iters)));
+    printf("fp time = %.5g\n", l_total/iters);
     printf("GFLOPS  = %.5g\n", gflop/l_total);
     printf("PERFDUMP,BP,%s,%i,%i,", LIBXSMM_VERSION, nThreads, MB );
     for ( i = 0; i < num_layers; ++i ) {
       printf("%i,", C[i] );
     }
-    printf("%f,%f\n", ((double)(l_total/iters)), gflop/l_total);
+    printf("%f,%f\n", l_total/iters, gflop/l_total);
   }
 
   /* deallocate data */

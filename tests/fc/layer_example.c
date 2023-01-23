@@ -66,7 +66,7 @@ int main(int argc, char* argv[])
   int nThreads = 1; /* number of threads */
 #endif
 
-  unsigned long long l_start, l_end;
+  libxsmm_timer_tickint l_start, l_end;
   double l_total = 0.0;
   double gflop = 0.0;
   int i;
@@ -588,11 +588,11 @@ int main(int argc, char* argv[])
     gflop = (2.0*(double)nImg*(double)nIFm*(double)nOFm*(double)iters) / (1000*1000*1000);
 
     printf("GFLOP  = %.5g\n", gflop/(double)iters);
-    printf("fp time = %.5g\n", ((double)(l_total/iters)));
+    printf("fp time = %.5g\n", l_total/iters);
     printf("GFLOPS  = %.5g\n", gflop/l_total);
 
     printf("PERFDUMP,FP,%s,%i,%i,%i,%i,%.5g,%.5g,%f,%f,%f,%f,%f,%f,%f\n", LIBXSMM_VERSION, nThreads, nImg, nIFm,
-        nOFm, ((double)(l_total/iters)), gflop/l_total, norms_fwd.l1_ref, norms_fwd.l1_tst,
+        nOFm, l_total/iters, gflop/l_total, norms_fwd.l1_ref, norms_fwd.l1_tst,
         norms_fwd.l2_abs, norms_fwd.l2_rel, norms_fwd.linf_abs, norms_fwd.linf_rel, norms_fwd.normf_rel);
   }
 
@@ -629,11 +629,11 @@ int main(int argc, char* argv[])
     gflop = (4.0*(double)nImg*(double)nIFm*(double)nOFm*(double)iters) / (1000*1000*1000);
 
     printf("GFLOP  = %.5g\n", gflop/(double)iters);
-    printf("fp time = %.5g\n", ((double)(l_total/iters)));
+    printf("fp time = %.5g\n", l_total/iters);
     printf("GFLOPS  = %.5g\n", gflop/l_total);
 
     printf("PERFDUMP,UP,%s,%i,%i,%i,%i,%.5g,%.5g,%f,%f,%f,%f,%f,%f,%f\n", LIBXSMM_VERSION, nThreads, nImg, nIFm,
-        nOFm, ((double)(l_total/iters)), gflop/l_total, norms_upd.l1_ref, norms_upd.l1_tst,
+        nOFm, l_total/iters, gflop/l_total, norms_upd.l1_ref, norms_upd.l1_tst,
         norms_upd.l2_abs, norms_upd.l2_rel, norms_upd.linf_abs, norms_upd.linf_rel, norms_upd.normf_rel);
   }
 

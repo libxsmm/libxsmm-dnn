@@ -80,7 +80,7 @@ int main(int argc, char* argv[])
   int nThreads = 1; /* number of threads */
 #endif
 
-  unsigned long long l_start, l_end;
+  libxsmm_timer_tickint l_start, l_end;
   double l_total = 0.0;
   double gflop = 0.0;
   int i, j;
@@ -418,7 +418,7 @@ int main(int argc, char* argv[])
   printf("###########################################\n");
   l_start = libxsmm_timer_tick();
 #if defined(_OPENMP)
-#   pragma omp parallel private(i,j,epoch_id,batch_id)
+# pragma omp parallel private(i,j,epoch_id,batch_id)
 #endif
   {
 #if defined(_OPENMP)
@@ -522,7 +522,7 @@ int main(int argc, char* argv[])
   unsigned int samples = 0;
 
 #if defined(_OPENMP)
-#   pragma omp parallel private(i,j,batch_id)
+# pragma omp parallel private(i,j,batch_id)
 #endif
   {
 #if defined(_OPENMP)
@@ -563,7 +563,7 @@ int main(int argc, char* argv[])
             samples++;
           }
         }
-        #pragma omp barrier
+#       pragma omp barrier
       } else {
         for ( i = 0; i < num_layers; ++i) {
           libxsmm_bfloat16 *input_act_ptr = (i == 0) ? input_acts_bf16 + batch_id * MB * C[0] : act_libxsmm_bf16[i];
@@ -596,7 +596,7 @@ int main(int argc, char* argv[])
             samples++;
           }
         }
-        #pragma omp barrier
+#       pragma omp barrier
       }
     }
   }

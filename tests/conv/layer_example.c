@@ -77,7 +77,7 @@ int main(int argc, char* argv[])
   int nThreads = 1; /* number of threads */
 #endif
 
-  unsigned long long l_start, l_end;
+  libxsmm_timer_tickint l_start, l_end;
   double l_total = 0.0;
   double flops = 0.0;
   int i;
@@ -465,7 +465,7 @@ int main(int argc, char* argv[])
     printf("##########################################\n");
     /* run LIBXSMM convolutions */
 #if defined(_OPENMP)
-#     pragma omp parallel
+#   pragma omp parallel
 #endif
     {
 #if defined(_OPENMP)
@@ -536,7 +536,7 @@ int main(int argc, char* argv[])
 
     /* run LIBXSMM convolutions */
 #if defined(_OPENMP)
-#     pragma omp parallel
+#   pragma omp parallel
 #endif
     {
 #if defined(_OPENMP)
@@ -599,7 +599,7 @@ int main(int argc, char* argv[])
 
     /* run LIBXSMM convolutions */
 #if defined(_OPENMP)
-#     pragma omp parallel
+#   pragma omp parallel
 #endif
     {
 #if defined(_OPENMP)
@@ -648,7 +648,7 @@ int main(int argc, char* argv[])
     /* run LIBXSMM convolution for performance */
     l_start = libxsmm_timer_tick();
 #if defined(_OPENMP)
-#     pragma omp parallel private(i)
+#   pragma omp parallel private(i)
 #endif
     {
 #if defined(_OPENMP)
@@ -694,7 +694,7 @@ int main(int argc, char* argv[])
     l_start = libxsmm_timer_tick();
 
 #if defined(_OPENMP)
-#     pragma omp parallel  private(i)
+#   pragma omp parallel private(i)
 #endif
     {
 #if defined(_OPENMP)
@@ -741,7 +741,7 @@ int main(int argc, char* argv[])
     l_start = libxsmm_timer_tick();
 
 #if defined(_OPENMP)
-#     pragma omp parallel private(i)
+#   pragma omp parallel private(i)
 #endif
     {
 #if defined(_OPENMP)

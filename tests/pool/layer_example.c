@@ -75,7 +75,7 @@ int main(int argc, char* argv[])
   libxsmm_blasint nThreads = 1; /* number of threads */
 #endif
 
-  unsigned long long l_start, l_end;
+  libxsmm_timer_tickint l_start, l_end;
   double l_total = 0.0;
   double gb = 0.0;
   double gib = 0.0;
@@ -468,12 +468,12 @@ int main(int argc, char* argv[])
 
       printf("GB  = %.5g\n", gb/(double)iters);
       printf("GiB  = %.5g\n", gib/(double)iters);
-      printf("fp time = %.5g\n", ((double)(l_total/iters)));
+      printf("fp time = %.5g\n", l_total/iters);
       printf("GB/s  = %.5g\n", gb/l_total);
       printf("GiB/s  = %.5g\n", gib/l_total);
 
       printf("PERFDUMP,FP,%s,%i,%i,%i,%i,%i,%i,%i,%i,%i,%i,%.5g,%.5g,%.5g,%f,%f,%f,%f,%f,%f,%f\n", LIBXSMM_VERSION, nThreads, nImg, nFm,
-        ifw, ifh, stride, pad_w_in, pad_h_in, pad_w_out, pad_h_out, ((double)(l_total/iters)), gb/l_total, gib/l_total, norms_fwd.l1_ref, norms_fwd.l1_tst,
+        ifw, ifh, stride, pad_w_in, pad_h_in, pad_w_out, pad_h_out, l_total/iters, gb/l_total, gib/l_total, norms_fwd.l1_ref, norms_fwd.l1_tst,
         norms_fwd.l2_abs, norms_fwd.l2_rel, norms_fwd.linf_abs, norms_fwd.linf_rel, norms_fwd.normf_rel);
     }
 
@@ -485,7 +485,7 @@ int main(int argc, char* argv[])
       l_start = libxsmm_timer_tick();
 
 #if defined(_OPENMP)
-#     pragma omp parallel  private(i)
+#     pragma omp parallel private(i)
 #endif
       {
 #if defined(_OPENMP)
@@ -511,12 +511,12 @@ int main(int argc, char* argv[])
 
       printf("GB  = %.5g\n", gb/(double)iters);
       printf("GiB  = %.5g\n", gib/(double)iters);
-      printf("fp time = %.5g\n", ((double)(l_total/iters)));
+      printf("fp time = %.5g\n", l_total/iters);
       printf("GB/s  = %.5g\n", gb/l_total);
       printf("GiB/s  = %.5g\n", gib/l_total);
 
       printf("PERFDUMP,BP,%s,%i,%i,%i,%i,%i,%i,%i,%i,%i,%i,%.5g,%.5g,%.5g,%f,%f,%f,%f,%f,%f,%f\n", LIBXSMM_VERSION, nThreads, nImg, nFm,
-        ifw, ifh, stride, pad_w_in, pad_h_in, pad_w_out, pad_h_out, ((double)(l_total/iters)), gb/l_total, gib/l_total, norms_bwd.l1_ref, norms_bwd.l1_tst,
+        ifw, ifh, stride, pad_w_in, pad_h_in, pad_w_out, pad_h_out, l_total/iters, gb/l_total, gib/l_total, norms_bwd.l1_ref, norms_bwd.l1_tst,
         norms_bwd.l2_abs, norms_bwd.l2_rel, norms_bwd.linf_abs, norms_bwd.linf_rel, norms_bwd.normf_rel);
     }
 

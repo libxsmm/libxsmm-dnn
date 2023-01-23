@@ -221,7 +221,7 @@ LIBXSMM_INLINE void zero_buf_fp64(double* buf, size_t size) {
 # pragma omp parallel for private(i)
 #endif
   for (i = 0; i < (int)size; ++i) {
-    buf[i] = 0.0f;
+    buf[i] = 0.0;
   }
 }
 
@@ -3224,7 +3224,7 @@ LIBXSMM_INLINE void naive_fusedbatchnorm_fp_fp64(naive_fusedbatchnorm_t* param, 
   const int ofh = ifh/sh;
   const int ofw = ifw/sw;
   const double nhw = (double)(nImg * ifh * ifw);
-  const double recp_nhw = 1.0f/nhw;
+  const double recp_nhw = 1.0/nhw;
 
   int img, fm, hi, wi, ho, wo;
 
@@ -3507,7 +3507,7 @@ LIBXSMM_INLINE void naive_fusedbatchnorm_bp_fp64(naive_fusedbatchnorm_t* param, 
   const int ofh = ifh/sh;
   const int ofw = ifw/sw;
   const double nhw = (double)(nImg * ifh * ifw);
-  const double recp_nhw = 1.0f/nhw;
+  const double recp_nhw = 1.0/nhw;
   int img, fm, hi, wi, ho, wo;
 
   LIBXSMM_VLA_DECL(4, const double, input,      input_ptr,      nFm, ifh, ifw);
@@ -3528,8 +3528,8 @@ LIBXSMM_INLINE void naive_fusedbatchnorm_bp_fp64(naive_fusedbatchnorm_t* param, 
 #   pragma omp parallel for private(img, fm, hi, wi, ho, wo)
 #endif
     for ( fm = 0; fm < nFm; fm++ ) {
-      del_gamma_ptr[fm] = 0.0f;
-      del_beta_ptr[fm] = 0.0f;
+      del_gamma_ptr[fm] = 0.0;
+      del_beta_ptr[fm] = 0.0;
 
       for ( img = 0; img < nImg; img++ ) {
         for ( hi = 0, ho = 0; hi < ifh; hi += sh, ho++ ) {
@@ -3739,14 +3739,9 @@ LIBXSMM_INLINE void naive_fusedgroupnorm_fp_fp64(naive_fusedgroupnorm_t* param, 
   const int nG = param->G;
   const int nFMG = nFm/nG;
   const double ghw = (double)(nFMG * ifh * ifw);
-  const double recp_ghw = 1.0f/ghw;
+  const double recp_ghw = 1.0/ghw;
 
   int img, g, fmg, hi, wi, ho, wo;
-
-  if (param->pad_h_in != 0 || param->pad_w_in != 0 || param->pad_h_out != 0 || param->pad_w_out != 0) {
-    printf("Error: naive_fusedgroupnorm_fp_fp64 does not support padding!\n");
-    return;
-  }
 
   LIBXSMM_VLA_DECL(5, const double, input,     input_ptr,     nG,  nFMG, ifh, ifw);
   LIBXSMM_VLA_DECL(5, const double, input_add, input_add_ptr, nG,  nFMG, ifh, ifw);
@@ -3754,19 +3749,24 @@ LIBXSMM_INLINE void naive_fusedgroupnorm_fp_fp64(naive_fusedgroupnorm_t* param, 
 
   LIBXSMM_VLA_DECL(5, unsigned char, relumask,  relumask_ptr, nG, nFMG, ofh, ofw); /* no compression, 1 char per entry (only 1 bit used) */
 
+  if (param->pad_h_in != 0 || param->pad_w_in != 0 || param->pad_h_out != 0 || param->pad_w_out != 0) {
+    printf("Error: naive_fusedgroupnorm_fp_fp64 does not support padding!\n");
+    return;
+  }
+
 #if defined(_OPENMP)
   LIBXSMM_OMP_VAR(img); LIBXSMM_OMP_VAR(g); LIBXSMM_OMP_VAR(fmg); LIBXSMM_OMP_VAR(hi); LIBXSMM_OMP_VAR(wi);
 # pragma omp parallel for private(img, g, fmg, hi, wi)
 #endif
   for ( img = 0; img < nImg; img++ ) {
     for (g = 0; g < nG; g++) {
-      double ch_sum = 0.0f;
-      double ch_sumsq = 0.0f;
-      double tbmean = 0.0f;
-      double tbmeansq = 0.0f;
-      double tsqbmean = 0.0f;
-      double tbrstd = 0.0f;
-      double tvariance = 0.0f;
+      double ch_sum = 0.0;
+      double ch_sumsq = 0.0;
+      double tbmean = 0.0;
+      double tbmeansq = 0.0;
+      double tsqbmean = 0.0;
+      double tbrstd = 0.0;
+      double tvariance = 0.0;
 
       for ( fmg = 0; fmg < nFMG; fmg++) {
         for ( hi = 0; hi < ifh; hi++ ) {
@@ -3810,7 +3810,7 @@ LIBXSMM_INLINE void naive_fusedgroupnorm_fp_fp64(naive_fusedgroupnorm_t* param, 
             }
             /* ReLU */
             if ( (param->fuse_type == 1) || (param->fuse_type == 3) || (param->fuse_type == 4) || (param->fuse_type == 5) ) {
-              o = ( o < 0.0f ) ? 0.0f : o;
+              o = ( o < 0.0 ) ? 0.0 : o;
             }
             *output_ptr2 = o;
 
@@ -3818,7 +3818,7 @@ LIBXSMM_INLINE void naive_fusedgroupnorm_fp_fp64(naive_fusedgroupnorm_t* param, 
             if ( (param->fuse_type == 4) || (param->fuse_type == 5) ) {
               /* without compression */
               unsigned char* relumask_ptr2 = &LIBXSMM_VLA_ACCESS(5, relumask, img, g, fmg, ho, wo, nG, nFMG, ofh, ofw);
-              *relumask_ptr2 = (unsigned char)(( o <= 0.0f ) ? 0x0 : 1/*(1 << (i%8))*/ );
+              *relumask_ptr2 = (unsigned char)(( o <= 0.0 ) ? 0x0 : 1/*(1 << (i%8))*/ );
             }
           }
         }
@@ -3871,6 +3871,7 @@ LIBXSMM_INLINE void naive_fusedgroupnorm_bp(naive_fusedgroupnorm_t* param, const
   LIBXSMM_VLA_DECL(4,       float, doutput_gb,    doutput_ptr,    nFm, ofhp, ofwp);
   LIBXSMM_VLA_DECL(4,       float, dinput_add,    dinput_add_ptr, nFm, ifhp, ifwp);
 
+  LIBXSMM_UNUSED(variance_ptr);
   LIBXSMM_UNUSED(beta_ptr);
 
 #if defined(_OPENMP)
@@ -4050,14 +4051,9 @@ LIBXSMM_INLINE void naive_fusedgroupnorm_bp_fp64(naive_fusedgroupnorm_t* param, 
   const int nG = param->G;
   const int nFMG = nFm/nG;
   const double ghw = (double)(nFMG * ifh * ifw);
-  const double recp_ghw = 1.0f/ghw;
+  const double recp_ghw = 1.0/ghw;
 
   int img, g, fmg, fm, hi, wi, ho, wo;
-
-  if (param->pad_h_in != 0 || param->pad_w_in != 0 || param->pad_h_out != 0 || param->pad_w_out != 0) {
-    printf("Error: naive_fusedgroupnorm_bp_fp64 does not support padding!\n");
-    return;
-  }
 
   LIBXSMM_VLA_DECL(5, const double, input,      input_ptr,      nG,  nFMG, ifh, ifw);
   LIBXSMM_VLA_DECL(5,       double, dinput,     dinput_ptr,     nG,  nFMG, ifh, ifw);
@@ -4069,15 +4065,21 @@ LIBXSMM_INLINE void naive_fusedgroupnorm_bp_fp64(naive_fusedgroupnorm_t* param, 
   LIBXSMM_VLA_DECL(4,       double, doutput_gb,    doutput_ptr,    nFm,  ofh, ofw);
   LIBXSMM_VLA_DECL(4,       double, dinput_add,    dinput_add_ptr, nFm, ifh, ifw);
 
+  LIBXSMM_UNUSED(variance_ptr);
   LIBXSMM_UNUSED(beta_ptr);
+
+  if (param->pad_h_in != 0 || param->pad_w_in != 0 || param->pad_h_out != 0 || param->pad_w_out != 0) {
+    printf("Error: naive_fusedgroupnorm_bp_fp64 does not support padding!\n");
+    return;
+  }
 
 #if defined(_OPENMP)
   LIBXSMM_OMP_VAR(hi); LIBXSMM_OMP_VAR(wi); LIBXSMM_OMP_VAR(ho); LIBXSMM_OMP_VAR(wo); LIBXSMM_OMP_VAR(g);
 # pragma omp parallel for private(img, fm, hi, wi, ho, wo, g)
 #endif
   for ( fm = 0; fm < nFm; fm++ ) {
-    del_gamma_ptr[fm] = 0.0f;
-    del_beta_ptr[fm] = 0.0f;
+    del_gamma_ptr[fm] = 0.0;
+    del_beta_ptr[fm] = 0.0;
 
     for ( img = 0; img < nImg; img++ ) {
       for ( hi = 0, ho = 0; hi < ifh; hi += sh, ho++ ) {
@@ -4132,7 +4134,7 @@ LIBXSMM_INLINE void naive_fusedgroupnorm_bp_fp64(naive_fusedgroupnorm_t* param, 
                   double* del_input_ptr  = &LIBXSMM_VLA_ACCESS(5,     dinput, img, g, fmg, hi, wi, nG, nFMG, ifh, ifw);
 
             double t0_val = rcpstddev_ptr[img*nG+g] * recp_ghw;
-            *del_input_ptr = t0_val * ((gamma_ptr[g*nFMG+fmg] * ghw * del_output_val) - d2_val - ((input_val - expectval_ptr[img*nG+g]) * d1_val * rcpstddev_ptr[img*nG+g] * rcpstddev_ptr[img*nG+g]/*(1.0f/(variance_ptr[img*nG+g]+eps))*/));
+            *del_input_ptr = t0_val * ((gamma_ptr[g*nFMG+fmg] * ghw * del_output_val) - d2_val - ((input_val - expectval_ptr[img*nG+g]) * d1_val * rcpstddev_ptr[img*nG+g] * rcpstddev_ptr[img*nG+g]/*(1.0/(variance_ptr[img*nG+g]+eps))*/));
           }
         }
       }
@@ -4844,4 +4846,3 @@ LIBXSMM_INLINE void gru_ref_bwd_upd( int N, int C, int K, int t,
     }
   }
 }
-

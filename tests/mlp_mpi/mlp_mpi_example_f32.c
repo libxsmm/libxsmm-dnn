@@ -75,7 +75,7 @@ int main(int argc, char* argv[])
   int nThreads = 1; /* number of threads */
 #endif
 
-  unsigned long long l_start, l_end;
+  libxsmm_timer_tickint l_start, l_end;
   double l_total = 0.0;
   double l_fwd_fc[N_PROF_THREADS];
   double l_bwdupd_fc[N_PROF_THREADS];
@@ -394,13 +394,13 @@ int main(int argc, char* argv[])
     }
     if (rank == 0) {
       printf("GFLOP  = %.5g\n", gflop/(double)iters);
-      printf("fp time = %.5g\n", ((double)(l_total/iters)));
+      printf("fp time = %.5g\n", l_total/iters);
       printf("GFLOPS  = %.5g\n", gflop/l_total);
       printf("PERFDUMP,FP,%s,%i,%i,", LIBXSMM_VERSION, nThreads, MB );
       for ( i = 0; i < num_layers; ++i ) {
         printf("%i,", C[i] );
       }
-      printf("%f,%f\n", ((double)(l_total/iters)), gflop/l_total);
+      printf("%f,%f\n", l_total/iters, gflop/l_total);
     }
   }
 
@@ -437,7 +437,7 @@ int main(int argc, char* argv[])
               MPI_Wait(&request[(i+1)%2], MPI_STATUS_IGNORE);
             }
             /* All threads wait for the all-reduce to complete in order to execute the optimizer... */
-            #pragma omp barrier
+#           pragma omp barrier
             libxsmm_dnn_opt_exec_f32( libxsmm_dnn_opt[i+1], fil_libxsmm[i+1], delfil_libxsmm[i+1], 0, tid, scratch );
           }
         }
@@ -453,14 +453,14 @@ int main(int argc, char* argv[])
           MPI_Wait(&request[1], MPI_STATUS_IGNORE);
         }
         /* All threads wait for the all-reduce to complete in order to execute the optimizer... */
-        #pragma omp barrier
+#       pragma omp barrier
         libxsmm_dnn_opt_exec_f32( libxsmm_dnn_opt[1], fil_libxsmm[1], delfil_libxsmm[1], 0, tid, scratch );
 
         if (tid == 0) {
           MPI_Wait(&request[0], MPI_STATUS_IGNORE);
         }
         /* All threads wait for the all-reduce to complete in order to execute the optimizer... */
-        #pragma omp barrier
+#       pragma omp barrier
         libxsmm_dnn_opt_exec_f32( libxsmm_dnn_opt[0], fil_libxsmm[0], delfil_libxsmm[0], 0, tid, scratch );
       }
     }
@@ -476,13 +476,13 @@ int main(int argc, char* argv[])
 
     if (rank == 0) {
       printf("GFLOP  = %.5g\n", gflop/(double)iters);
-      printf("fp time = %.5g\n", ((double)(l_total/iters)));
+      printf("fp time = %.5g\n", l_total/iters);
       printf("GFLOPS  = %.5g\n", gflop/l_total);
       printf("PERFDUMP,BP,%s,%i,%i,", LIBXSMM_VERSION, nThreads, MB );
       for ( i = 0; i < num_layers; ++i ) {
         printf("%i,", C[i] );
       }
-      printf("%f,%f\n", ((double)(l_total/iters)), gflop/l_total);
+      printf("%f,%f\n", l_total/iters, gflop/l_total);
     }
     MPI_Barrier(MPI_COMM_WORLD);
 #if 1
@@ -575,7 +575,7 @@ int main(int argc, char* argv[])
               MPI_Wait(&request[(i+1)%2], MPI_STATUS_IGNORE);
             }
             /* All threads wait for the all-reduce to complete in order to execute the optimizer... */
-            #pragma omp barrier
+#           pragma omp barrier
             libxsmm_dnn_opt_exec_f32( libxsmm_dnn_opt[i+1], fil_libxsmm[i+1], delfil_libxsmm[i+1], 0, tid, scratch );
           }
         }
@@ -589,14 +589,14 @@ int main(int argc, char* argv[])
           MPI_Wait(&request[1], MPI_STATUS_IGNORE);
         }
         /* All threads wait for the all-reduce to complete in order to execute the optimizer... */
-        #pragma omp barrier
+#       pragma omp barrier
         libxsmm_dnn_opt_exec_f32( libxsmm_dnn_opt[1], fil_libxsmm[1], delfil_libxsmm[1], 0, tid, scratch );
 
         if (tid == 0) {
           MPI_Wait(&request[0], MPI_STATUS_IGNORE);
         }
         /* All threads wait for the all-reduce to complete in order to execute the optimizer... */
-        #pragma omp barrier
+#       pragma omp barrier
         libxsmm_dnn_opt_exec_f32( libxsmm_dnn_opt[0], fil_libxsmm[0], delfil_libxsmm[0], 0, tid, scratch );
       }
     }
@@ -612,13 +612,13 @@ int main(int argc, char* argv[])
 
     if (rank == 0) {
       printf("GFLOP  = %.5g\n", gflop/(double)iters);
-      printf("fp time = %.5g\n", ((double)(l_total/iters)));
+      printf("fp time = %.5g\n", l_total/iters);
       printf("GFLOPS  = %.5g\n", gflop/l_total);
       printf("PERFDUMP,BP,%s,%i,%i,", LIBXSMM_VERSION, nThreads, MB );
       for ( i = 0; i < num_layers; ++i ) {
         printf("%i,", C[i] );
       }
-      printf("%f,%f\n", ((double)(l_total/iters)), gflop/l_total);
+      printf("%f,%f\n", l_total/iters, gflop/l_total);
 #ifdef DETAILED_PROFILE
       double tot = /*l_allreduce[0] + l_optimizer[0] +*/ l_fwd_fc[0] + l_bwdupd_fc[0] + l_fwd_loss[0] + l_bwd_loss[0];
       printf("FC time compute/loss = %.5g\n", ((double)(tot/iters)));

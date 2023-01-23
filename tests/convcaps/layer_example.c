@@ -97,7 +97,7 @@ typedef struct {
 LIBXSMM_INLINE void zero_buf(float* buf, long size) {
   int i;
 #if defined(_OPENMP)
-  #pragma omp parallel for private(i)
+# pragma omp parallel for private(i)
 #endif
   for (i = 0; i < size; ++i) {
     buf[i] = 0.0f;
@@ -117,7 +117,7 @@ LIBXSMM_INLINE void zero_buf_bf16(libxsmm_bfloat16* buf, size_t size) {
 LIBXSMM_INLINE void copy_buf(float* src, float* dst, long size) {
   int i;
 #if defined(_OPENMP)
-  #pragma omp parallel for private(i)
+# pragma omp parallel for private(i)
 #endif
   for (i = 0; i < size; ++i) {
     dst[i] = src[i];
@@ -636,7 +636,7 @@ int main(int argc, char* argv[])
   int nThreads = 1;       /* number of threads */
 #endif
 
-  unsigned long long l_start, l_end;
+  libxsmm_timer_tickint l_start, l_end;
   double l_total = 0.0;
   double flops = 0.0;
   int i;
@@ -916,12 +916,12 @@ int main(int argc, char* argv[])
     l_total = libxsmm_timer_duration(l_start, l_end);
     flops = (double)nImg * (double)nIfm * (double)nOfm * (double)ofh * (double)ofw * (double)(2 * kh * kw) * (double)RK * (double)Mh * (double)Mw * (double)iters;
 
-    printf("GFLOP  = %.5g\n", flops*1e-9/(double)iters);
-    printf("fp time = %.5g\n", ((double)(l_total/iters)));
-    printf("GFLOPS  = %.5g\n", (flops*1e-9)/l_total);
+    printf("GFLOP  = %.5g\n", flops*1e-9/iters);
+    printf("fp time = %.5g\n", l_total/iters);
+    printf("GFLOPS  = %.5g\n", flops*1e-9/l_total);
 
     printf("PERFDUMP,FP,%s,%i,%i,%i,%i,%i,%i,%i,%i,%i,%i,%i,%i,%i,%i,%.5g,%.5g,%f,%f,%f,%f,%f\n", LIBXSMM_VERSION, nThreads, nImg, nIfm, nOfm,
-       ifw, ifh, kw, kh, stride, pad_h, pad_w, RK, Mh, Mw, ((double)(l_total/iters)), (flops*1e-9)/l_total,
+       ifw, ifh, kw, kh, stride, pad_h, pad_w, RK, Mh, Mw, l_total/iters, flops*1e-9/l_total,
        norms_fwd.max_rel_err, norms_fwd.max_abs_err, norms_fwd.l2_rel_err, norms_fwd.one_norm_ref, norms_fwd.one_norm_test );
   }
 
