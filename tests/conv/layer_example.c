@@ -68,16 +68,16 @@ int main(int argc, char* argv[])
   char type = 'A';        /* 'A': ALL, 'F': FP, 'B': BP, 'U', WU */
   char format = 'A';      /* 'A': ALL, 'L': LIBXSMM, 'T': Tensorflow, 'M', Mixed */
 
-  const char *const env_check = getenv("CHECK");
+  const char *const env_check = getenv("CHECK"), *env_warmup = getenv("WARMUP"), *const env_clear = getenv("CLEAR");
+  const int warmup = (NULL == env_warmup ? 2 : atoi(env_warmup)), clear = (NULL == env_clear ? 1 : atoi(env_clear));
   const double check = LIBXSMM_ABS(NULL == env_check ? 1 : atof(env_check));
 
 #if defined(_OPENMP)
-  int nThreads = omp_get_max_threads(); /* number of threads */
+  const int nThreads = omp_get_max_threads(); /* number of threads */
 #else
-  int nThreads = 1; /* number of threads */
+  const int nThreads = 1; /* number of threads */
 #endif
 
-  libxsmm_timer_tickint l_start, l_end;
   double l_total = 0.0;
   double flops = 0.0;
   int i;
@@ -646,43 +646,58 @@ int main(int argc, char* argv[])
     printf("#   Performance - FWD (custom-Storage)   #\n");
     printf("##########################################\n");
     /* run LIBXSMM convolution for performance */
-    l_start = libxsmm_timer_tick();
+    l_total = 0;
+    for (i = 0; i < (iters + warmup); ++i) {
+      libxsmm_timer_tickint cputime = 0, ompstart = libxsmm_timer_tick();
 #if defined(_OPENMP)
-#   pragma omp parallel private(i)
+#     pragma omp parallel reduction(+:cputime)
 #endif
-    {
+      {
+        libxsmm_timer_tickint start, end;
 #if defined(_OPENMP)
-      const int tid = omp_get_thread_num();
+        const int tid = omp_get_thread_num();
+        if ((1 <= clear || 0 > clear) && 0 == tid && warmup <= i) { /* master */
+          const double omptime = libxsmm_timer_duration(ompstart, libxsmm_timer_tick());
+          l_total += (omptime * nThreads) / iters;
+        }
+#       pragma omp barrier
 #else
-      const int tid = 0;
+        const int tid = 0;
 #endif
-      if (prec == 2) {
-        for (i = 0; i < iters; ++i) {
+        start = libxsmm_timer_tick();
+        if (prec == 2) {
           libxsmm_dnn_conv_fwd_exec_bf16( libxsmm_dnn_conv_cfg, filter_libxsmm_bf16, input_libxsmm_bf16, output_libxsmm_bf16,
               bias_libxsmm_bf16, relumask_libxsmm, 0, tid, scratch );
-        }
-      } else if (prec == 1) {
-        for (i = 0; i < iters; ++i) {
+        } else if (prec == 1) {
           libxsmm_dnn_conv_fwd_exec_bf8( libxsmm_dnn_conv_cfg, filter_libxsmm_bf8, input_libxsmm_bf8, output_libxsmm_bf8,
               bias_libxsmm_bf8, relumask_libxsmm, 0, tid, scratch );
-        }
-      } else {
-        for (i = 0; i < iters; ++i) {
+        } else {
           libxsmm_dnn_conv_fwd_exec( libxsmm_dnn_conv_cfg, filter_libxsmm, input_libxsmm, output_libxsmm,
               bias_libxsmm, relumask_libxsmm, 0, tid, scratch );
         }
+        end = libxsmm_timer_tick();
+        if (warmup <= i) cputime = libxsmm_timer_ncycles(start, end);
+#if defined(_OPENMP) /* attempt to clear caches in case of multiple threads */
+        if ((2 <= clear || 0 > clear) && 1 < nThreads) {
+          int j;
+#         pragma omp for
+          for (j = 0; j < (int)libxsmm_dnn_conv_cfg.scratch_size; j += LIBXSMM_CACHELINE) {
+            ((unsigned char*)scratch)[j] += 1;
+          }
+        }
+#endif
       }
+      l_total += libxsmm_timer_duration(0, cputime);
     }
-    l_end = libxsmm_timer_tick();
-    l_total = libxsmm_timer_duration(l_start, l_end);
+    l_total = l_total/nThreads;
     flops = (double)nImg * (double)nIfm * (double)nOfm * (double)ofh * (double)ofw * (double)(2 * kh * kw) * (double)iters;
 
-    printf("GFLOP  = %.5g\n", flops*1e-9/(double)iters);
-    printf("fp time = %.5g\n", ((double)(l_total/iters)));
-    printf("GFLOPS  = %.5g\n", (flops*1e-9)/l_total);
+    printf("GFLOP  = %.5g\n", flops*1e-9/iters);
+    printf("fp time = %.5g\n", l_total/iters);
+    printf("GFLOPS  = %.5g\n", flops*1e-9/l_total);
 
     printf("PERFDUMP,FP,%s,%i,%i,%i,%i,%i,%i,%i,%i,%i,%i,%i,%.5g,%.5g,%f,%f,%f,%f,%f,%f,%f\n", LIBXSMM_VERSION, nThreads, nImg, nIfm, nOfm,
-        ifw, ifh, kw, kh, stride, padw, padh, ((double)(l_total/iters)), (flops*1e-9)/l_total, norms_fwd.l1_ref, norms_fwd.l1_tst,
+        ifw, ifh, kw, kh, stride, padw, padh, l_total/iters, flops*1e-9/l_total, norms_fwd.l1_ref, norms_fwd.l1_tst,
         norms_fwd.l2_abs, norms_fwd.l2_rel, norms_fwd.linf_abs, norms_fwd.linf_rel, norms_fwd.normf_rel);
   }
 
@@ -691,45 +706,58 @@ int main(int argc, char* argv[])
     printf("#   Performance - BWD (custom-Storage)   #\n");
     printf("##########################################\n");
     /* run LIBXSMM convolution for performance */
-    l_start = libxsmm_timer_tick();
-
+    l_total = 0;
+    for (i = 0; i < (iters + warmup); ++i) {
+      libxsmm_timer_tickint cputime = 0, ompstart = libxsmm_timer_tick();
 #if defined(_OPENMP)
-#   pragma omp parallel private(i)
+#     pragma omp parallel reduction(+:cputime)
 #endif
-    {
+      {
+        libxsmm_timer_tickint start, end;
 #if defined(_OPENMP)
-      const int tid = omp_get_thread_num();
+        const int tid = omp_get_thread_num();
+        if ((1 <= clear || 0 > clear) && 0 == tid && warmup <= i) { /* master */
+          const double omptime = libxsmm_timer_duration(ompstart, libxsmm_timer_tick());
+          l_total += (omptime * nThreads) / iters;
+        }
+#       pragma omp barrier
 #else
-      const int tid = 0;
+        const int tid = 0;
 #endif
-
-      if (prec == 2) {
-        for (i = 0; i < iters; ++i) {
+        start = libxsmm_timer_tick();
+        if (prec == 2) {
           libxsmm_dnn_conv_bwd_exec_bf16( libxsmm_dnn_conv_cfg, filter_libxsmm_bf16, filtertr_libxsmm_bf16,  doutput_libxsmm_bf16, dinput_libxsmm_bf16,
             relumask_libxsmm, 0, tid, scratch );
-        }
-      } else if (prec == 1) {
-        for (i = 0; i < iters; ++i) {
+        } else if (prec == 1) {
           libxsmm_dnn_conv_bwd_exec_bf8( libxsmm_dnn_conv_cfg, filter_libxsmm_bf8, filtertr_libxsmm_bf8,  doutput_libxsmm_bf8, dinput_libxsmm_bf8,
             relumask_libxsmm, 0, tid, scratch );
-        }
-      } else {
-        for (i = 0; i < iters; ++i) {
+        } else {
           libxsmm_dnn_conv_bwd_exec( libxsmm_dnn_conv_cfg, filter_libxsmm, filtertr_libxsmm,  doutput_libxsmm, dinput_libxsmm,
             relumask_libxsmm, 0, tid, scratch );
         }
+        end = libxsmm_timer_tick();
+        if (warmup <= i) cputime = libxsmm_timer_ncycles(start, end);
+#if defined(_OPENMP) /* attempt to clear caches in case of multiple threads */
+        if ((2 <= clear || 0 > clear) && 1 < nThreads) {
+          int j;
+#         pragma omp for
+          for (j = 0; j < (int)libxsmm_dnn_conv_cfg.scratch_size; j += LIBXSMM_CACHELINE) {
+            ((unsigned char*)scratch)[j] += 1;
+          }
+        }
+#endif
       }
+      l_total += libxsmm_timer_duration(0, cputime);
     }
-    l_end = libxsmm_timer_tick();
-    l_total = libxsmm_timer_duration(l_start, l_end);
+    l_total = l_total/nThreads;
     flops = (double)nImg * (double)nIfm * (double)nOfm * (double)ofh * (double)ofw * (double)(2 * kh * kw) * (double)iters;
 
-    printf("GFLOP  = %.5g\n", flops*1e-9/(double)iters);
-    printf("bp time = %.5g\n", ((double)(l_total/iters)));
-    printf("GFLOPS  = %.5g\n", (flops*1e-9)/l_total);
+    printf("GFLOP  = %.5g\n", flops*1e-9/iters);
+    printf("bp time = %.5g\n", l_total/iters);
+    printf("GFLOPS  = %.5g\n", flops*1e-9/l_total);
 
     printf("PERFDUMP,BP,%s,%i,%i,%i,%i,%i,%i,%i,%i,%i,%i,%i,%.5g,%.5g,%f,%f,%f,%f,%f,%f,%f\n", LIBXSMM_VERSION, nThreads, nImg, nIfm, nOfm,
-        ifw, ifh, kw, kh, stride, padw, padh, ((double)(l_total/iters)), (flops*1e-9)/l_total, norms_bwd.l1_ref, norms_bwd.l1_tst,
+        ifw, ifh, kw, kh, stride, padw, padh, l_total/iters, flops*1e-9/l_total, norms_bwd.l1_ref, norms_bwd.l1_tst,
         norms_bwd.l2_abs, norms_bwd.l2_rel, norms_bwd.linf_abs, norms_bwd.linf_rel, norms_bwd.normf_rel);
   }
 
@@ -738,44 +766,58 @@ int main(int argc, char* argv[])
     printf("#   Performance - UPD (custom-Storage)   #\n");
     printf("##########################################\n");
     /* run LIBXSMM convolution for performance */
-    l_start = libxsmm_timer_tick();
-
+    l_total = 0;
+    for (i = 0; i < (iters + warmup); ++i) {
+      libxsmm_timer_tickint cputime = 0, ompstart = libxsmm_timer_tick();
 #if defined(_OPENMP)
-#   pragma omp parallel private(i)
+#     pragma omp parallel reduction(+:cputime)
 #endif
-    {
+      {
+        libxsmm_timer_tickint start, end;
 #if defined(_OPENMP)
-      const int tid = omp_get_thread_num();
+        const int tid = omp_get_thread_num();
+        if ((1 <= clear || 0 > clear) && 0 == tid && warmup <= i) { /* master */
+          const double omptime = libxsmm_timer_duration(ompstart, libxsmm_timer_tick());
+          l_total += (omptime * nThreads) / iters;
+        }
+#       pragma omp barrier
 #else
-      const int tid = 0;
+        const int tid = 0;
 #endif
-      if (prec == 2) {
-        for (i = 0; i < iters; ++i) {
+        start = libxsmm_timer_tick();
+        if (prec == 2) {
           libxsmm_dnn_conv_upd_exec_bf16( libxsmm_dnn_conv_cfg, input_libxsmm_bf16, doutput_libxsmm_bf16, dfilter_libxsmm_bf16,
               NULL, 0, tid, scratch );
-        }
-      } else if (prec == 1) {
-        for (i = 0; i < iters; ++i) {
+        } else if (prec == 1) {
           libxsmm_dnn_conv_upd_exec_bf8( libxsmm_dnn_conv_cfg, input_libxsmm_bf8, doutput_libxsmm_bf8, dfilter_libxsmm_bf8,
               NULL, 0, tid, scratch );
-        }
-      } else {
-        for (i = 0; i < iters; ++i) {
+        } else {
           libxsmm_dnn_conv_upd_exec( libxsmm_dnn_conv_cfg, input_libxsmm, doutput_libxsmm, dfilter_libxsmm,
              NULL, 0, tid, scratch );
         }
+        end = libxsmm_timer_tick();
+        if (warmup <= i) cputime = libxsmm_timer_ncycles(start, end);
+#if defined(_OPENMP) /* attempt to clear caches in case of multiple threads */
+        if ((2 <= clear || 0 > clear) && 1 < nThreads) {
+          int j;
+#         pragma omp for
+          for (j = 0; j < (int)libxsmm_dnn_conv_cfg.scratch_size; j += LIBXSMM_CACHELINE) {
+            ((unsigned char*)scratch)[j] += 1;
+          }
+        }
+#endif
       }
+      l_total += libxsmm_timer_duration(0, cputime);
     }
-    l_end = libxsmm_timer_tick();
-    l_total = libxsmm_timer_duration(l_start, l_end);
+    l_total = l_total/nThreads;
     flops = (double)nImg * (double)nIfm * (double)nOfm * (double)ofh * (double)ofw * (double)(2 * kh * kw) * (double)iters;
 
-    printf("GFLOP  = %.5g\n", flops*1e-9/(double)iters);
-    printf("wu time = %.5g\n", ((double)(l_total/iters)));
-    printf("GFLOPS  = %.5g\n", (flops*1e-9)/l_total);
+    printf("GFLOP  = %.5g\n", flops*1e-9/iters);
+    printf("wu time = %.5g\n", l_total/iters);
+    printf("GFLOPS  = %.5g\n", flops*1e-9/l_total);
 
     printf("PERFDUMP,WU,%s,%i,%i,%i,%i,%i,%i,%i,%i,%i,%i,%i,%.5g,%.5g,%f,%f,%f,%f,%f,%f,%f\n", LIBXSMM_VERSION, nThreads, nImg, nIfm, nOfm,
-        ifw, ifh, kw, kh, stride, padw, padh, ((double)(l_total/iters)), (flops*1e-9)/l_total, norms_upd.l1_ref, norms_upd.l1_tst,
+        ifw, ifh, kw, kh, stride, padw, padh, l_total/iters, flops*1e-9/l_total, norms_upd.l1_ref, norms_upd.l1_tst,
         norms_upd.l2_abs, norms_upd.l2_rel, norms_upd.linf_abs, norms_upd.linf_rel, norms_upd.normf_rel);
   }
 
