@@ -75,8 +75,10 @@ else
 fi
 
 if [ ! "${OMP_NUM_THREADS}" ] || [ "0" = "${OMP_NUM_THREADS}" ]; then
-  if [ ! "${KMP_AFFINITY}" ] && [ ! "${OMP_PROC_BIND}" ]; then
+  if [ "${NUMACTL}" ] && [ ! "${KMP_AFFINITY}" ] && [ ! "${OMP_PROC_BIND}" ]; then
     export KMP_AFFINITY=compact,granularity=fine KMP_HW_SUBSET=1T
+  elif [ ! "${OMP_PROC_BIND}" ]; then
+    export OMP_PROC_BIND=close OMP_PLACES=threads
   fi
   export OMP_NUM_THREADS=$((NC))
 fi
@@ -86,7 +88,7 @@ if [ ! "${MB}" ] || [ "0" = "${MB}" ]; then
 fi
 
 if [ ! "${LIBXSMM_TARGET_HIDDEN}" ] || [ "0" = "${LIBXSMM_TARGET_HIDDEN}" ]; then
-  echo "OMP_NUM_THREADS=${OMP_NUM_THREADS} NUMACTL=\"${NUMACTL}\""
+  echo "OMP_NUM_THREADS=${OMP_NUM_THREADS} OMP_PROC_BIND=\"${OMP_PROC_BIND:-${KMP_AFFINITY}}\" OMP_PROC_BIND NUMACTL=\"${NUMACTL}\""
   echo
 fi
 
