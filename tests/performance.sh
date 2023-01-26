@@ -107,18 +107,17 @@ fi
 
 # determine non-default location of weights-file
 if [ "${PPID}" ] && [ "$(command -v ps)" ] && [ "$(command -v sed)" ]; then
-  WEIGHTS=$(ps -o args= ${PPID} | sed -n "s/[^[:space:]]*[[:space:]]*\([^.][^.]*\)[.[:space:]]*.*/\1.weights.json/p")
+  TOPEXEC=$(ps -o args= ${PPID})
+  WEIGHTS=$(echo "${TOPEXEC}" | sed -n "s/[^[:space:]]*[[:space:]]*\([^.][^.]*\)[.[:space:]]*.*/\1.weights.json/p")
   if [ -e "${WEIGHTS}" ]; then
-    WEIGHTS="-w ${WEIGHTS}"
-  else
-    WEIGHTS=""
+    DBSCRT="${DBSCRT} -w ${WEIGHTS}"
   fi
 fi
 
 # generate report (report script was found, etc)
 if [ "${LOGDIR}" ]; then
   mkdir -p "${LOGDIR}/${JOBID}"
-  OUTPUT=$(${DBSCRT} ${WEIGHTS} -f "${DBFILE}" -g "${LOGDIR}/${JOBID}" \
+  OUTPUT=$(${DBSCRT} -f "${DBFILE}" -g "${LOGDIR}/${JOBID}" \
     -i "${LOGFILE}" -j "${JOBID}" -x -y "${STEPNAME}" -z -v 1)
   RESULT=$?
   if [ "0" = "${RESULT}" ] && [ "${OUTPUT}" ] && \
