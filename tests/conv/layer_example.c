@@ -680,6 +680,7 @@ int main(int argc, char* argv[])
 #if defined(_OPENMP) /* attempt to clear caches in case of multiple threads */
         if ((2 <= clear || 0 > clear) && 1 < nThreads) {
           int j;
+#         pragma omp barrier
 #         pragma omp for
           for (j = 0; j < (int)libxsmm_dnn_conv_cfg.scratch_size; j += LIBXSMM_CACHELINE) {
             ((unsigned char*)scratch)[j] += 1;
