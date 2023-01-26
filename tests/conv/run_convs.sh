@@ -111,32 +111,32 @@ fi
 
 if [ ${TOPO} -eq 1 ] || [ ${TOPO} -eq 0 ]; then
 if [ ${PREC} -eq 4 ]; then
-${NUMACTL} "${HERE}/layer_example" ${ITERS}  224 224 ${MB}     3   64 7 7 3 3 2 ${TYPE} L ${PAD} ${FUSE} ${BC} ${BK} ${PREC}
+${NUMACTL} "${HERE}/layer_example" ${ITERS}  224 224 ${MB}     3   64 7 7 3 3 2 ${TYPE} L ${PAD} ${FUSE} ${BC} ${BK} ${PREC}  # 1
 else
-${NUMACTL} "${HERE}/layer_example" ${ITERS}  224 224 ${MB}     4   64 7 7 3 3 2 ${TYPE} L ${PAD} ${FUSE} ${BC} ${BK} ${PREC}
+${NUMACTL} "${HERE}/layer_example" ${ITERS}  224 224 ${MB}     4   64 7 7 3 3 2 ${TYPE} L ${PAD} ${FUSE} ${BC} ${BK} ${PREC}  # 1
 fi
-${NUMACTL} "${HERE}/layer_example" ${ITERS}   56  56 ${MB}   128  128 3 3 1 1 2 ${TYPE} L ${PAD} ${FUSE} ${BC} ${BK} ${PREC}
-${NUMACTL} "${HERE}/layer_example" ${ITERS}   56  56 ${MB}    64   64 3 3 1 1 1 ${TYPE} L ${PAD} ${FUSE} ${BC} ${BK} ${PREC}
-${NUMACTL} "${HERE}/layer_example" ${ITERS}   56  56 ${MB}   256  512 1 1 0 0 2 ${TYPE} L ${PAD} ${FUSE} ${BC} ${BK} ${PREC}
-${NUMACTL} "${HERE}/layer_example" ${ITERS}   56  56 ${MB}    64   64 1 1 0 0 1 ${TYPE} L ${PAD} ${FUSE} ${BC} ${BK} ${PREC}
-${NUMACTL} "${HERE}/layer_example" ${ITERS}   56  56 ${MB}    64  256 1 1 0 0 1 ${TYPE} L ${PAD} ${FUSE} ${BC} ${BK} ${PREC}
-${NUMACTL} "${HERE}/layer_example" ${ITERS}   56  56 ${MB}   256   64 1 1 0 0 1 ${TYPE} L ${PAD} ${FUSE} ${BC} ${BK} ${PREC}
-${NUMACTL} "${HERE}/layer_example" ${ITERS}   56  56 ${MB}   256  128 1 1 0 0 1 ${TYPE} L ${PAD} ${FUSE} ${BC} ${BK} ${PREC}
-${NUMACTL} "${HERE}/layer_example" ${ITERS}   28  28 ${MB}   256  256 3 3 1 1 2 ${TYPE} L ${PAD} ${FUSE} ${BC} ${BK} ${PREC}
-${NUMACTL} "${HERE}/layer_example" ${ITERS}   28  28 ${MB}   128  128 3 3 1 1 1 ${TYPE} L ${PAD} ${FUSE} ${BC} ${BK} ${PREC}
-${NUMACTL} "${HERE}/layer_example" ${ITERS}   28  28 ${MB}   512 1024 1 1 0 0 2 ${TYPE} L ${PAD} ${FUSE} ${BC} ${BK} ${PREC}
-${NUMACTL} "${HERE}/layer_example" ${ITERS}   28  28 ${MB}   512  256 1 1 0 0 1 ${TYPE} L ${PAD} ${FUSE} ${BC} ${BK} ${PREC}
-${NUMACTL} "${HERE}/layer_example" ${ITERS}   28  28 ${MB}   512  128 1 1 0 0 1 ${TYPE} L ${PAD} ${FUSE} ${BC} ${BK} ${PREC}
-${NUMACTL} "${HERE}/layer_example" ${ITERS}   28  28 ${MB}   128  512 1 1 0 0 1 ${TYPE} L ${PAD} ${FUSE} ${BC} ${BK} ${PREC}
-${NUMACTL} "${HERE}/layer_example" ${ITERS}   14  14 ${MB}   512  512 3 3 1 1 2 ${TYPE} L ${PAD} ${FUSE} ${BC} ${BK} ${PREC}
-${NUMACTL} "${HERE}/layer_example" ${ITERS}   14  14 ${MB}   256  256 3 3 1 1 1 ${TYPE} L ${PAD} ${FUSE} ${BC} ${BK} ${PREC}
-${NUMACTL} "${HERE}/layer_example" ${ITERS}   14  14 ${MB}  1024 2048 1 1 0 0 2 ${TYPE} L ${PAD} ${FUSE} ${BC} ${BK} ${PREC}
-${NUMACTL} "${HERE}/layer_example" ${ITERS}   14  14 ${MB}   256 1024 1 1 0 0 1 ${TYPE} L ${PAD} ${FUSE} ${BC} ${BK} ${PREC}
-${NUMACTL} "${HERE}/layer_example" ${ITERS}   14  14 ${MB}  1024  512 1 1 0 0 1 ${TYPE} L ${PAD} ${FUSE} ${BC} ${BK} ${PREC}
-${NUMACTL} "${HERE}/layer_example" ${ITERS}   14  14 ${MB}  1024  256 1 1 0 0 1 ${TYPE} L ${PAD} ${FUSE} ${BC} ${BK} ${PREC}
-${NUMACTL} "${HERE}/layer_example" ${ITERS}    7   7 ${MB}   512  512 3 3 1 1 1 ${TYPE} L ${PAD} ${FUSE} ${BC} ${BK} ${PREC}
-${NUMACTL} "${HERE}/layer_example" ${ITERS}    7   7 ${MB}   512 2048 1 1 0 0 1 ${TYPE} L ${PAD} ${FUSE} ${BC} ${BK} ${PREC}
-${NUMACTL} "${HERE}/layer_example" ${ITERS}    7   7 ${MB}  2048  512 1 1 0 0 1 ${TYPE} L ${PAD} ${FUSE} ${BC} ${BK} ${PREC}
+${NUMACTL} "${HERE}/layer_example" ${ITERS}   56  56 ${MB}   128  128 3 3 1 1 2 ${TYPE} L ${PAD} ${FUSE} ${BC} ${BK} ${PREC}  # 1
+${NUMACTL} "${HERE}/layer_example" ${ITERS}   56  56 ${MB}    64   64 3 3 1 1 1 ${TYPE} L ${PAD} ${FUSE} ${BC} ${BK} ${PREC}  # 2
+${NUMACTL} "${HERE}/layer_example" ${ITERS}   56  56 ${MB}   256  512 1 1 0 0 2 ${TYPE} L ${PAD} ${FUSE} ${BC} ${BK} ${PREC}  # 1
+${NUMACTL} "${HERE}/layer_example" ${ITERS}   56  56 ${MB}    64   64 1 1 0 0 1 ${TYPE} L ${PAD} ${FUSE} ${BC} ${BK} ${PREC}  # 2
+${NUMACTL} "${HERE}/layer_example" ${ITERS}   56  56 ${MB}    64  256 1 1 0 0 1 ${TYPE} L ${PAD} ${FUSE} ${BC} ${BK} ${PREC}  # 1
+${NUMACTL} "${HERE}/layer_example" ${ITERS}   56  56 ${MB}   256   64 1 1 0 0 1 ${TYPE} L ${PAD} ${FUSE} ${BC} ${BK} ${PREC}  # 2
+${NUMACTL} "${HERE}/layer_example" ${ITERS}   56  56 ${MB}   256  128 1 1 0 0 1 ${TYPE} L ${PAD} ${FUSE} ${BC} ${BK} ${PREC}  # 1
+${NUMACTL} "${HERE}/layer_example" ${ITERS}   28  28 ${MB}   256  256 3 3 1 1 2 ${TYPE} L ${PAD} ${FUSE} ${BC} ${BK} ${PREC}  # 1
+${NUMACTL} "${HERE}/layer_example" ${ITERS}   28  28 ${MB}   128  128 3 3 1 1 1 ${TYPE} L ${PAD} ${FUSE} ${BC} ${BK} ${PREC}  # 3
+${NUMACTL} "${HERE}/layer_example" ${ITERS}   28  28 ${MB}   512 1024 1 1 0 0 2 ${TYPE} L ${PAD} ${FUSE} ${BC} ${BK} ${PREC}  # 1
+${NUMACTL} "${HERE}/layer_example" ${ITERS}   28  28 ${MB}   512  256 1 1 0 0 1 ${TYPE} L ${PAD} ${FUSE} ${BC} ${BK} ${PREC}  # 1
+${NUMACTL} "${HERE}/layer_example" ${ITERS}   28  28 ${MB}   512  128 1 1 0 0 1 ${TYPE} L ${PAD} ${FUSE} ${BC} ${BK} ${PREC}  # 3
+${NUMACTL} "${HERE}/layer_example" ${ITERS}   28  28 ${MB}   128  512 1 1 0 0 1 ${TYPE} L ${PAD} ${FUSE} ${BC} ${BK} ${PREC}  # 3
+${NUMACTL} "${HERE}/layer_example" ${ITERS}   14  14 ${MB}   512  512 3 3 1 1 2 ${TYPE} L ${PAD} ${FUSE} ${BC} ${BK} ${PREC}  # 1
+${NUMACTL} "${HERE}/layer_example" ${ITERS}   14  14 ${MB}   256  256 3 3 1 1 1 ${TYPE} L ${PAD} ${FUSE} ${BC} ${BK} ${PREC}  # 5
+${NUMACTL} "${HERE}/layer_example" ${ITERS}   14  14 ${MB}  1024 2048 1 1 0 0 2 ${TYPE} L ${PAD} ${FUSE} ${BC} ${BK} ${PREC}  # 1
+${NUMACTL} "${HERE}/layer_example" ${ITERS}   14  14 ${MB}   256 1024 1 1 0 0 1 ${TYPE} L ${PAD} ${FUSE} ${BC} ${BK} ${PREC}  # 5
+${NUMACTL} "${HERE}/layer_example" ${ITERS}   14  14 ${MB}  1024  512 1 1 0 0 1 ${TYPE} L ${PAD} ${FUSE} ${BC} ${BK} ${PREC}  # 1
+${NUMACTL} "${HERE}/layer_example" ${ITERS}   14  14 ${MB}  1024  256 1 1 0 0 1 ${TYPE} L ${PAD} ${FUSE} ${BC} ${BK} ${PREC}  # 5
+${NUMACTL} "${HERE}/layer_example" ${ITERS}    7   7 ${MB}   512  512 3 3 1 1 1 ${TYPE} L ${PAD} ${FUSE} ${BC} ${BK} ${PREC}  # 3
+${NUMACTL} "${HERE}/layer_example" ${ITERS}    7   7 ${MB}   512 2048 1 1 0 0 1 ${TYPE} L ${PAD} ${FUSE} ${BC} ${BK} ${PREC}  # 3
+${NUMACTL} "${HERE}/layer_example" ${ITERS}    7   7 ${MB}  2048  512 1 1 0 0 1 ${TYPE} L ${PAD} ${FUSE} ${BC} ${BK} ${PREC}  # 3
 fi
 
 if [ ${TOPO} -eq 2 ] || [ ${TOPO} -eq 0 ]; then
