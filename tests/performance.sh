@@ -14,6 +14,9 @@
 # check if logfile is given (existence, validity is checked later)
 if [ ! "${LOGFILE}" ]; then exit 0; fi
 
+# location of this script
+HERE=$(cd "$(dirname "$0")" && pwd -P)
+
 # based on https://stackoverflow.com/a/20401674/3001239
 flush() {
   if [ "$(command -v sync)" ]; then sync; fi # e.g., async NFS
@@ -46,11 +49,8 @@ fi
 # determine LIBXSMM's script directory
 if [ "${LIBXSMMROOT}" ] && [ -d "${LIBXSMMROOT}/scripts" ]; then
   SCRDIR=${LIBXSMMROOT}/scripts
-else
-  HERE=$(cd "$(dirname "$0")" && pwd -P)
-  if [ -d "${HERE}/../libxsmm/scripts" ]; then
-    SCRDIR=${HERE}/../libxsmm/scripts
-  fi
+elif [ -d "${HERE}/../libxsmm/scripts" ]; then
+  SCRDIR=${HERE}/../libxsmm/scripts
 fi
 
 # post-process logfile (extract and collect performance results)
@@ -111,6 +111,8 @@ if [ "${PPID}" ] && [ "$(command -v ps)" ] && [ "$(command -v sed)" ]; then
   WEIGHTS=$(echo "${TOPEXEC}" | sed -n "s/[^[:space:]]*[[:space:]]*\([^.][^.]*\)[.[:space:]]*.*/\1.weights.json/p")
   if [ -e "${WEIGHTS}" ]; then
     DBSCRT="${DBSCRT} -w ${WEIGHTS}"
+  elif [ -e "${HERE}/weights.json" ]; then
+    DBSCRT="${DBSCRT} -w ${HERE}/weights.json"
   fi
 fi
 
