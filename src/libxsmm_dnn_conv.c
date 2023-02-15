@@ -2378,7 +2378,7 @@ LIBXSMM_API_INLINE void libxsmm_dnn_conv_generate_bwd_kernels( libxsmm_dnn_conv_
       fprintf( stderr, "dot packing factor needs to be 2 or 4. Bailing...!\n");
       exit(-1);
     }
-    
+
     res.tr_kernel= libxsmm_dispatch_meltw_unary_v2( (libxsmm_cpuid_dot_pack_factor(LIBXSMM_DATATYPE_BF16) == 2) ? LIBXSMM_MELTW_TYPE_UNARY_TRANSFORM_VNNI2_TO_VNNI2T : LIBXSMM_MELTW_TYPE_UNARY_TRANSFORM_VNNI4_TO_VNNI4T, unary_shape, LIBXSMM_MELTW_FLAG_UNARY_NONE ) ;
     if (  res.tr_kernel  == NULL ) {
       fprintf( stderr, "JIT for TPP tr_kernel failed. Bailing...!\n");
@@ -2686,7 +2686,7 @@ LIBXSMM_API_INLINE void libxsmm_dnn_conv_generate_bwd_kernels( libxsmm_dnn_conv_
 
 LIBXSMM_API_INLINE void libxsmm_dnn_conv_generate_upd_kernels( libxsmm_dnn_conv_config* inout_cfg) {
   libxsmm_dnn_conv_config res = *inout_cfg;
-  const int vnni_target = libxsmm_cpuid_dot_pack_factor(LIBXSMM_DATATYPE_BF16); 
+  const int vnni_target = libxsmm_cpuid_dot_pack_factor(LIBXSMM_DATATYPE_BF16);
   const int req_dot_modfree_divisor = vnni_target /* * 2 */;
 
   res.A_offsets_upd = NULL;

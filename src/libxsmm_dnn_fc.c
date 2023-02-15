@@ -218,8 +218,8 @@ LIBXSMM_API libxsmm_dnn_fc_fwd_config setup_libxsmm_dnn_fc_fwd(libxsmm_blasint N
       res.fwd_2d_blocking = 1;
       res.fwd_col_teams = 4;
       res.fwd_row_teams = 2;
-    } else {} 
-    
+    } else {}
+
     if ((res.C >= 512) && (res.threads == 22)) {
       res.fwd_bf = 4;
       while  ((res.C/res.bc) % res.fwd_bf != 0) {
