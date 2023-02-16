@@ -227,7 +227,7 @@ LIBXSMM_API libxsmm_dnn_fc_fwd_config setup_libxsmm_dnn_fc_fwd(libxsmm_blasint N
       }
     }
   } else {
-    if ((threads == 64)) {
+    if (threads == 64) {
       res.fwd_bf = 1;
       res.fwd_2d_blocking = 0;
       res.fwd_col_teams = 1;
