@@ -117,8 +117,8 @@ ${NUMACTL} "${HERE}/layer_example" ${ITERS} ${MB} 2048 512 ${FUSE} ${TYPE} ${BN}
 ${NUMACTL} "${HERE}/layer_example" ${ITERS} ${MB} 2048 1000 1 ${TYPE} ${BN} ${BK} ${BC} ${PREC}
 
 # post-process logfile (extract and collect performance results)
-if [ "${LIBXSMMROOT}" ] && [ -e "${LIBXSMMROOT}/scripts/tool_logreport.sh" ]; then
-  ${LIBXSMMROOT}/scripts/tool_logreport.sh
-elif [ -e "${HERE}/../../libxsmm/scripts/tool_logreport.sh" ]; then
-  ${HERE}/../../libxsmm/scripts/tool_logreport.sh
+if [ "${LIBXSMMROOT}" ] && [ -e "${LIBXSMMROOT}/scripts/tool_logrept.sh" ]; then
+  ${LIBXSMMROOT}/scripts/tool_logrept.sh
+elif [ -e "${HERE}/../../libxsmm/scripts/tool_logrept.sh" ]; then
+  ${HERE}/../../libxsmm/scripts/tool_logrept.sh
 fi
