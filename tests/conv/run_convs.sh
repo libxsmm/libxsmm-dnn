@@ -481,4 +481,9 @@ ${NUMACTL} "${HERE}/layer_example" ${ITERS}  120   68 ${MB} 512 512 3 3 1 1 1 ${
 ${NUMACTL} "${HERE}/layer_example" ${ITERS}  120   68 ${MB} 512 512 3 3 1 1 1 ${TYPE} L ${PAD} ${FUSE} ${BC} ${BK} ${PREC}
 fi
 
-"${HERE}/../performance.sh"
+# post-process logfile (extract and collect performance results)
+if [ "${LIBXSMMROOT}" ] && [ -e "${LIBXSMMROOT}/scripts/tool_logreport.sh" ]; then
+  ${LIBXSMMROOT}/scripts/tool_logreport.sh
+elif [ -e "${HERE}/../../libxsmm/scripts/tool_logreport.sh" ]; then
+  ${HERE}/../../libxsmm/scripts/tool_logreport.sh
+fi

@@ -107,4 +107,9 @@ ${NUMACTL} "${HERE}/layer_example" ${ITERS}  112  112  ${MB}  64 3 3 1 1 0 0 0 0
 #avg pooling
 ${NUMACTL} "${HERE}/layer_example" ${ITERS}  7  7  ${MB}  2048 7 7 0 0 0 0 0 0 1 ${TYPE} ${PASS} ${PREC_BF16}
 
-"${HERE}/../performance.sh"
+# post-process logfile (extract and collect performance results)
+if [ "${LIBXSMMROOT}" ] && [ -e "${LIBXSMMROOT}/scripts/tool_logreport.sh" ]; then
+  ${LIBXSMMROOT}/scripts/tool_logreport.sh
+elif [ -e "${HERE}/../../libxsmm/scripts/tool_logreport.sh" ]; then
+  ${HERE}/../../libxsmm/scripts/tool_logreport.sh
+fi

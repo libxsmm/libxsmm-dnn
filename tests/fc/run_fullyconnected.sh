@@ -116,4 +116,9 @@ ${NUMACTL} "${HERE}/layer_example" ${ITERS} ${MB} 2048 512 ${FUSE} ${TYPE} ${BN}
 # ResNet-50 fc layer with bias fusion
 ${NUMACTL} "${HERE}/layer_example" ${ITERS} ${MB} 2048 1000 1 ${TYPE} ${BN} ${BK} ${BC} ${PREC}
 
-"${HERE}/../performance.sh"
+# post-process logfile (extract and collect performance results)
+if [ "${LIBXSMMROOT}" ] && [ -e "${LIBXSMMROOT}/scripts/tool_logreport.sh" ]; then
+  ${LIBXSMMROOT}/scripts/tool_logreport.sh
+elif [ -e "${HERE}/../../libxsmm/scripts/tool_logreport.sh" ]; then
+  ${HERE}/../../libxsmm/scripts/tool_logreport.sh
+fi
