@@ -1189,8 +1189,9 @@ LIBXSMM_INLINE void matrix_copy_CK_to_KCCK_bf8(libxsmm_bfloat8 *src, libxsmm_bfl
   int k1, k2, c1, c2;
   int kBlocks = K/bk;
   int cBlocks = C/bc;
+  int vnni_block = libxsmm_cpuid_dot_pack_factor(LIBXSMM_DATATYPE_BF8);
   LIBXSMM_VLA_DECL(2, libxsmm_bfloat8, real_src, src, K);
-  LIBXSMM_VLA_DECL(5, libxsmm_bfloat8, real_dst, dst, cBlocks, bc/4, bk, 4);
+  LIBXSMM_VLA_DECL(5, libxsmm_bfloat8, real_dst, dst, cBlocks, bc/vnni_block, bk, vnni_block);
 
 #if defined(_OPENMP)
   LIBXSMM_OMP_VAR(c1); LIBXSMM_OMP_VAR(c2); LIBXSMM_OMP_VAR(k2);
@@ -1200,7 +1201,7 @@ LIBXSMM_INLINE void matrix_copy_CK_to_KCCK_bf8(libxsmm_bfloat8 *src, libxsmm_bfl
     for (c1 = 0; c1 < cBlocks; c1++) {
       for (c2 = 0; c2 < bc; c2++) {
         for (k2 = 0; k2 < bk; k2++) {
-          LIBXSMM_VLA_ACCESS(5, real_dst, k1, c1, c2/4, k2, c2%4, cBlocks, bc/4, bk, 4) =
+          LIBXSMM_VLA_ACCESS(5, real_dst, k1, c1, c2/vnni_block, k2, c2%vnni_block, cBlocks, bc/vnni_block, bk, vnni_block) =
             LIBXSMM_VLA_ACCESS(2, real_src, c1*bc+c2, k1*bk+k2, K);
         }
       }
@@ -1213,8 +1214,9 @@ LIBXSMM_INLINE void matrix_copy_CK_to_CKKC_bf8(libxsmm_bfloat8 *src, libxsmm_bfl
   int k1, k2, c1, c2;
   int kBlocks = K/bk;
   int cBlocks = C/bc;
+  int vnni_block = libxsmm_cpuid_dot_pack_factor(LIBXSMM_DATATYPE_BF8);
   LIBXSMM_VLA_DECL(2, libxsmm_bfloat8, real_src, src, K);
-  LIBXSMM_VLA_DECL(5, libxsmm_bfloat8, real_dst, dst, kBlocks, bk/4, bc, 4);
+  LIBXSMM_VLA_DECL(5, libxsmm_bfloat8, real_dst, dst, kBlocks, bk/vnni_block, bc, vnni_block);
 
 #if defined(_OPENMP)
   LIBXSMM_OMP_VAR(k1); LIBXSMM_OMP_VAR(c1); LIBXSMM_OMP_VAR(c2); LIBXSMM_OMP_VAR(k2);
@@ -1224,7 +1226,7 @@ LIBXSMM_INLINE void matrix_copy_CK_to_CKKC_bf8(libxsmm_bfloat8 *src, libxsmm_bfl
     for (k1 = 0; k1 < kBlocks; k1++) {
       for (k2 = 0; k2 < bk; k2++) {
         for (c2 = 0; c2 < bc; c2++) {
-          LIBXSMM_VLA_ACCESS(5, real_dst, c1, k1, k2/4, c2, k2%4, kBlocks, bk/4, bc, 4) =
+          LIBXSMM_VLA_ACCESS(5, real_dst, c1, k1, k2/vnni_block, c2, k2%vnni_block, kBlocks, bk/vnni_block, bc, vnni_block) =
             LIBXSMM_VLA_ACCESS(2, real_src, c1*bc+c2, k1*bk+k2, K);
         }
       }
@@ -1237,8 +1239,9 @@ LIBXSMM_INLINE void matrix_copy_KC_to_KCCK_bf8(libxsmm_bfloat8 *src, libxsmm_bfl
   int k1, k2, c1, c2;
   int kBlocks = K/bk;
   int cBlocks = C/bc;
+  int vnni_block = libxsmm_cpuid_dot_pack_factor(LIBXSMM_DATATYPE_BF8);
   LIBXSMM_VLA_DECL(2, libxsmm_bfloat8, real_src, src, C);
-  LIBXSMM_VLA_DECL(5, libxsmm_bfloat8, real_dst, dst, cBlocks, bc/4, bk, 4);
+  LIBXSMM_VLA_DECL(5, libxsmm_bfloat8, real_dst, dst, cBlocks, bc/vnni_block, bk, vnni_block);
 
 #if defined(_OPENMP)
   LIBXSMM_OMP_VAR(c1); LIBXSMM_OMP_VAR(c2); LIBXSMM_OMP_VAR(k2);
@@ -1248,7 +1251,7 @@ LIBXSMM_INLINE void matrix_copy_KC_to_KCCK_bf8(libxsmm_bfloat8 *src, libxsmm_bfl
     for (c1 = 0; c1 < cBlocks; c1++) {
       for (c2 = 0; c2 < bc; c2++) {
         for (k2 = 0; k2 < bk; k2++) {
-          LIBXSMM_VLA_ACCESS(5, real_dst, k1, c1, c2/4, k2, c2%4, cBlocks, bc/4, bk, 4) =
+          LIBXSMM_VLA_ACCESS(5, real_dst, k1, c1, c2/vnni_block, k2, c2%vnni_block, cBlocks, bc/vnni_block, bk, vnni_block) =
             LIBXSMM_VLA_ACCESS(2, real_src, k1*bk+k2, c1*bc+c2, C);
         }
       }
@@ -1261,8 +1264,9 @@ LIBXSMM_INLINE void matrix_copy_KCCK_to_KC_bf8(libxsmm_bfloat8 *src, libxsmm_bfl
   int k1, k2, c1, c2;
   int kBlocks = K/bk;
   int cBlocks = C/bc;
+  int vnni_block = libxsmm_cpuid_dot_pack_factor(LIBXSMM_DATATYPE_BF8);
   LIBXSMM_VLA_DECL(2, libxsmm_bfloat8, real_dst, dst, C);
-  LIBXSMM_VLA_DECL(5, libxsmm_bfloat8, real_src, src, cBlocks, bc/4, bk, 4);
+  LIBXSMM_VLA_DECL(5, libxsmm_bfloat8, real_src, src, cBlocks, bc/vnni_block, bk, vnni_block);
 
 #if defined(_OPENMP)
   LIBXSMM_OMP_VAR(c1); LIBXSMM_OMP_VAR(c2); LIBXSMM_OMP_VAR(k2);
@@ -1273,7 +1277,7 @@ LIBXSMM_INLINE void matrix_copy_KCCK_to_KC_bf8(libxsmm_bfloat8 *src, libxsmm_bfl
       for (c2 = 0; c2 < bc; c2++) {
         for (k2 = 0; k2 < bk; k2++) {
           LIBXSMM_VLA_ACCESS(2, real_dst, k1*bk+k2, c1*bc+c2, C) =
-            LIBXSMM_VLA_ACCESS(5, real_src, k1, c1, c2/4, k2, c2%4, cBlocks, bc/4, bk, 4);
+            LIBXSMM_VLA_ACCESS(5, real_src, k1, c1, c2/vnni_block, k2, c2%vnni_block, cBlocks, bc/vnni_block, bk, vnni_block);
         }
       }
     }
@@ -1285,8 +1289,9 @@ LIBXSMM_INLINE void matrix_copy_KCCK_to_CK_bf8(libxsmm_bfloat8 *src, libxsmm_bfl
   int k1, k2, c1, c2;
   int kBlocks = K/bk;
   int cBlocks = C/bc;
+  int vnni_block = libxsmm_cpuid_dot_pack_factor(LIBXSMM_DATATYPE_BF8);
   LIBXSMM_VLA_DECL(2, libxsmm_bfloat8, real_dst, dst, K);
-  LIBXSMM_VLA_DECL(5, libxsmm_bfloat8, real_src, src, cBlocks, bc/4, bk, 4);
+  LIBXSMM_VLA_DECL(5, libxsmm_bfloat8, real_src, src, cBlocks, bc/vnni_block, bk, vnni_block);
 
 #if defined(_OPENMP)
   LIBXSMM_OMP_VAR(c1); LIBXSMM_OMP_VAR(c2); LIBXSMM_OMP_VAR(k2);
@@ -1297,7 +1302,7 @@ LIBXSMM_INLINE void matrix_copy_KCCK_to_CK_bf8(libxsmm_bfloat8 *src, libxsmm_bfl
       for (c2 = 0; c2 < bc; c2++) {
         for (k2 = 0; k2 < bk; k2++) {
           LIBXSMM_VLA_ACCESS(2, real_dst, c1*bc+c2, k1*bk+k2, K) =
-            LIBXSMM_VLA_ACCESS(5, real_src, k1, c1, c2/4, k2, c2%4, cBlocks, bc/4, bk, 4);
+            LIBXSMM_VLA_ACCESS(5, real_src, k1, c1, c2/vnni_block, k2, c2%vnni_block, cBlocks, bc/vnni_block, bk, vnni_block);
         }
       }
     }
@@ -1309,8 +1314,9 @@ LIBXSMM_INLINE void matrix_copy_KCCK_to_CKKC_bf8(libxsmm_bfloat8 *src, libxsmm_b
   int k1, k2, c1, c2;
   int kBlocks = K/bk;
   int cBlocks = C/bc;
-  LIBXSMM_VLA_DECL(5, libxsmm_bfloat8, real_dst, dst, kBlocks, bk/4, bc, 4);
-  LIBXSMM_VLA_DECL(5, libxsmm_bfloat8, real_src, src, cBlocks, bc/4, bk, 4);
+  int vnni_block = libxsmm_cpuid_dot_pack_factor(LIBXSMM_DATATYPE_BF8);
+  LIBXSMM_VLA_DECL(5, libxsmm_bfloat8, real_dst, dst, kBlocks, bk/vnni_block, bc, vnni_block);
+  LIBXSMM_VLA_DECL(5, libxsmm_bfloat8, real_src, src, cBlocks, bc/vnni_block, bk, vnni_block);
 
 #if defined(_OPENMP)
   LIBXSMM_OMP_VAR(c1); LIBXSMM_OMP_VAR(c2); LIBXSMM_OMP_VAR(k2);
@@ -1320,8 +1326,8 @@ LIBXSMM_INLINE void matrix_copy_KCCK_to_CKKC_bf8(libxsmm_bfloat8 *src, libxsmm_b
     for (c1 = 0; c1 < cBlocks; c1++) {
       for (c2 = 0; c2 < bc; c2++) {
         for (k2 = 0; k2 < bk; k2++) {
-          LIBXSMM_VLA_ACCESS(5, real_dst, c1, k1, k2/4, c2, k2%4, kBlocks, bk/4, bc, 4) =
-          LIBXSMM_VLA_ACCESS(5, real_src, k1, c1, c2/4, k2, c2%4, cBlocks, bc/4, bk, 4);
+          LIBXSMM_VLA_ACCESS(5, real_dst, c1, k1, k2/vnni_block, c2, k2%vnni_block, kBlocks, bk/vnni_block, bc, vnni_block) =
+          LIBXSMM_VLA_ACCESS(5, real_src, k1, c1, c2/vnni_block, k2, c2%vnni_block, cBlocks, bc/vnni_block, bk, vnni_block);
         }
       }
     }
