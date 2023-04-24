@@ -8,7 +8,6 @@
 ******************************************************************************/
 /* Alexander Heinecke, Evangelos Georganas (Intel Corp.)
 ******************************************************************************/
-
 #include <libxsmm_dnn_pool.h>
 
 LIBXSMM_API libxsmm_dnn_pooling_fwd_config setup_libxsmm_dnn_pooling_fwd( const libxsmm_blasint N, const libxsmm_blasint C, const libxsmm_blasint H, const libxsmm_blasint W,

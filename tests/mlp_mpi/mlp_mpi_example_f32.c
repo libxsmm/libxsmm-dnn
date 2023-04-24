@@ -12,16 +12,13 @@
 #include <dnn_common.h>
 
 #include <mpi.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdio.h>
-#include <math.h>
 #if defined(_OPENMP)
 # include <omp.h>
 #endif
 
 #define DETAILED_PROFILE
 #define N_PROF_THREADS 128
+
 
 LIBXSMM_INLINE void my_init_buf_mlp(float* buf, size_t size, int initPos, int initOne)
 {

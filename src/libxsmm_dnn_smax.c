@@ -8,7 +8,6 @@
 ******************************************************************************/
 /* Alexander Heinecke (Intel Corp.)
 ******************************************************************************/
-
 #include <libxsmm_dnn_smax.h>
 
 LIBXSMM_API libxsmm_dnn_smax_fwd_config setup_libxsmm_dnn_smax_fwd(libxsmm_blasint N, libxsmm_blasint C, libxsmm_blasint bn, libxsmm_blasint bc,
@@ -401,5 +400,3 @@ LIBXSMM_API void libxsmm_dnn_smax_bwd_exec_bf16( libxsmm_dnn_smax_bwd_config cfg
 
   libxsmm_barrier_wait( cfg.barrier, ltid );
 }
-
-

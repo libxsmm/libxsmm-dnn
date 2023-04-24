@@ -64,10 +64,10 @@ $(DNNLIB) $(LIBDEP):
 	@$(MAKE) --no-print-directory -C $(DEP2DIR)
 
 $(OUTDIR)/mlp_mpi_example_f32: $(OUTDIR)/.make $(BLDDIR)/mlp_mpi_example_f32-c.o
-	$(LD) -o $@ $(BLDDIR)/mlp_mpi_example_f32-c.o $(call cleanld,$(MAINLIB) $(DNNLIB) $(SLDFLAGS) $(LDFLAGS) $(CLDFLAGS))
+	$(LD) -o $@ $(BLDDIR)/mlp_mpi_example_f32-c.o $(call cleanld,$(DNNLIB) $(MAINLIB) $(SLDFLAGS) $(LDFLAGS) $(CLDFLAGS))
 
 $(OUTDIR)/mlp_mpi_ovlp_example_f32: $(OUTDIR)/.make $(BLDDIR)/mlp_mpi_ovlp_example_f32-c.o
-	$(LD) -o $@ $(BLDDIR)/mlp_mpi_ovlp_example_f32-c.o $(call cleanld,$(MAINLIB) $(DNNLIB) $(SLDFLAGS) $(LDFLAGS) $(CLDFLAGS))
+	$(LD) -o $@ $(BLDDIR)/mlp_mpi_ovlp_example_f32-c.o $(call cleanld,$(DNNLIB) $(MAINLIB) $(SLDFLAGS) $(LDFLAGS) $(CLDFLAGS))
 
 $(BLDDIR)/%-cpp.o: $(SRCDIR)/%.cpp .state $(BLDDIR)/.make $(HEADERS) Makefile $(DEPDIR)/Makefile.inc $(LIBDEP) $(DNNLIB)
 	$(CXX) $(DFLAGS) $(IFLAGS) $(CXXFLAGS) $(CTARGET) -c $< -o $@

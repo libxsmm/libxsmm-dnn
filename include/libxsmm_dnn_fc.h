@@ -8,19 +8,12 @@
 ******************************************************************************/
 /* Alexander Heinecke (Intel Corp.)
 ******************************************************************************/
-
 #ifndef LIBXSMM_DNN_FC_H
 #define LIBXSMM_DNN_FC_H
 
+#include <utils/libxsmm_utils.h>
 #include <libxsmm.h>
-#include <libxsmm_sync.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdio.h>
-#include <math.h>
-#if defined(_OPENMP)
-# include <omp.h>
-#endif
+
 
 typedef enum libxsmm_dnn_fc_eltw_fuse {
   LIBXSMM_DNN_FC_ELTW_FUSE_NONE = 0,
@@ -153,4 +146,3 @@ LIBXSMM_API void destroy_libxsmm_dnn_fc_fwd(libxsmm_dnn_fc_fwd_config* cfg);
 LIBXSMM_API void destroy_libxsmm_dnn_fc_bwd(libxsmm_dnn_fc_bwd_config* cfg);
 
 #endif
-

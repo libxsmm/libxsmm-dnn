@@ -8,7 +8,6 @@
 ******************************************************************************/
 /* Kirill Voronin, Alexander Heinecke (Intel Corp.)
 ******************************************************************************/
-
 #include <libxsmm_dnn_fc.h>
 
 LIBXSMM_API libxsmm_dnn_fc_fwd_config setup_libxsmm_dnn_fc_fwd(libxsmm_blasint N, libxsmm_blasint C, libxsmm_blasint K, libxsmm_blasint bn,

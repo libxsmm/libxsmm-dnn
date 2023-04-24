@@ -8,19 +8,12 @@
 ******************************************************************************/
 /* Alexander Heinecke (Intel Corp.)
 ******************************************************************************/
-
 #ifndef LIBXSMM_DNN_OPT_H
 #define LIBXSMM_DNN_OPT_H
 
+#include <utils/libxsmm_utils.h>
 #include <libxsmm.h>
-#include <libxsmm_sync.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdio.h>
-#include <math.h>
-#if defined(_OPENMP)
-# include <omp.h>
-#endif
+
 
 typedef struct libxsmm_dnn_opt_config {
   libxsmm_blasint C;
@@ -42,4 +35,3 @@ LIBXSMM_API void libxsmm_dnn_opt_exec_f32( libxsmm_dnn_opt_config cfg, float* wt
 LIBXSMM_API void libxsmm_dnn_opt_exec_bf16( libxsmm_dnn_opt_config cfg, libxsmm_bfloat16* wt_ptr, float* master_wt_ptr, const libxsmm_bfloat16* delwt_ptr, int start_tid, int my_tid, void* scratch );
 
 #endif
-

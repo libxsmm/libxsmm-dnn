@@ -8,11 +8,9 @@
 ******************************************************************************/
 /* Alexander Heinecke (Intel Corp.)
 ******************************************************************************/
+#include <utils/libxsmm_utils.h>
 #include <libxsmm.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdio.h>
-#include <math.h>
+
 #if defined(_OPENMP)
 #include <omp.h>
 #endif
@@ -22,6 +20,7 @@
 
 #define CHANNEL_BLOCKING 64
 #define LP_BLOCKING 2
+
 
 /* function-pointer to LIBXSMM kernel */
 libxsmm_gemmfunction fwd_brgemmz;

@@ -8,19 +8,12 @@
 ******************************************************************************/
 /* Kirill Voronin (Intel Corp.)
 ******************************************************************************/
-
 #ifndef LIBXSMM_DNN_FUSEDBN_H
 #define LIBXSMM_DNN_FUSEDBN_H
 
+#include <utils/libxsmm_utils.h>
 #include <libxsmm.h>
-#include <libxsmm_sync.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdio.h>
-#include <math.h>
-#if defined(_OPENMP)
-# include <omp.h>
-#endif
+
 
 typedef enum libxsmm_dnn_bn_fuse {
   LIBXSMM_DNN_BN_FUSE_NONE = 0,
@@ -137,4 +130,3 @@ LIBXSMM_API void libxsmm_dnn_bn_bwd_exec_bf16( libxsmm_dnn_bn_bwd_config cfg, li
                          int start_tid, int my_tid, void *scratch, libxsmm_dnn_bn_norm_type norm_type);
 
 #endif
-
