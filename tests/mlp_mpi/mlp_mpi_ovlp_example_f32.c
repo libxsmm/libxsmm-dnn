@@ -35,7 +35,7 @@ int main(int argc, char* argv[])
   /* Initialize the MPI environment */
   int provided;
   MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
-  if(provided < MPI_THREAD_MULTIPLE) {
+  if (provided < MPI_THREAD_MULTIPLE) {
     printf("The threading support level is lesser than that demanded.\n");
     MPI_Abort(MPI_COMM_WORLD, EXIT_FAILURE);
   }

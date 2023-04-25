@@ -819,7 +819,7 @@ LIBXSMM_API void libxsmm_dnn_bn_fwd_exec_f32( libxsmm_dnn_bn_fwd_config cfg, con
       } else { /* hw-blocking (implies no padding) */
         if (cfg.use_new_reduce) {
           reduce_param.out.primary = sums_ncp_ptr;/* (void*)&LIBXSMM_VLA_ACCESS(3, sums_N, cp, n, 0, N, 2*bc); */ /* [2*bc]  */
-          for(hwb=0; hwb < num_HW_blocks; hwb++){
+          for (hwb=0; hwb < num_HW_blocks; hwb++){
             hi = (hwb*(HW/num_HW_blocks))/W;
             w  = (hwb*(HW/num_HW_blocks))%W;
 
@@ -833,7 +833,7 @@ LIBXSMM_API void libxsmm_dnn_bn_fwd_exec_f32( libxsmm_dnn_bn_fwd_config cfg, con
           LIBXSMM_ALIGNED(float lcl_sum_X_X2[2*bc], 64);
           reduce_param.out.primary = lcl_sum_X_X2;                                                   /* [2*bc]  */
 
-          for(hwb=0; hwb < num_HW_blocks; hwb++){
+          for (hwb=0; hwb < num_HW_blocks; hwb++){
             hi = (hwb*(HW/num_HW_blocks))/W;
             w  = (hwb*(HW/num_HW_blocks))%W;
 
@@ -875,7 +875,7 @@ LIBXSMM_API void libxsmm_dnn_bn_fwd_exec_f32( libxsmm_dnn_bn_fwd_config cfg, con
       /* } */
 
       int cb, ni;
-      for(ni = 0; ni < N; ni++){
+      for (ni = 0; ni < N; ni++){
 
         add_param.in0.primary = &LIBXSMM_VLA_ACCESS(3, sum_X_X2, 0, cp, 0, CP, bc);
         if (cfg.use_new_reduce)
@@ -900,7 +900,7 @@ LIBXSMM_API void libxsmm_dnn_bn_fwd_exec_f32( libxsmm_dnn_bn_fwd_config cfg, con
         /* } */
       }
 
-      for(cb = 0; cb < bc; cb++){
+      for (cb = 0; cb < bc; cb++){
         mean[cp*bc + cb] = (LIBXSMM_VLA_ACCESS(3, sum_X_X2, 0, cp, cb, CP, bc)) * scale;                 /* E[X] */
         var[cp*bc + cb] = ((LIBXSMM_VLA_ACCESS(3, sum_X_X2, 1, cp, cb, CP, bc)) * scale) - (mean[cp*bc + cb]*mean[cp*bc + cb]);
       }
@@ -916,7 +916,7 @@ LIBXSMM_API void libxsmm_dnn_bn_fwd_exec_f32( libxsmm_dnn_bn_fwd_config cfg, con
 
     int hi, ho, w, wb, hwb, cb;
 
-    for(cb = 0; cb < bc; cb++){
+    for (cb = 0; cb < bc; cb++){
       float lvar   = LIBXSMM_VLA_ACCESS(2, var,   cp, cb, bc);
       float lmean  = LIBXSMM_VLA_ACCESS(2, mean,  cp, cb, bc);
 
@@ -971,7 +971,7 @@ LIBXSMM_API void libxsmm_dnn_bn_fwd_exec_f32( libxsmm_dnn_bn_fwd_config cfg, con
       }
 
     } else { /* hw-blocking (implies no padding) */
-      for(hwb=0; hwb < num_HW_blocks; hwb++){
+      for (hwb=0; hwb < num_HW_blocks; hwb++){
         hi = (hwb*(HW/num_HW_blocks))/W;
         ho = hi;
         w  = (hwb*(HW/num_HW_blocks))%W;
@@ -1161,7 +1161,7 @@ LIBXSMM_API void libxsmm_dnn_bn_fwd_exec_bf16( libxsmm_dnn_bn_fwd_config cfg, co
       } else { /* hw-blocking (implies no padding) */
         if (cfg.use_new_reduce) {
           reduce_param.out.primary = sums_ncp_ptr;/* (void*)&LIBXSMM_VLA_ACCESS(3, sums_N, cp, n, 0, N, 2*bc); */ /* [2*bc]  */
-          for(hwb=0; hwb < num_HW_blocks; hwb++){
+          for (hwb=0; hwb < num_HW_blocks; hwb++){
             hi = (hwb*(HW/num_HW_blocks))/W;
             w  = (hwb*(HW/num_HW_blocks))%W;
 
@@ -1175,7 +1175,7 @@ LIBXSMM_API void libxsmm_dnn_bn_fwd_exec_bf16( libxsmm_dnn_bn_fwd_config cfg, co
           LIBXSMM_ALIGNED(float lcl_sum_X_X2[2*bc], 64);
           reduce_param.out.primary = lcl_sum_X_X2;                                                   /* [2*bc]  */
 
-          for(hwb=0; hwb < num_HW_blocks; hwb++){
+          for (hwb=0; hwb < num_HW_blocks; hwb++){
             hi = (hwb*(HW/num_HW_blocks))/W;
             w  = (hwb*(HW/num_HW_blocks))%W;
 
@@ -1217,7 +1217,7 @@ LIBXSMM_API void libxsmm_dnn_bn_fwd_exec_bf16( libxsmm_dnn_bn_fwd_config cfg, co
       /* } */
 
       int cb, ni;
-      for(ni = 0; ni < N; ni++){
+      for (ni = 0; ni < N; ni++){
 
         add_param.in0.primary = &LIBXSMM_VLA_ACCESS(3, sum_X_X2, 0, cp, 0, CP, bc);
         if (cfg.use_new_reduce)
@@ -1242,7 +1242,7 @@ LIBXSMM_API void libxsmm_dnn_bn_fwd_exec_bf16( libxsmm_dnn_bn_fwd_config cfg, co
         /* } */
       }
 
-      for(cb = 0; cb < bc; cb++){
+      for (cb = 0; cb < bc; cb++){
         mean[cp*bc + cb] = (LIBXSMM_VLA_ACCESS(3, sum_X_X2, 0, cp, cb, CP, bc)) * scale;                 /* E[X] */
         var[cp*bc + cb] = ((LIBXSMM_VLA_ACCESS(3, sum_X_X2, 1, cp, cb, CP, bc)) * scale) - (mean[cp*bc + cb]*mean[cp*bc + cb]);
       }
@@ -1257,7 +1257,7 @@ LIBXSMM_API void libxsmm_dnn_bn_fwd_exec_bf16( libxsmm_dnn_bn_fwd_config cfg, co
 
     int hi, ho, w, wb, hwb, cb;
 
-    for(cb = 0; cb < bc; cb++){
+    for (cb = 0; cb < bc; cb++){
       float lvar   = LIBXSMM_VLA_ACCESS(2, var,   cp, cb, bc);
       float lmean  = LIBXSMM_VLA_ACCESS(2, mean,  cp, cb, bc);
 
@@ -1311,7 +1311,7 @@ LIBXSMM_API void libxsmm_dnn_bn_fwd_exec_bf16( libxsmm_dnn_bn_fwd_config cfg, co
         cfg.all_zero_hp_kernel(&all_zero_param);
       }
     } else { /* hw-blocking (implies no padding) */
-      for(hwb=0; hwb < num_HW_blocks; hwb++){
+      for (hwb=0; hwb < num_HW_blocks; hwb++){
         hi = (hwb*(HW/num_HW_blocks))/W;
         ho = hi;
         w  = (hwb*(HW/num_HW_blocks))%W;
@@ -1455,7 +1455,7 @@ LIBXSMM_API void libxsmm_dnn_bn_bwd_exec_f32( libxsmm_dnn_bn_bwd_config cfg, flo
       /*   lcl_dbeta_ptr[cb] = 0.0f; */
       /* } */
 
-      for(cb = 0; cb < bc; cb++){
+      for (cb = 0; cb < bc; cb++){
         float lvar   = LIBXSMM_VLA_ACCESS(2, var,   cp, cb, bc);
         float lmean  = LIBXSMM_VLA_ACCESS(2, mean,  cp, cb, bc);
 
@@ -1538,7 +1538,7 @@ LIBXSMM_API void libxsmm_dnn_bn_bwd_exec_f32( libxsmm_dnn_bn_bwd_config cfg, flo
         }
 
       } else { /* hw-blocking (implies no padding) */
-        for(hwb=0; hwb < num_HW_blocks; hwb++){
+        for (hwb=0; hwb < num_HW_blocks; hwb++){
           ho = (hwb*(HW/num_HW_blocks))/W;
           hi = ho;
           w  = (hwb*(HW/num_HW_blocks))%W;
@@ -1603,7 +1603,7 @@ LIBXSMM_API void libxsmm_dnn_bn_bwd_exec_f32( libxsmm_dnn_bn_bwd_config cfg, flo
         /*   pdbeta[cp*bc + cb] = 0.0f; */
         /* } */
 
-        for(ni = 0; ni < N; ni++){
+        for (ni = 0; ni < N; ni++){
 
           add_param.in0.primary = &LIBXSMM_VLA_ACCESS(2, dgamma, cp, 0, bc);
           add_param.in1.primary = &LIBXSMM_VLA_ACCESS(3, dgamma_N, cp, ni, 0, N, bc);
@@ -1634,7 +1634,7 @@ LIBXSMM_API void libxsmm_dnn_bn_bwd_exec_f32( libxsmm_dnn_bn_bwd_config cfg, flo
     int cp = cpxnt/N;
 
 
-    for(cb = 0; cb < bc; cb++){
+    for (cb = 0; cb < bc; cb++){
       float lgamma  = LIBXSMM_VLA_ACCESS(2, gamma,  cp, cb, bc);
       float ldgamma = LIBXSMM_VLA_ACCESS(2, dgamma, cp, cb, bc);
       float lvar    = LIBXSMM_VLA_ACCESS(2, var,    cp, cb, bc);
@@ -1686,7 +1686,7 @@ LIBXSMM_API void libxsmm_dnn_bn_bwd_exec_f32( libxsmm_dnn_bn_bwd_config cfg, flo
         cfg.all_zero_hp_kernel(&all_zero_param);
       }
     } else { /* hw-blocking (implies no padding) */
-      for(hwb=0; hwb < num_HW_blocks; hwb++){
+      for (hwb=0; hwb < num_HW_blocks; hwb++){
         ho = (hwb*(HW/num_HW_blocks))/W;
         hi = ho;
         w  = (hwb*(HW/num_HW_blocks))%W;
@@ -1825,7 +1825,7 @@ LIBXSMM_API void libxsmm_dnn_bn_bwd_exec_bf16( libxsmm_dnn_bn_bwd_config cfg, li
       /*   lcl_dbeta_ptr[cb] = 0.0f; */
       /* } */
 
-      for(cb = 0; cb < bc; cb++){
+      for (cb = 0; cb < bc; cb++){
         float lvar   = LIBXSMM_VLA_ACCESS(2, var,   cp, cb, bc);
         float lmean  = LIBXSMM_VLA_ACCESS(2, mean,  cp, cb, bc);
 
@@ -1907,7 +1907,7 @@ LIBXSMM_API void libxsmm_dnn_bn_bwd_exec_bf16( libxsmm_dnn_bn_bwd_config cfg, li
         }
 
       } else { /* hw-blocking (implies no padding) */
-        for(hwb=0; hwb < num_HW_blocks; hwb++){
+        for (hwb=0; hwb < num_HW_blocks; hwb++){
           ho = (hwb*(HW/num_HW_blocks))/W;
           hi = ho;
           w  = (hwb*(HW/num_HW_blocks))%W;
@@ -1972,7 +1972,7 @@ LIBXSMM_API void libxsmm_dnn_bn_bwd_exec_bf16( libxsmm_dnn_bn_bwd_config cfg, li
         /*   pdbeta[cp*bc + cb] = 0.0f; */
         /* } */
 
-        for(ni = 0; ni < N; ni++){
+        for (ni = 0; ni < N; ni++){
           add_param.in0.primary = &LIBXSMM_VLA_ACCESS(2, dgamma, cp, 0, bc);
           add_param.in1.primary = &LIBXSMM_VLA_ACCESS(3, dgamma_N, cp, ni, 0, N, bc);
           add_param.out.primary = &LIBXSMM_VLA_ACCESS(2, dgamma, cp, 0, bc);
@@ -2001,7 +2001,7 @@ LIBXSMM_API void libxsmm_dnn_bn_bwd_exec_bf16( libxsmm_dnn_bn_bwd_config cfg, li
 
     int hi = 0, ho = 0, w = 0, wb = 0, hwb = 0, cb = 0;
 
-    for(cb = 0; cb < bc; cb++){
+    for (cb = 0; cb < bc; cb++){
       float lgamma  = LIBXSMM_VLA_ACCESS(2, gamma,  cp, cb, bc);
       float ldgamma = LIBXSMM_VLA_ACCESS(2, dgamma, cp, cb, bc);
       float lvar    = LIBXSMM_VLA_ACCESS(2, var,    cp, cb, bc);
@@ -2053,7 +2053,7 @@ LIBXSMM_API void libxsmm_dnn_bn_bwd_exec_bf16( libxsmm_dnn_bn_bwd_config cfg, li
         cfg.all_zero_hp_kernel(&all_zero_param);
       }
     } else { /* hw-blocking (implies no padding) */
-      for(hwb=0; hwb < num_HW_blocks; hwb++){
+      for (hwb=0; hwb < num_HW_blocks; hwb++){
         ho = (hwb*(HW/num_HW_blocks))/W;
         hi = ho;
         w  = (hwb*(HW/num_HW_blocks))%W;
