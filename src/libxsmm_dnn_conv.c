@@ -1498,7 +1498,11 @@ LIBXSMM_API_INLINE void libxsmm_dnn_conv_generate_fwd_kernels( libxsmm_dnn_conv_
     l_shape.a_in_type = LIBXSMM_DATATYPE_BF16;
     l_shape.b_in_type = LIBXSMM_DATATYPE_BF16;
     l_shape.out_type  = LIBXSMM_DATATYPE_BF16;
+#if 0
     l_shape.comp_type = LIBXSMM_DATATYPE_BF16;
+#else
+    l_shape.comp_type = LIBXSMM_DATATYPE_F32;
+#endif
     l_brconfig.br_type = LIBXSMM_GEMM_BATCH_REDUCE_STRIDE;
     l_brconfig.br_stride_a_hint = stride_a;
     l_brconfig.br_stride_b_hint = stride_b;
@@ -2273,7 +2277,11 @@ LIBXSMM_API_INLINE void libxsmm_dnn_conv_generate_bwd_kernels( libxsmm_dnn_conv_
     l_shape.a_in_type = LIBXSMM_DATATYPE_BF16;
     l_shape.b_in_type = LIBXSMM_DATATYPE_BF16;
     l_shape.out_type  = LIBXSMM_DATATYPE_BF16;
+#if 0
     l_shape.comp_type = LIBXSMM_DATATYPE_BF16;
+#else
+    l_shape.comp_type = LIBXSMM_DATATYPE_F32;
+#endif
     l_brconfig.br_type = LIBXSMM_GEMM_BATCH_REDUCE_STRIDE;
     l_brconfig.br_stride_a_hint = stride_a;
     l_brconfig.br_stride_b_hint = stride_b;
@@ -2968,7 +2976,11 @@ LIBXSMM_API_INLINE void libxsmm_dnn_conv_generate_upd_kernels( libxsmm_dnn_conv_
     l_shape.a_in_type = LIBXSMM_DATATYPE_BF16;
     l_shape.b_in_type = LIBXSMM_DATATYPE_BF16;
     l_shape.out_type  = LIBXSMM_DATATYPE_F32;
+#if 0
     l_shape.comp_type = LIBXSMM_DATATYPE_BF16;
+#else
+    l_shape.comp_type = LIBXSMM_DATATYPE_F32;
+#endif
     l_brconfig.br_type = LIBXSMM_GEMM_BATCH_REDUCE_STRIDE;
     l_brconfig.br_stride_a_hint = stride_a;
     l_brconfig.br_stride_b_hint = stride_b;
