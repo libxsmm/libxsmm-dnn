@@ -2365,7 +2365,11 @@ LIBXSMM_API_INLINE void libxsmm_dnn_conv_generate_bwd_kernels( libxsmm_dnn_conv_
     l_shape.a_in_type = LIBXSMM_DATATYPE_BF16;
     l_shape.b_in_type = LIBXSMM_DATATYPE_BF16;
     l_shape.out_type  = LIBXSMM_DATATYPE_BF16;
+#if 0
     l_shape.comp_type = LIBXSMM_DATATYPE_BF16;
+#else
+    l_shape.comp_type = LIBXSMM_DATATYPE_F32;
+#endif
     l_flags = LIBXSMM_GEMM_VNNI_FLAGS('N', 'N', 'V', 'N');
 
     res.bwd_compute_kernel_fallback_bf16.gemm = libxsmm_dispatch_gemm_v2( l_shape, l_flags, l_prefetch_flags );
