@@ -1436,7 +1436,7 @@ LIBXSMM_API_INLINE void libxsmm_dnn_conv_generate_fwd_kernels( libxsmm_dnn_conv_
       binary_shape.ldi       = stride_in;
       binary_shape.ldi2      = stride_in;
       binary_shape.ldo       = stride_out;
-      res.colbias_add_kernel_f32 = libxsmm_dispatch_meltw_binary_v2( LIBXSMM_MELTW_TYPE_BINARY_ADD, binary_shape, LIBXSMM_MELTW_FLAG_BINARY_BCAST_COL_IN_1) ;
+      res.colbias_add_kernel_f32 = libxsmm_dispatch_meltw_binary_v2( LIBXSMM_MELTW_TYPE_BINARY_ADD, binary_shape, LIBXSMM_MELTW_FLAG_BINARY_BCAST_COL_IN_0) ;
       if (  res.colbias_add_kernel_f32  == NULL ) {
         fprintf( stderr, "JIT for TPP colbias_add_kernel_f32 failed. Bailing...!\n");
         exit(-1);
@@ -1740,7 +1740,7 @@ LIBXSMM_API_INLINE void libxsmm_dnn_conv_generate_fwd_kernels( libxsmm_dnn_conv_
       binary_shape.ldi       = stride_in;
       binary_shape.ldi2      = stride_in;
       binary_shape.ldo       = stride_out;
-      res.colbias_add_kernel_bf16 = libxsmm_dispatch_meltw_binary_v2( LIBXSMM_MELTW_TYPE_BINARY_ADD, binary_shape, LIBXSMM_MELTW_FLAG_BINARY_BCAST_COL_IN_1) ;
+      res.colbias_add_kernel_bf16 = libxsmm_dispatch_meltw_binary_v2( LIBXSMM_MELTW_TYPE_BINARY_ADD, binary_shape, LIBXSMM_MELTW_FLAG_BINARY_BCAST_COL_IN_0) ;
       if (  res.colbias_add_kernel_bf16  == NULL ) {
         fprintf( stderr, "JIT for TPP colbias_add_kernel_bf16 failed. Bailing...!\n");
         exit(-1);
@@ -2038,7 +2038,7 @@ LIBXSMM_API_INLINE void libxsmm_dnn_conv_generate_fwd_kernels( libxsmm_dnn_conv_
       binary_shape.ldi       = stride_in;
       binary_shape.ldi2      = stride_in;
       binary_shape.ldo       = stride_out;
-      res.colbias_add_kernel_bf8 = libxsmm_dispatch_meltw_binary_v2( LIBXSMM_MELTW_TYPE_BINARY_ADD, binary_shape, LIBXSMM_MELTW_FLAG_BINARY_BCAST_COL_IN_1) ;
+      res.colbias_add_kernel_bf8 = libxsmm_dispatch_meltw_binary_v2( LIBXSMM_MELTW_TYPE_BINARY_ADD, binary_shape, LIBXSMM_MELTW_FLAG_BINARY_BCAST_COL_IN_0) ;
       if (  res.colbias_add_kernel_bf8  == NULL ) {
         fprintf( stderr, "JIT for TPP colbias_add_kernel_bf8 failed. Bailing...!\n");
         exit(-1);

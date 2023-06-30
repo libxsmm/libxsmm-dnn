@@ -216,8 +216,8 @@ LIBXSMM_API void libxsmm_dnn_conv_fwd_exec_bf8( libxsmm_dnn_conv_config cfg, con
                     if ( (kj == cfg.R-1) && (ki == cfg.S-1) && (ifm1 + cfg.blocksifm_blocking >= cfg.blocksifm) ) {
                       /* Apply b2b kernels */
                       if (fuse_colbias) {
-                        binary_param.in0.primary = (void*)&LIBXSMM_VLA_ACCESS(5, output, img, ofm1, oj_use, oi_use, 0, cfg.blocksofm, cfg.ofhp, cfg.ofwp, cfg.ofmblock);
-                        binary_param.in1.primary = (void*)&LIBXSMM_VLA_ACCESS(2, colbias, ofm1, 0, cfg.ofmblock);
+                        binary_param.in0.primary = (void*)&LIBXSMM_VLA_ACCESS(2, colbias, ofm1, 0, cfg.ofmblock);
+                        binary_param.in1.primary = (void*)&LIBXSMM_VLA_ACCESS(5, output, img, ofm1, oj_use, oi_use, 0, cfg.blocksofm, cfg.ofhp, cfg.ofwp, cfg.ofmblock);
                         binary_param.out.primary = (void*)&LIBXSMM_VLA_ACCESS(5, output, img, ofm1, oj_use, oi_use, 0, cfg.blocksofm, cfg.ofhp, cfg.ofwp, cfg.ofmblock);
                         cfg.colbias_add_kernel_bf8( &binary_param );
                       }
@@ -358,8 +358,8 @@ LIBXSMM_API void libxsmm_dnn_conv_fwd_exec_bf8( libxsmm_dnn_conv_config cfg, con
                               if ( (kj1 == cfg.R-1) && (ki1 == cfg.S-1) && (ifm1 + cfg.blocksifm_blocking >= cfg.blocksifm) ) {
                                 /* Apply b2b kernels */
                                 if (fuse_colbias) {
-                                  binary_param.in0.primary = (void*)&LIBXSMM_VLA_ACCESS(5, output, img, ofm1, oj_use, oi_use, 0, cfg.blocksofm, cfg.ofhp, cfg.ofwp, cfg.ofmblock);
-                                  binary_param.in1.primary = (void*)&LIBXSMM_VLA_ACCESS(2, colbias, ofm1, 0, cfg.ofmblock);
+                                  binary_param.in0.primary = (void*)&LIBXSMM_VLA_ACCESS(2, colbias, ofm1, 0, cfg.ofmblock);
+                                  binary_param.in1.primary = (void*)&LIBXSMM_VLA_ACCESS(5, output, img, ofm1, oj_use, oi_use, 0, cfg.blocksofm, cfg.ofhp, cfg.ofwp, cfg.ofmblock);
                                   binary_param.out.primary = (void*)&LIBXSMM_VLA_ACCESS(5, output, img, ofm1, oj_use, oi_use, 0, cfg.blocksofm, cfg.ofhp, cfg.ofwp, cfg.ofmblock);
                                   cfg.colbias_add_kernel_bf8( &binary_param );
                                 }
