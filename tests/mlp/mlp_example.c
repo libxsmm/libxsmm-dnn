@@ -346,19 +346,25 @@ int main(int argc, char* argv[])
 
   /* setting up handles + scratch */
   for ( i = 0; i < num_layers; ++i ) {
-    libxsmm_dnn_fc_fwd[i] = setup_libxsmm_dnn_fc_fwd(MB, C[i], C[i+1], (MB % bn == 0) ? bn : MB,
-                                             (C[i  ] % bc == 0) ? bc : C[i  ],
-                                             (C[i+1] % bk == 0) ? bk : C[i+1],
-                                             nThreads, my_fuse, in_dt, out_dt, comp_dt );
+    memset( &(libxsmm_dnn_fc_fwd[i]), 0, sizeof(libxsmm_dnn_fc_fwd_config) );
+    memset( &(libxsmm_dnn_fc_bwd[i]), 0, sizeof(libxsmm_dnn_fc_bwd_config) );
+    memset( &(libxsmm_dnn_opt[i]), 0, sizeof(libxsmm_dnn_opt_config) );
+    if ( (type == 'F') || (type == 'A') ) {
+      libxsmm_dnn_fc_fwd[i] = setup_libxsmm_dnn_fc_fwd(MB, C[i], C[i+1], (MB % bn == 0) ? bn : MB,
+                                               (C[i  ] % bc == 0) ? bc : C[i  ],
+                                               (C[i+1] % bk == 0) ? bk : C[i+1],
+                                               nThreads, my_fuse, in_dt, out_dt, comp_dt );
+    }
+    if ( (type == 'B') || (type == 'A') ) {
+      libxsmm_dnn_fc_bwd[i] = setup_libxsmm_dnn_fc_bwd(MB, C[i], C[i+1], (MB % bn == 0) ? bn : MB,
+                                               (C[i  ] % bc == 0) ? bc : C[i  ],
+                                               (C[i+1] % bk == 0) ? bk : C[i+1],
+                                               nThreads, my_fuse, in_dt, out_dt, comp_dt );
 
-    libxsmm_dnn_fc_bwd[i] = setup_libxsmm_dnn_fc_bwd(MB, C[i], C[i+1], (MB % bn == 0) ? bn : MB,
-                                             (C[i  ] % bc == 0) ? bc : C[i  ],
-                                             (C[i+1] % bk == 0) ? bk : C[i+1],
-                                             nThreads, my_fuse, in_dt, out_dt, comp_dt );
-
-    libxsmm_dnn_opt[i] = setup_libxsmm_dnn_opt( C[i], C[i+1], (C[i  ] % bc == 0) ? bc : C[i  ],
-                                            (C[i+1] % bk == 0) ? bk : C[i+1],
-                                            nThreads, lr, in_dt, out_dt, comp_dt );
+      libxsmm_dnn_opt[i] = setup_libxsmm_dnn_opt( C[i], C[i+1], (C[i  ] % bc == 0) ? bc : C[i  ],
+                                              (C[i+1] % bk == 0) ? bk : C[i+1],
+                                              nThreads, lr, in_dt, out_dt, comp_dt );
+    }
 
     /* let's allocate and bind scratch */
     if ( libxsmm_dnn_fc_fwd[i].scratch_size > 0 || libxsmm_dnn_fc_bwd[i].scratch_size > 0 || libxsmm_dnn_opt[i].scratch_size > 0 ) {
@@ -373,13 +379,18 @@ int main(int argc, char* argv[])
   }
 
   /* softmax+loss is treated as N+! layer */
-  libxsmm_dnn_smax_fwd = setup_libxsmm_dnn_smax_fwd( MB, C[num_layers+1], (MB % bn == 0) ? bn : MB,
-                                       (C[num_layers+1] % bk == 0) ? bk : C[num_layers+1],
-                                       nThreads, in_dt, out_dt, comp_dt );
-
-  libxsmm_dnn_smax_bwd = setup_libxsmm_dnn_smax_bwd( MB, C[num_layers+1], (MB % bn == 0) ? bn : MB,
-                                       (C[num_layers+1] % bk == 0) ? bk : C[num_layers+1],
-                                       nThreads, loss_weight, in_dt, out_dt, comp_dt );
+  memset( &libxsmm_dnn_smax_fwd, 0, sizeof(libxsmm_dnn_smax_fwd_config) );
+  memset( &libxsmm_dnn_smax_bwd, 0, sizeof(libxsmm_dnn_smax_bwd_config) );
+  if ( (type == 'F') || (type == 'A') ) {
+    libxsmm_dnn_smax_fwd = setup_libxsmm_dnn_smax_fwd( MB, C[num_layers+1], (MB % bn == 0) ? bn : MB,
+                                         (C[num_layers+1] % bk == 0) ? bk : C[num_layers+1],
+                                         nThreads, in_dt, out_dt, comp_dt );
+  }
+  if ( (type == 'B') || (type == 'A') ) {
+    libxsmm_dnn_smax_bwd = setup_libxsmm_dnn_smax_bwd( MB, C[num_layers+1], (MB % bn == 0) ? bn : MB,
+                                         (C[num_layers+1] % bk == 0) ? bk : C[num_layers+1],
+                                         nThreads, loss_weight, in_dt, out_dt, comp_dt );
+  }
 
   if ( libxsmm_dnn_smax_fwd.scratch_size > 0 || libxsmm_dnn_smax_bwd.scratch_size > 0 ) {
     size_t alloc_size = LIBXSMM_MAX( libxsmm_dnn_smax_fwd.scratch_size, libxsmm_dnn_smax_bwd.scratch_size );

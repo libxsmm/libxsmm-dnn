@@ -1217,7 +1217,7 @@ LIBXSMM_API_INLINE void libxsmm_dnn_conv_generate_fwd_kernels( libxsmm_dnn_conv_
     libxsmm_gemm_ext_binary_postops l_postops;
     libxsmm_bitfield l_flags = LIBXSMM_GEMM_FLAGS('N', 'N');
     libxsmm_bitfield l_prefetch_flags = 0;
-    int prefetch_mode = LIBXSMM_GEMM_PREFETCH_NONE;
+    int prefetch_mode = (int)LIBXSMM_GEMM_PREFETCH_NONE;
     int brgemm_pf_oob = 0;
     const char *const env_brgemm_pf_oob = getenv("BRGEMM_PF_OOB");
 
@@ -1238,7 +1238,7 @@ LIBXSMM_API_INLINE void libxsmm_dnn_conv_generate_fwd_kernels( libxsmm_dnn_conv_
       brgemm_pf_oob = atoi(env_brgemm_pf_oob);
     }
     if (brgemm_pf_oob > 0) {
-      prefetch_mode = LIBXSMM_GEMM_PREFETCH_BRGEMM_OOB;
+      prefetch_mode = (int)LIBXSMM_GEMM_PREFETCH_BRGEMM_OOB;
     }
     l_prefetch_flags = prefetch_mode;
 
@@ -1458,7 +1458,7 @@ LIBXSMM_API_INLINE void libxsmm_dnn_conv_generate_fwd_kernels( libxsmm_dnn_conv_
     libxsmm_gemm_ext_binary_postops l_postops;
     libxsmm_bitfield l_flags = LIBXSMM_GEMM_VNNI_FLAGS('N', 'N', 'V', 'N');
     libxsmm_bitfield l_prefetch_flags = 0;
-    int prefetch_mode = LIBXSMM_GEMM_PREFETCH_NONE;
+    int prefetch_mode = (int)LIBXSMM_GEMM_PREFETCH_NONE;
     int brgemm_pf_oob = 0;
     const char *const env_brgemm_pf_oob = getenv("BRGEMM_PF_OOB");
 
@@ -1479,7 +1479,7 @@ LIBXSMM_API_INLINE void libxsmm_dnn_conv_generate_fwd_kernels( libxsmm_dnn_conv_
       brgemm_pf_oob = atoi(env_brgemm_pf_oob);
     }
     if (brgemm_pf_oob > 0) {
-      prefetch_mode = LIBXSMM_GEMM_PREFETCH_BRGEMM_OOB;
+      prefetch_mode = (int)LIBXSMM_GEMM_PREFETCH_BRGEMM_OOB;
     }
     l_prefetch_flags = prefetch_mode;
 
@@ -1764,7 +1764,7 @@ LIBXSMM_API_INLINE void libxsmm_dnn_conv_generate_fwd_kernels( libxsmm_dnn_conv_
     libxsmm_gemm_ext_binary_postops l_postops;
     libxsmm_bitfield l_flags = LIBXSMM_GEMM_VNNI_FLAGS('N', 'N', 'V', 'N');
     libxsmm_bitfield l_prefetch_flags = 0;
-    int prefetch_mode = LIBXSMM_GEMM_PREFETCH_NONE;
+    int prefetch_mode = (int)LIBXSMM_GEMM_PREFETCH_NONE;
     int brgemm_pf_oob = 0;
     const char *const env_brgemm_pf_oob = getenv("BRGEMM_PF_OOB");
 
@@ -1785,7 +1785,7 @@ LIBXSMM_API_INLINE void libxsmm_dnn_conv_generate_fwd_kernels( libxsmm_dnn_conv_
       brgemm_pf_oob = atoi(env_brgemm_pf_oob);
     }
     if (brgemm_pf_oob > 0) {
-      prefetch_mode = LIBXSMM_GEMM_PREFETCH_BRGEMM_OOB;
+      prefetch_mode = (int)LIBXSMM_GEMM_PREFETCH_BRGEMM_OOB;
     }
     l_prefetch_flags = prefetch_mode;
 
@@ -2066,7 +2066,7 @@ LIBXSMM_API_INLINE void libxsmm_dnn_conv_generate_bwd_kernels( libxsmm_dnn_conv_
     libxsmm_gemm_batch_reduce_config l_brconfig;
     libxsmm_bitfield l_flags = LIBXSMM_GEMM_FLAGS('N', 'N');
     libxsmm_bitfield l_prefetch_flags = 0;
-    int prefetch_mode = LIBXSMM_GEMM_PREFETCH_NONE;
+    int prefetch_mode = (int)LIBXSMM_GEMM_PREFETCH_NONE;
     int brgemm_pf_oob = 0;
     const char *const env_brgemm_pf_oob = getenv("BRGEMM_PF_OOB");
     res.A_offsets_bwd = NULL;
@@ -2084,7 +2084,7 @@ LIBXSMM_API_INLINE void libxsmm_dnn_conv_generate_bwd_kernels( libxsmm_dnn_conv_
       brgemm_pf_oob = atoi(env_brgemm_pf_oob);
     }
     if (brgemm_pf_oob > 0) {
-      prefetch_mode = LIBXSMM_GEMM_PREFETCH_BRGEMM_OOB;
+      prefetch_mode = (int)LIBXSMM_GEMM_PREFETCH_BRGEMM_OOB;
     }
     l_prefetch_flags = prefetch_mode;
 
@@ -2241,7 +2241,7 @@ LIBXSMM_API_INLINE void libxsmm_dnn_conv_generate_bwd_kernels( libxsmm_dnn_conv_
     libxsmm_gemm_batch_reduce_config l_brconfig;
     libxsmm_bitfield l_flags = LIBXSMM_GEMM_VNNI_FLAGS('N', 'N', 'V', 'N');
     libxsmm_bitfield l_prefetch_flags = 0;
-    int prefetch_mode = LIBXSMM_GEMM_PREFETCH_NONE;
+    int prefetch_mode = (int)LIBXSMM_GEMM_PREFETCH_NONE;
     int brgemm_pf_oob = 0;
     const char *const env_brgemm_pf_oob = getenv("BRGEMM_PF_OOB");
 
@@ -2260,7 +2260,7 @@ LIBXSMM_API_INLINE void libxsmm_dnn_conv_generate_bwd_kernels( libxsmm_dnn_conv_
       brgemm_pf_oob = atoi(env_brgemm_pf_oob);
     }
     if (brgemm_pf_oob > 0) {
-      prefetch_mode = LIBXSMM_GEMM_PREFETCH_BRGEMM_OOB;
+      prefetch_mode = (int)LIBXSMM_GEMM_PREFETCH_BRGEMM_OOB;
     }
     l_prefetch_flags = prefetch_mode;
 
@@ -2478,7 +2478,7 @@ LIBXSMM_API_INLINE void libxsmm_dnn_conv_generate_bwd_kernels( libxsmm_dnn_conv_
     libxsmm_gemm_batch_reduce_config l_brconfig;
     libxsmm_bitfield l_flags = LIBXSMM_GEMM_VNNI_FLAGS('N', 'N', 'V', 'N');
     libxsmm_bitfield l_prefetch_flags = 0;
-    int prefetch_mode = LIBXSMM_GEMM_PREFETCH_NONE;
+    int prefetch_mode = (int)LIBXSMM_GEMM_PREFETCH_NONE;
     int brgemm_pf_oob = 0;
     const char *const env_brgemm_pf_oob = getenv("BRGEMM_PF_OOB");
 
@@ -2497,7 +2497,7 @@ LIBXSMM_API_INLINE void libxsmm_dnn_conv_generate_bwd_kernels( libxsmm_dnn_conv_
       brgemm_pf_oob = atoi(env_brgemm_pf_oob);
     }
     if (brgemm_pf_oob > 0) {
-      prefetch_mode = LIBXSMM_GEMM_PREFETCH_BRGEMM_OOB;
+      prefetch_mode = (int)LIBXSMM_GEMM_PREFETCH_BRGEMM_OOB;
     }
     l_prefetch_flags = prefetch_mode;
 
@@ -2719,7 +2719,7 @@ LIBXSMM_API_INLINE void libxsmm_dnn_conv_generate_upd_kernels( libxsmm_dnn_conv_
     libxsmm_gemm_batch_reduce_config l_brconfig;
     libxsmm_bitfield l_flags = LIBXSMM_GEMM_FLAGS('N', 'N');
     libxsmm_bitfield l_prefetch_flags = 0;
-    int prefetch_mode = (res.u == 2 || (res.R == 3 && res.ofw == 7) ) ? LIBXSMM_GEMM_PREFETCH_NONE : LIBXSMM_GEMM_PREFETCH_BL1;
+    int prefetch_mode = (res.u == 2 || (res.R == 3 && res.ofw == 7) ) ? (int)LIBXSMM_GEMM_PREFETCH_NONE : (int)LIBXSMM_GEMM_PREFETCH_BL1;
     int brgemm_pf_oob = 0;
     const char *const env_brgemm_pf_oob = getenv("BRGEMM_PF_OOB");
     const int img_work = res.N;
@@ -2738,7 +2738,7 @@ LIBXSMM_API_INLINE void libxsmm_dnn_conv_generate_upd_kernels( libxsmm_dnn_conv_
       brgemm_pf_oob = atoi(env_brgemm_pf_oob);
     }
     if (brgemm_pf_oob > 0) {
-      prefetch_mode = prefetch_mode | LIBXSMM_GEMM_PREFETCH_BRGEMM_OOB;
+      prefetch_mode = prefetch_mode | (int)LIBXSMM_GEMM_PREFETCH_BRGEMM_OOB;
     }
     l_prefetch_flags = prefetch_mode;
 
@@ -2950,7 +2950,7 @@ LIBXSMM_API_INLINE void libxsmm_dnn_conv_generate_upd_kernels( libxsmm_dnn_conv_
     libxsmm_gemm_batch_reduce_config l_brconfig;
     libxsmm_bitfield l_flags = LIBXSMM_GEMM_VNNI_FLAGS('N', 'N', 'V', 'N');
     libxsmm_bitfield l_prefetch_flags = 0;
-    int prefetch_mode = LIBXSMM_GEMM_PREFETCH_NONE;
+    int prefetch_mode = (int)LIBXSMM_GEMM_PREFETCH_NONE;
     int brgemm_pf_oob = 0;
     const char *const env_brgemm_pf_oob = getenv("BRGEMM_PF_OOB");
     beta = (res.use_intermediate_f32_wt_tensor ? 1.f : 0.f);
@@ -2960,7 +2960,7 @@ LIBXSMM_API_INLINE void libxsmm_dnn_conv_generate_upd_kernels( libxsmm_dnn_conv_
       brgemm_pf_oob = atoi(env_brgemm_pf_oob);
     }
     if (brgemm_pf_oob > 0) {
-      prefetch_mode = LIBXSMM_GEMM_PREFETCH_BRGEMM_OOB;
+      prefetch_mode = (int)LIBXSMM_GEMM_PREFETCH_BRGEMM_OOB;
     }
     l_prefetch_flags = prefetch_mode;
 
@@ -3382,7 +3382,7 @@ LIBXSMM_API_INLINE void libxsmm_dnn_conv_generate_upd_kernels( libxsmm_dnn_conv_
     libxsmm_gemm_batch_reduce_config l_brconfig;
     libxsmm_bitfield l_flags = LIBXSMM_GEMM_VNNI_FLAGS('N', 'N', 'V', 'N');
     libxsmm_bitfield l_prefetch_flags = 0;
-    int prefetch_mode = LIBXSMM_GEMM_PREFETCH_NONE;
+    int prefetch_mode = (int)LIBXSMM_GEMM_PREFETCH_NONE;
     int brgemm_pf_oob = 0;
     const char *const env_brgemm_pf_oob = getenv("BRGEMM_PF_OOB");
     beta = (res.use_intermediate_f32_wt_tensor ? 1.f : 0.f);
@@ -3392,7 +3392,7 @@ LIBXSMM_API_INLINE void libxsmm_dnn_conv_generate_upd_kernels( libxsmm_dnn_conv_
       brgemm_pf_oob = atoi(env_brgemm_pf_oob);
     }
     if (brgemm_pf_oob > 0) {
-      prefetch_mode = LIBXSMM_GEMM_PREFETCH_BRGEMM_OOB;
+      prefetch_mode = (int)LIBXSMM_GEMM_PREFETCH_BRGEMM_OOB;
     }
     l_prefetch_flags = prefetch_mode;
 
