@@ -68,10 +68,10 @@ LIBXSMM_API libxsmm_dnn_pooling_fwd_config setup_libxsmm_dnn_pooling_fwd( const 
   unary_shape = libxsmm_create_meltw_unary_shape( res.bc, 0, res.bc, res.bc, datatype_in, datatype_out, LIBXSMM_DATATYPE_F32 );
   unary_flags = LIBXSMM_MELTW_FLAG_UNARY_IDX_SIZE_4BYTES | LIBXSMM_MELTW_FLAG_UNARY_REDUCE_NO_PREFETCH;
   if ( res.pool_type == LIBXSMM_DNN_POOLING_TYPE_MAX ) {
-    unary_flags = unary_flags | LIBXSMM_MELTW_FLAG_UNARY_REDUCE_NEG_INF_ACC | LIBXSMM_MELTW_FLAG_UNARY_REDUCE_RECORD_ARGOP;
+    unary_flags = unary_flags | LIBXSMM_MELTW_FLAG_UNARY_REDUCE_INF_ACC | LIBXSMM_MELTW_FLAG_UNARY_REDUCE_RECORD_ARGOP;
     res.fwd_pool_reduce_kernel = libxsmm_dispatch_meltw_unary_v2( LIBXSMM_MELTW_TYPE_UNARY_REDUCE_COLS_IDX_OP_MAX, unary_shape, unary_flags );
   } else if ( res.pool_type == LIBXSMM_DNN_POOLING_TYPE_MAX_NOMASK )  {
-    unary_flags = unary_flags | LIBXSMM_MELTW_FLAG_UNARY_REDUCE_NEG_INF_ACC;
+    unary_flags = unary_flags | LIBXSMM_MELTW_FLAG_UNARY_REDUCE_INF_ACC;
     res.fwd_pool_reduce_kernel = libxsmm_dispatch_meltw_unary_v2( LIBXSMM_MELTW_TYPE_UNARY_REDUCE_COLS_IDX_OP_MAX, unary_shape, unary_flags );
   } else {
     res.fwd_pool_reduce_kernel = libxsmm_dispatch_meltw_unary_v2( LIBXSMM_MELTW_TYPE_UNARY_REDUCE_COLS_IDX_OP_ADD, unary_shape, unary_flags );
