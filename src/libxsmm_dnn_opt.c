@@ -8,7 +8,6 @@
 ******************************************************************************/
 /* Alexander Heinecke (Intel Corp.)
 ******************************************************************************/
-
 #include <libxsmm_dnn_opt.h>
 
 LIBXSMM_API libxsmm_dnn_opt_config setup_libxsmm_dnn_opt(libxsmm_blasint C, libxsmm_blasint K, libxsmm_blasint bc, libxsmm_blasint bk,
@@ -98,4 +97,3 @@ LIBXSMM_API void libxsmm_dnn_opt_exec_bf16( libxsmm_dnn_opt_config cfg, libxsmm_
 
   libxsmm_barrier_wait( cfg.barrier, ltid );
 }
-

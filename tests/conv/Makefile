@@ -64,7 +64,7 @@ $(DNNLIB) $(LIBDEP):
 	@$(MAKE) --no-print-directory -C $(DEP2DIR)
 
 $(OUTDIR)/layer_example: $(OUTDIR)/.make $(BLDDIR)/layer_example-c.o
-	$(LD) -o $@ $(BLDDIR)/layer_example-c.o $(call cleanld,$(MAINLIB) $(DNNLIB) $(SLDFLAGS) $(LDFLAGS) $(CLDFLAGS))
+	$(LD) -o $@ $(BLDDIR)/layer_example-c.o $(call cleanld,$(DNNLIB) $(MAINLIB) $(SLDFLAGS) $(LDFLAGS) $(CLDFLAGS))
 
 $(BLDDIR)/%-cpp.o: $(SRCDIR)/%.cpp .state $(BLDDIR)/.make $(HEADERS) Makefile $(DEPDIR)/Makefile.inc $(LIBDEP) $(DNNLIB)
 	$(CXX) $(DFLAGS) $(IFLAGS) $(CXXFLAGS) $(CTARGET) -c $< -o $@

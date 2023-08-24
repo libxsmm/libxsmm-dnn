@@ -8,7 +8,6 @@
 ******************************************************************************/
 /* Alexander Heinecke (Intel Corp.)
 ******************************************************************************/
-
 #ifndef LIBXSMM_DNN_SMAX_H
 #define LIBXSMM_DNN_SMAX_H
 
@@ -21,6 +20,7 @@
 #if defined(_OPENMP)
 # include <omp.h>
 #endif
+
 
 typedef struct libxsmm_dnn_smax_fwd_config {
   libxsmm_blasint N;
@@ -60,4 +60,3 @@ LIBXSMM_API void libxsmm_dnn_smax_fwd_exec_bf16( libxsmm_dnn_smax_fwd_config cfg
 LIBXSMM_API void libxsmm_dnn_smax_bwd_exec_bf16( libxsmm_dnn_smax_bwd_config cfg, libxsmm_bfloat16* delin_act_ptr, const libxsmm_bfloat16* out_act_ptr, const int* label_ptr, int start_tid, int my_tid, void* scratch );
 
 #endif
-

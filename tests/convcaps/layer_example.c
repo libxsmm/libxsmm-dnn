@@ -13,6 +13,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <math.h>
+
 #if defined(_OPENMP)
 #include <omp.h>
 #endif
@@ -22,6 +23,7 @@
 
 #define CHANNEL_BLOCKING 64
 #define LP_BLOCKING 2
+
 
 /* function-pointer to LIBXSMM kernel */
 libxsmm_gemmfunction fwd_brgemmz;
@@ -144,7 +146,7 @@ LIBXSMM_INLINE void set_zeropad_nchw(float* nchw, int N, int C, int H, int W, in
         for ( w = 0; w < W; w++ ) {
           for ( m = 0; m < Mh; m++ ) {
             for ( rk = 0; rk < RK; rk++ ) {
-              if(h < pad_h || h >= H-pad_h || w < pad_w || w >= W-pad_w)
+              if (h < pad_h || h >= H-pad_h || w < pad_w || w >= W-pad_w)
                 LIBXSMM_VLA_ACCESS(6, input, n, c, h, w, m, rk, C, H, W, Mh, RK) = 0.0;
             }
           }
@@ -398,9 +400,9 @@ LIBXSMM_INLINE void naive_convcaps_fp(naive_conv_t* param, const float* input, f
               LIBXSMM_VLA_ACCESS( 6, votes_t, img, oj, oi, ofm, mj, mi, ofhp, ofwp, nOfm, Mh, Mw) = 0.0f;
               for (ifm = 0; ifm < nIfm; ++ifm) {
                 for (kj = 0; kj < kh; ++kj) {
-                  /*if(ij+kj < 0 || ij+kj >= ifh) continue;*/
+                  /*if (ij+kj < 0 || ij+kj >= ifh) continue;*/
                   for (ki = 0; ki < kw; ++ki) {
-                    /*if(ii+ki < 0 || ii+ki >= ifw) continue;*/
+                    /*if (ii+ki < 0 || ii+ki >= ifw) continue;*/
                     for (rk = 0; rk < RK; ++rk ) {
                       LIBXSMM_VLA_ACCESS( 6, votes_t, img, oj, oi, ofm, mj, mi, ofhp, ofwp, nOfm, Mh, Mw) +=
                         LIBXSMM_VLA_ACCESS( 6, poses_t, img, ij+kj, ii+ki, ifm, mj, rk, ifhp, ifwp, nIfm, Mh, RK) *

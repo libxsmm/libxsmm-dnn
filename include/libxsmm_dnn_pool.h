@@ -8,7 +8,6 @@
 ******************************************************************************/
 /* Evangelos Georganas (Intel Corp.)
 ******************************************************************************/
-
 #ifndef LIBXSMM_DNN_POOL_H
 #define LIBXSMM_DNN_POOL_H
 
@@ -21,6 +20,7 @@
 #if defined(_OPENMP)
 # include <omp.h>
 #endif
+
 
 typedef enum libxsmm_dnn_pooling_pass {
   LIBXSMM_DNN_POOLING_PASS_FWD = 1,
@@ -133,4 +133,3 @@ LIBXSMM_API void destroy_libxsmm_dnn_pooling_fwd(libxsmm_dnn_pooling_fwd_config*
 LIBXSMM_API void destroy_libxsmm_dnn_pooling_bwd(libxsmm_dnn_pooling_bwd_config* cfg);
 
 #endif
-

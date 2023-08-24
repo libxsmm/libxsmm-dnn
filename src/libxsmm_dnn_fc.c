@@ -8,7 +8,6 @@
 ******************************************************************************/
 /* Kirill Voronin, Alexander Heinecke (Intel Corp.)
 ******************************************************************************/
-
 #include <libxsmm_dnn_fc.h>
 
 LIBXSMM_API libxsmm_dnn_fc_fwd_config setup_libxsmm_dnn_fc_fwd(libxsmm_blasint N, libxsmm_blasint C, libxsmm_blasint K, libxsmm_blasint bn,
@@ -279,7 +278,7 @@ LIBXSMM_API libxsmm_dnn_fc_fwd_config setup_libxsmm_dnn_fc_fwd(libxsmm_blasint N
 
       res.fwd_compute_kernel_strd_fused_f32 = libxsmm_dispatch_brgemm_ext_v2( l_shape, l_flags, l_prefetch_flags, l_brconfig,
           l_argops, l_postops );
-      if (  res.fwd_compute_kernel_strd_fused_f32 == NULL ) {
+      if ( res.fwd_compute_kernel_strd_fused_f32 == NULL ) {
         fprintf( stderr, "JIT for BRGEMM TPP fwd_compute_kernel_strd_fused_f32 failed. Bailing...!\n");
         exit(-1);
       }
@@ -305,7 +304,7 @@ LIBXSMM_API libxsmm_dnn_fc_fwd_config setup_libxsmm_dnn_fc_fwd(libxsmm_blasint N
 
       res.fwd_compute_kernel2_strd_fused_f32 = libxsmm_dispatch_brgemm_ext_v2( l_shape, l_flags, l_prefetch_flags, l_brconfig,
           l_argops, l_postops );
-      if (  res.fwd_compute_kernel2_strd_fused_f32 == NULL ) {
+      if ( res.fwd_compute_kernel2_strd_fused_f32 == NULL ) {
         fprintf( stderr, "JIT for BRGEMM TPP fwd_compute_kernel2_strd_fused_f32 failed. Bailing...!\n");
         exit(-1);
       }
@@ -331,7 +330,7 @@ LIBXSMM_API libxsmm_dnn_fc_fwd_config setup_libxsmm_dnn_fc_fwd(libxsmm_blasint N
 
       res.fwd_compute_kernel3_strd_fused_f32 = libxsmm_dispatch_brgemm_ext_v2( l_shape, l_flags, l_prefetch_flags, l_brconfig,
           l_argops, l_postops );
-      if (  res.fwd_compute_kernel3_strd_fused_f32 == NULL ) {
+      if ( res.fwd_compute_kernel3_strd_fused_f32 == NULL ) {
         fprintf( stderr, "JIT for BRGEMM TPP fwd_compute_kernel3_strd_fused_f32 failed. Bailing...!\n");
         exit(-1);
       }
@@ -351,7 +350,7 @@ LIBXSMM_API libxsmm_dnn_fc_fwd_config setup_libxsmm_dnn_fc_fwd(libxsmm_blasint N
 
       res.fwd_compute_kernel4_strd_fused_f32 = libxsmm_dispatch_brgemm_ext_v2( l_shape, l_flags, l_prefetch_flags, l_brconfig,
           l_argops, l_postops );
-      if (  res.fwd_compute_kernel4_strd_fused_f32 == NULL ) {
+      if ( res.fwd_compute_kernel4_strd_fused_f32 == NULL ) {
         fprintf( stderr, "JIT for BRGEMM TPP fwd_compute_kernel4_strd_fused_f32 failed. Bailing...!\n");
         exit(-1);
       }
@@ -1229,7 +1228,7 @@ LIBXSMM_API libxsmm_dnn_fc_bwd_config setup_libxsmm_dnn_fc_bwd(libxsmm_blasint N
 
     l_unary_shape = libxsmm_create_meltw_unary_shape( bk, bn, delbias_K, delbias_N, LIBXSMM_DATATYPE_BF16, LIBXSMM_DATATYPE_BF16, LIBXSMM_DATATYPE_F32 );
     res.delbias_reduce_kernel = libxsmm_dispatch_meltw_unary_v2( LIBXSMM_MELTW_TYPE_UNARY_REDUCE_X_OP_ADD_NCNC_FORMAT, l_unary_shape, LIBXSMM_MELTW_FLAG_UNARY_REDUCE_COLS );
-    if( res.delbias_reduce_kernel == NULL ) {
+    if ( res.delbias_reduce_kernel == NULL ) {
       fprintf( stderr, "JIT for TPP delbias_reduce_kernel failed. Bailing...!\n");
       exit(-1);
     }
@@ -1348,7 +1347,7 @@ LIBXSMM_API libxsmm_dnn_fc_bwd_config setup_libxsmm_dnn_fc_bwd(libxsmm_blasint N
     size_bwd_scratch += res.threads * res.bc * res.K * sizeof(libxsmm_bfloat16);
     size_upd_scratch = sizeof(float) * LIBXSMM_MAX(res.C * res.K, res.threads * res.bc * res.bk) + sizeof(libxsmm_bfloat16) * res.threads * res.bk * res.bc + sizeof(libxsmm_bfloat16) * (res.N * (res.C + res.K));
     res.scratch_size = LIBXSMM_MAX(size_bwd_scratch, size_upd_scratch) + 2 * sizeof(libxsmm_bfloat16) * res.N * res.K;
-    res.doutput_scratch_mark = LIBXSMM_MAX(size_bwd_scratch, size_upd_scratch) ;
+    res.doutput_scratch_mark = LIBXSMM_MAX(size_bwd_scratch, size_upd_scratch);
     res.upd_private_tr_dact_scratch_mark = res.scratch_size;
     res.scratch_size += res.threads * res.bk * res.N * sizeof(libxsmm_bfloat16);
     res.upd_private_tr_act_scratch_mark = res.scratch_size;
@@ -1425,7 +1424,7 @@ LIBXSMM_API libxsmm_dnn_fc_bwd_config setup_libxsmm_dnn_fc_bwd(libxsmm_blasint N
 
     l_unary_shape = libxsmm_create_meltw_unary_shape( bk, bn, delbias_K, delbias_N, LIBXSMM_DATATYPE_BF8, LIBXSMM_DATATYPE_BF8, LIBXSMM_DATATYPE_F32 );
     res.delbias_reduce_kernel = libxsmm_dispatch_meltw_unary_v2( LIBXSMM_MELTW_TYPE_UNARY_REDUCE_X_OP_ADD_NCNC_FORMAT, l_unary_shape, LIBXSMM_MELTW_FLAG_UNARY_REDUCE_COLS );
-    if( res.delbias_reduce_kernel == NULL ) {
+    if ( res.delbias_reduce_kernel == NULL ) {
       fprintf( stderr, "JIT for TPP delbias_reduce_kernel failed. Bailing...!\n");
       exit(-1);
     }
@@ -1539,7 +1538,7 @@ LIBXSMM_API libxsmm_dnn_fc_bwd_config setup_libxsmm_dnn_fc_bwd(libxsmm_blasint N
     size_bwd_scratch += res.threads * res.bc * res.K * sizeof(libxsmm_bfloat8);
     size_upd_scratch = sizeof(float) * LIBXSMM_MAX(res.C * res.K, res.threads * res.bc * res.bk) + sizeof(libxsmm_bfloat8) * res.threads * res.bk * res.bc + sizeof(libxsmm_bfloat8) * (res.N * (res.C + res.K));
     res.scratch_size = LIBXSMM_MAX(size_bwd_scratch, size_upd_scratch) + 2 * sizeof(libxsmm_bfloat8) * res.N * res.K;
-    res.doutput_scratch_mark = LIBXSMM_MAX(size_bwd_scratch, size_upd_scratch) ;
+    res.doutput_scratch_mark = LIBXSMM_MAX(size_bwd_scratch, size_upd_scratch);
     res.upd_private_tr_dact_scratch_mark = res.scratch_size;
     res.scratch_size += res.threads * res.bk * res.N * sizeof(libxsmm_bfloat8);
     res.upd_private_tr_act_scratch_mark = res.scratch_size;

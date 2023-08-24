@@ -8,7 +8,6 @@
 ******************************************************************************/
 /* Kirill Voronin (Intel Corp.)
 ******************************************************************************/
-
 #include <libxsmm_dnn_fusedgn.h>
 
 #define BITS_PER_CHAR (8)
@@ -905,7 +904,7 @@ LIBXSMM_API void libxsmm_dnn_gn_fwd_exec_f32( libxsmm_dnn_gn_fwd_config cfg, con
           }
         }
       } else { /* hw-blocking (implies no padding) */
-        for(hwb=0; hwb < num_HW_blocks; hwb++){
+        for (hwb=0; hwb < num_HW_blocks; hwb++){
           hi = (hwb*(HW/num_HW_blocks))/W;
           w  = (hwb*(HW/num_HW_blocks))%W;
           reduce_param.in.primary = (void*)&LIBXSMM_VLA_ACCESS(5, inp, n, cp, hi, w, 0, CP, H, W, bc);      /* [HW_block, bc] -----> [2 * bc] */
@@ -928,7 +927,7 @@ LIBXSMM_API void libxsmm_dnn_gn_fwd_exec_f32( libxsmm_dnn_gn_fwd_config cfg, con
         } /* loop over hw blocks */
       } /* if-else for the presence of input padding */
 
-      for(i=0; i < bc; i += group_size){
+      for (i=0; i < bc; i += group_size){
         g = (cp*bc + i)/group_size;                                                                      /* determine current group */
         m_reduce_groups_param.in.primary    = &tmp[i];
         m_reduce_groups_param.out.primary   = &sum_X[g];
@@ -940,7 +939,7 @@ LIBXSMM_API void libxsmm_dnn_gn_fwd_exec_f32( libxsmm_dnn_gn_fwd_config cfg, con
         mean[n*G + g] = sum_X[g] / ((float)group_size * HW);
         var[n*G + g] = (sum_X2[g] / ((float)group_size * HW)) - (mean[n*G + g]*mean[n*G + g]);        /* var = E[X^2] - (E[X])^2 */
 
-        for(j = 0; j < group_size; j++){
+        for (j = 0; j < group_size; j++){
           s[i + j] = 1.0f / ((float)sqrt(var[n*G + g] + eps));                                        /* 1/sqrt(var(X) + eps) */
           b[i + j] = -1 * mean[n*G + g] * s[i + j];                                                   /* -E[X]/sqrt(var(X) + eps) */
         }
@@ -991,7 +990,7 @@ LIBXSMM_API void libxsmm_dnn_gn_fwd_exec_f32( libxsmm_dnn_gn_fwd_config cfg, con
         }
 
       } else { /* hw-blocking (implies no padding) */
-        for(hwb=0; hwb < num_HW_blocks; hwb++){
+        for (hwb=0; hwb < num_HW_blocks; hwb++){
           hi = (hwb*(HW/num_HW_blocks))/W;
           ho = hi;
           w  = (hwb*(HW/num_HW_blocks))%W;
@@ -1069,7 +1068,7 @@ LIBXSMM_API void libxsmm_dnn_gn_fwd_exec_f32( libxsmm_dnn_gn_fwd_config cfg, con
             }
           }
         } else { /* hw-blocking (implies no padding) */
-          for(hwb=0; hwb < num_HW_blocks; hwb++){
+          for (hwb=0; hwb < num_HW_blocks; hwb++){
             hi = (hwb*(HW/num_HW_blocks))/W;
             w  = (hwb*(HW/num_HW_blocks))%W;
             reduce_param.in.primary = (void*)&LIBXSMM_VLA_ACCESS(5, inp, n, cp, hi, w, 0, CP, H, W, bc);      /* [HW_block, bc] -----> [2 * bc] */
@@ -1104,7 +1103,7 @@ LIBXSMM_API void libxsmm_dnn_gn_fwd_exec_f32( libxsmm_dnn_gn_fwd_config cfg, con
           sum_X2[g] += v;
         }
         else{                                                 /* Group size < block size  (Ex.- CP = 4, bc = 16, G = 32, group_size = 2) */
-          for(i=0; i < bc; i += group_size){
+          for (i=0; i < bc; i += group_size){
             m_reduce_groups_param.in.primary    = &tmp[i];
             m_reduce_groups_param.out.primary   = &sum_X[cp*(bc/group_size) + (i/group_size)];
             v_reduce_groups_param.in.primary    = &tmp[bc + i];
@@ -1116,11 +1115,11 @@ LIBXSMM_API void libxsmm_dnn_gn_fwd_exec_f32( libxsmm_dnn_gn_fwd_config cfg, con
       }
 
       /* mean and variance calculation */
-      for(g = 0; g < G; g++){
+      for (g = 0; g < G; g++){
         mean[n*G + g] = sum_X[g] / ((float)group_size * HW);
         var[n*G + g] = (sum_X2[g] / ((float)group_size * HW)) - (mean[n*G + g]*mean[n*G + g]);        /* var = E[X^2] - (E[X])^2 */
 
-        for(j = 0; j < group_size; j++){
+        for (j = 0; j < group_size; j++){
           s[g*group_size + j] = 1.0f / ((float)sqrt(var[n*G + g] + eps));                             /* 1/sqrt(var(X) + eps) */
           b[g*group_size + j] = -1 * mean[n*G + g] * s[g*group_size + j];                             /* -E[X]/sqrt(var(X) + eps) */
         }
@@ -1173,7 +1172,7 @@ LIBXSMM_API void libxsmm_dnn_gn_fwd_exec_f32( libxsmm_dnn_gn_fwd_config cfg, con
           }
 
         } else { /* hw-blocking (implies no padding) */
-          for(hwb=0; hwb < num_HW_blocks; hwb++){
+          for (hwb=0; hwb < num_HW_blocks; hwb++){
             hi = (hwb*(HW/num_HW_blocks))/W;
             ho = hi;
             w  = (hwb*(HW/num_HW_blocks))%W;
@@ -1335,7 +1334,7 @@ LIBXSMM_API void libxsmm_dnn_gn_fwd_exec_bf16( libxsmm_dnn_gn_fwd_config cfg, co
           }
         }
       } else { /* hw-blocking (implies no padding) */
-        for(hwb=0; hwb < num_HW_blocks; hwb++){
+        for (hwb=0; hwb < num_HW_blocks; hwb++){
           hi = (hwb*(HW/num_HW_blocks))/W;
           w  = (hwb*(HW/num_HW_blocks))%W;
           reduce_param.in.primary = (void*)&LIBXSMM_VLA_ACCESS(5, inp, n, cp, hi, w, 0, CP, H, W, bc);      /* [HW_block, bc] -----> [2 * bc] */
@@ -1358,7 +1357,7 @@ LIBXSMM_API void libxsmm_dnn_gn_fwd_exec_bf16( libxsmm_dnn_gn_fwd_config cfg, co
         } /* loop over hw blocks */
       } /* if-else for the presence of input padding */
 
-      for(i=0; i < bc; i += group_size){
+      for (i=0; i < bc; i += group_size){
         g = (cp*bc + i)/group_size;                                                                      /* determine current group */
         m_reduce_groups_param.in.primary    = &tmp[i];
         m_reduce_groups_param.out.primary   = &sum_X[g];
@@ -1370,7 +1369,7 @@ LIBXSMM_API void libxsmm_dnn_gn_fwd_exec_bf16( libxsmm_dnn_gn_fwd_config cfg, co
         mean[n*G + g] = sum_X[g] / ((float)group_size * HW);
         var[n*G + g] = (sum_X2[g] / ((float)group_size * HW)) - (mean[n*G + g]*mean[n*G + g]);           /* var = E[X^2] - (E[X])^2 */
 
-        for(j = 0; j < group_size; j++){
+        for (j = 0; j < group_size; j++){
           s[i + j] = 1.0f / ((float)sqrt(var[n*G + g] + eps));                                           /* 1/sqrt(var(X) + eps) */
           b[i + j] = -1 * mean[n*G + g] * s[i + j];                                                      /* -E[X]/sqrt(var(X) + eps) */
         }
@@ -1421,7 +1420,7 @@ LIBXSMM_API void libxsmm_dnn_gn_fwd_exec_bf16( libxsmm_dnn_gn_fwd_config cfg, co
         }
 
       } else { /* hw-blocking (implies no padding) */
-        for(hwb=0; hwb < num_HW_blocks; hwb++){
+        for (hwb=0; hwb < num_HW_blocks; hwb++){
           hi = (hwb*(HW/num_HW_blocks))/W;
           ho = hi;
           w  = (hwb*(HW/num_HW_blocks))%W;
@@ -1499,7 +1498,7 @@ LIBXSMM_API void libxsmm_dnn_gn_fwd_exec_bf16( libxsmm_dnn_gn_fwd_config cfg, co
             }
           }
         } else { /* hw-blocking (implies no padding) */
-          for(hwb=0; hwb < num_HW_blocks; hwb++){
+          for (hwb=0; hwb < num_HW_blocks; hwb++){
             hi = (hwb*(HW/num_HW_blocks))/W;
             w  = (hwb*(HW/num_HW_blocks))%W;
             reduce_param.in.primary = (void*)&LIBXSMM_VLA_ACCESS(5, inp, n, cp, hi, w, 0, CP, H, W, bc);      /* [HW_block, bc] -----> [2 * bc] */
@@ -1534,7 +1533,7 @@ LIBXSMM_API void libxsmm_dnn_gn_fwd_exec_bf16( libxsmm_dnn_gn_fwd_config cfg, co
           sum_X2[g] += v;
         }
         else{                                                 /* Group size < block size  (Ex.- CP = 4, bc = 16, G = 32, group_size = 2) */
-          for(i=0; i < bc; i += group_size){
+          for (i=0; i < bc; i += group_size){
             m_reduce_groups_param.in.primary    = &tmp[i];
             m_reduce_groups_param.out.primary   = &sum_X[cp*(bc/group_size) + (i/group_size)];
             v_reduce_groups_param.in.primary    = &tmp[bc + i];
@@ -1546,11 +1545,11 @@ LIBXSMM_API void libxsmm_dnn_gn_fwd_exec_bf16( libxsmm_dnn_gn_fwd_config cfg, co
       }
 
       /* mean and variance calculation */
-      for(g = 0; g < G; g++){
+      for (g = 0; g < G; g++){
         mean[n*G + g] = sum_X[g] / ((float)group_size * HW);
         var[n*G + g] = (sum_X2[g] / ((float)group_size * HW)) - (mean[n*G + g]*mean[n*G + g]);           /* var = E[X^2] - (E[X])^2 */
 
-        for(j = 0; j < group_size; j++){
+        for (j = 0; j < group_size; j++){
           s[g*group_size + j] = 1.0f / ((float)sqrt(var[n*G + g] + eps));                                /* 1/sqrt(var(X) + eps) */
           b[g*group_size + j] = -1 * mean[n*G + g] * s[g*group_size + j];                                /* -E[X]/sqrt(var(X) + eps) */
         }
@@ -1603,7 +1602,7 @@ LIBXSMM_API void libxsmm_dnn_gn_fwd_exec_bf16( libxsmm_dnn_gn_fwd_config cfg, co
           }
 
         } else { /* hw-blocking (implies no padding) */
-          for(hwb=0; hwb < num_HW_blocks; hwb++){
+          for (hwb=0; hwb < num_HW_blocks; hwb++){
             hi = (hwb*(HW/num_HW_blocks))/W;
             ho = hi;
             w  = (hwb*(HW/num_HW_blocks))%W;
@@ -1745,7 +1744,7 @@ LIBXSMM_API void libxsmm_dnn_gn_bwd_exec_f32( libxsmm_dnn_gn_bwd_config cfg, flo
       n  = cpxnt/CP;
       cp = cpxnt%CP;
 
-      /* for(j = 0; j < bc; j++){
+      /* for (j = 0; j < bc; j++){
           dgamma_N[n*CP*bc + cp*bc + j] = 0.0f;
           dbeta_N[n*CP*bc + cp*bc + j] = 0.0f;
        } */
@@ -1760,9 +1759,9 @@ LIBXSMM_API void libxsmm_dnn_gn_bwd_exec_f32( libxsmm_dnn_gn_bwd_config cfg, flo
       cfg.all_zero_kernel(&all_zero_param);
 
       /* compute a and b for each channel from group means and variance */
-      for(g = (cp*bc)/group_size; g < ((cp+1)*bc)/group_size; g++){
+      for (g = (cp*bc)/group_size; g < ((cp+1)*bc)/group_size; g++){
         lg = g - (cp*bc)/group_size;
-        for(j = 0; j < group_size; j++){
+        for (j = 0; j < group_size; j++){
           a[lg*group_size + j] = 1.0f / ((float)sqrt(var[n*G + g] + eps));
           b[lg*group_size + j] = -a[lg*group_size + j]*mean[n*G + g];
         }
@@ -1849,7 +1848,7 @@ LIBXSMM_API void libxsmm_dnn_gn_bwd_exec_f32( libxsmm_dnn_gn_bwd_config cfg, flo
         }
 
       } else { /* hw-blocking (implies no padding) */
-        for(hwb=0; hwb < num_HW_blocks; hwb++){
+        for (hwb=0; hwb < num_HW_blocks; hwb++){
           ho = (hwb*(HW/num_HW_blocks))/W;
           hi = ho;
           w  = (hwb*(HW/num_HW_blocks))%W;
@@ -1892,15 +1891,15 @@ LIBXSMM_API void libxsmm_dnn_gn_bwd_exec_f32( libxsmm_dnn_gn_bwd_config cfg, flo
       /* b = (db * mean[nb] - ds) * a * a * a * scale; */
       /* c = -b * mean[nb] - db * a * scale; */
 
-      for(g = (cp*bc)/group_size; g < ((cp+1)*bc)/group_size; g++){            /* compute b and c for each channel from group means and variance */
+      for (g = (cp*bc)/group_size; g < ((cp+1)*bc)/group_size; g++){            /* compute b and c for each channel from group means and variance */
         lg = g - (cp*bc)/group_size;
         float gds = 0.0f;
         float gdb = 0.0f;
-        for(j = 0; j < group_size; j++){
+        for (j = 0; j < group_size; j++){
           gds += ds[lg*group_size + j];                                        /* Group ds and db calculation */
           gdb += db[lg*group_size + j];
         }
-        for(j = 0; j < group_size; j++){
+        for (j = 0; j < group_size; j++){
           b[lg*group_size + j] = (gdb * mean[n*G + g] - gds) * a[lg*group_size + j] * a[lg*group_size + j] * a[lg*group_size + j] * scale;
           c[lg*group_size + j] = -b[lg*group_size + j] * mean[n*G + g] - gdb * a[lg*group_size + j] * scale;
         }
@@ -1946,7 +1945,7 @@ LIBXSMM_API void libxsmm_dnn_gn_bwd_exec_f32( libxsmm_dnn_gn_bwd_config cfg, flo
           cfg.all_zero_hp_kernel(&all_zero_param);
         }
       } else { /* hw-blocking (implies no padding) */
-        for(hwb=0; hwb < num_HW_blocks; hwb++){
+        for (hwb=0; hwb < num_HW_blocks; hwb++){
           ho = (hwb*(HW/num_HW_blocks))/W;
           hi = ho;
           w  = (hwb*(HW/num_HW_blocks))%W;
@@ -1970,7 +1969,7 @@ LIBXSMM_API void libxsmm_dnn_gn_bwd_exec_f32( libxsmm_dnn_gn_bwd_config cfg, flo
 
       for (n=0; n < N; n++ ) {
         int cb;
-        for(cb = 0; cb < bc; cb++){
+        for (cb = 0; cb < bc; cb++){
           LIBXSMM_VLA_ACCESS(2, dgamma, cp, cb, bc) += LIBXSMM_VLA_ACCESS(3, dgamma_N, n, cp, cb, CP, bc);
           LIBXSMM_VLA_ACCESS(2, dbeta, cp, cb, bc)  += LIBXSMM_VLA_ACCESS(3, dbeta_N,  n, cp, cb, CP, bc);
         }
@@ -1990,7 +1989,7 @@ LIBXSMM_API void libxsmm_dnn_gn_bwd_exec_f32( libxsmm_dnn_gn_bwd_config cfg, flo
       int hi = 0, ho = 0, w = 0, wb = 0, hwb = 0, cp = 0;
       int j, g;
 
-      /* for(j = 0; j < CP*bc; j++){ */
+      /* for (j = 0; j < CP*bc; j++){ */
       /*   dgamma_N[n*CP*bc + j] = 0.0f; */
       /*   dbeta_N[n*CP*bc + j] = 0.0f; */
       /* } */
@@ -2006,8 +2005,8 @@ LIBXSMM_API void libxsmm_dnn_gn_bwd_exec_f32( libxsmm_dnn_gn_bwd_config cfg, flo
         cfg.all_zero_kernel(&all_zero_param);
       }
 
-      for(g = 0; g < G; g++){                                                  /* compute a and b for each channel from group means and variance */
-        for(j = 0; j < group_size; j++){
+      for (g = 0; g < G; g++){                                                  /* compute a and b for each channel from group means and variance */
+        for (j = 0; j < group_size; j++){
           a[g*group_size + j] = 1.0f / ((float)sqrt(var[n*G + g] + eps));
           b[g*group_size + j] = -a[g*group_size + j]*mean[n*G + g];
         }
@@ -2095,7 +2094,7 @@ LIBXSMM_API void libxsmm_dnn_gn_bwd_exec_f32( libxsmm_dnn_gn_bwd_config cfg, flo
           }
 
         } else { /* hw-blocking (implies no padding) */
-          for(hwb=0; hwb < num_HW_blocks; hwb++){
+          for (hwb=0; hwb < num_HW_blocks; hwb++){
             ho = (hwb*(HW/num_HW_blocks))/W;
             hi = ho;
             w  = (hwb*(HW/num_HW_blocks))%W;
@@ -2139,14 +2138,14 @@ LIBXSMM_API void libxsmm_dnn_gn_bwd_exec_f32( libxsmm_dnn_gn_bwd_config cfg, flo
       /* b = (db * mean[nb] - ds) * a * a * a * scale; */
       /* c = -b * mean[nb] - db * a * scale; */
 
-      for(g = 0; g < G; g++){                                                 /* compute b and c for each channel from group means and variance */
+      for (g = 0; g < G; g++){                                                 /* compute b and c for each channel from group means and variance */
         float gds = 0.0f;
         float gdb = 0.0f;
-        for(j = 0; j < group_size; j++){
+        for (j = 0; j < group_size; j++){
           gds += ds[g*group_size + j];                                        /* Group ds and db calculation */
           gdb += db[g*group_size + j];
         }
-        for(j = 0; j < group_size; j++){
+        for (j = 0; j < group_size; j++){
           b[g*group_size + j] = (gdb * mean[n*G + g] - gds) * a[g*group_size + j] * a[g*group_size + j] * a[g*group_size + j] * scale;
           c[g*group_size + j] = -b[g*group_size + j] * mean[n*G + g] - gdb * a[g*group_size + j] * scale;
         }
@@ -2194,7 +2193,7 @@ LIBXSMM_API void libxsmm_dnn_gn_bwd_exec_f32( libxsmm_dnn_gn_bwd_config cfg, flo
             cfg.all_zero_hp_kernel(&all_zero_param);
           }
         } else { /* hw-blocking (implies no padding) */
-          for(hwb=0; hwb < num_HW_blocks; hwb++){
+          for (hwb=0; hwb < num_HW_blocks; hwb++){
             ho = (hwb*(HW/num_HW_blocks))/W;
             hi = ho;
             w  = (hwb*(HW/num_HW_blocks))%W;
@@ -2220,7 +2219,7 @@ LIBXSMM_API void libxsmm_dnn_gn_bwd_exec_f32( libxsmm_dnn_gn_bwd_config cfg, flo
 
       for (n=0; n < N; n++ ) {
         int cb;
-        for(cb = 0; cb < bc; cb++){
+        for (cb = 0; cb < bc; cb++){
           LIBXSMM_VLA_ACCESS(2, dgamma, cp, cb, bc) += LIBXSMM_VLA_ACCESS(3, dgamma_N, n, cp, cb, CP, bc);
           LIBXSMM_VLA_ACCESS(2, dbeta, cp, cb, bc)  += LIBXSMM_VLA_ACCESS(3, dbeta_N,  n, cp, cb, CP, bc);
         }
@@ -2345,7 +2344,7 @@ LIBXSMM_API void libxsmm_dnn_gn_bwd_exec_bf16( libxsmm_dnn_gn_bwd_config cfg, li
       int hi = 0, ho = 0, w = 0, wb = 0, hwb = 0;
       int j, g, lg;
 
-      /* for(j = 0; j < bc; j++){
+      /* for (j = 0; j < bc; j++){
           dgamma_N[n*CP*bc + cp*bc + j] = 0.0f;
           dbeta_N[n*CP*bc + cp*bc + j] = 0.0f;
        } */
@@ -2360,9 +2359,9 @@ LIBXSMM_API void libxsmm_dnn_gn_bwd_exec_bf16( libxsmm_dnn_gn_bwd_config cfg, li
       cfg.all_zero_kernel(&all_zero_param);
 
       /* compute a and b for each channel from group means and variance */
-      for(g = (cp*bc)/group_size; g < ((cp+1)*bc)/group_size; g++){
+      for (g = (cp*bc)/group_size; g < ((cp+1)*bc)/group_size; g++){
         lg = g - (cp*bc)/group_size;
-        for(j = 0; j < group_size; j++){
+        for (j = 0; j < group_size; j++){
           a[lg*group_size + j] = 1.0f / ((float)sqrt(var[n*G + g] + eps));
           b[lg*group_size + j] = -a[lg*group_size + j]*mean[n*G + g];
         }
@@ -2449,7 +2448,7 @@ LIBXSMM_API void libxsmm_dnn_gn_bwd_exec_bf16( libxsmm_dnn_gn_bwd_config cfg, li
         }
 
       } else { /* hw-blocking (implies no padding) */
-        for(hwb=0; hwb < num_HW_blocks; hwb++){
+        for (hwb=0; hwb < num_HW_blocks; hwb++){
           ho = (hwb*(HW/num_HW_blocks))/W;
           hi = ho;
           w  = (hwb*(HW/num_HW_blocks))%W;
@@ -2492,15 +2491,15 @@ LIBXSMM_API void libxsmm_dnn_gn_bwd_exec_bf16( libxsmm_dnn_gn_bwd_config cfg, li
       /* b = (db * mean[nb] - ds) * a * a * a * scale; */
       /* c = -b * mean[nb] - db * a * scale; */
 
-      for(g = (cp*bc)/group_size; g < ((cp+1)*bc)/group_size; g++){            /* compute b and c for each channel from group means and variance */
+      for (g = (cp*bc)/group_size; g < ((cp+1)*bc)/group_size; g++){            /* compute b and c for each channel from group means and variance */
         lg = g - (cp*bc)/group_size;
         float gds = 0.0f;
         float gdb = 0.0f;
-        for(j = 0; j < group_size; j++){
+        for (j = 0; j < group_size; j++){
           gds += ds[lg*group_size + j];                                        /* Group ds and db calculation */
           gdb += db[lg*group_size + j];
         }
-        for(j = 0; j < group_size; j++){
+        for (j = 0; j < group_size; j++){
           b[lg*group_size + j] = (gdb * mean[n*G + g] - gds) * a[lg*group_size + j] * a[lg*group_size + j] * a[lg*group_size + j] * scale;
           c[lg*group_size + j] = -b[lg*group_size + j] * mean[n*G + g] - gdb * a[lg*group_size + j] * scale;
         }
@@ -2546,7 +2545,7 @@ LIBXSMM_API void libxsmm_dnn_gn_bwd_exec_bf16( libxsmm_dnn_gn_bwd_config cfg, li
           cfg.all_zero_hp_kernel(&all_zero_param);
         }
       } else { /* hw-blocking (implies no padding) */
-        for(hwb=0; hwb < num_HW_blocks; hwb++){
+        for (hwb=0; hwb < num_HW_blocks; hwb++){
           ho = (hwb*(HW/num_HW_blocks))/W;
           hi = ho;
           w  = (hwb*(HW/num_HW_blocks))%W;
@@ -2570,7 +2569,7 @@ LIBXSMM_API void libxsmm_dnn_gn_bwd_exec_bf16( libxsmm_dnn_gn_bwd_config cfg, li
 
       for (n=0; n < N; n++ ) {
         int cb;
-        for(cb = 0; cb < bc; cb++){
+        for (cb = 0; cb < bc; cb++){
           LIBXSMM_VLA_ACCESS(2, dgamma, cp, cb, bc) += LIBXSMM_VLA_ACCESS(3, dgamma_N, n, cp, cb, CP, bc);
           LIBXSMM_VLA_ACCESS(2, dbeta, cp, cb, bc)  += LIBXSMM_VLA_ACCESS(3, dbeta_N,  n, cp, cb, CP, bc);
         }
@@ -2590,7 +2589,7 @@ LIBXSMM_API void libxsmm_dnn_gn_bwd_exec_bf16( libxsmm_dnn_gn_bwd_config cfg, li
       int hi = 0, ho = 0, w = 0, wb = 0, hwb = 0, cp = 0;
       int j, g;
 
-      /* for(j = 0; j < CP*bc; j++){ */
+      /* for (j = 0; j < CP*bc; j++){ */
       /*   dgamma_N[n*CP*bc + j] = 0.0f; */
       /*   dbeta_N[n*CP*bc + j] = 0.0f; */
       /* } */
@@ -2606,8 +2605,8 @@ LIBXSMM_API void libxsmm_dnn_gn_bwd_exec_bf16( libxsmm_dnn_gn_bwd_config cfg, li
         cfg.all_zero_kernel(&all_zero_param);
       }
 
-      for(g = 0; g < G; g++){                                                  /* compute a and b for each channel from group means and variance */
-        for(j = 0; j < group_size; j++){
+      for (g = 0; g < G; g++){                                                  /* compute a and b for each channel from group means and variance */
+        for (j = 0; j < group_size; j++){
           a[g*group_size + j] = 1.0f / ((float)sqrt(var[n*G + g] + eps));
           b[g*group_size + j] = -a[g*group_size + j]*mean[n*G + g];
         }
@@ -2695,7 +2694,7 @@ LIBXSMM_API void libxsmm_dnn_gn_bwd_exec_bf16( libxsmm_dnn_gn_bwd_config cfg, li
           }
 
         } else { /* hw-blocking (implies no padding) */
-          for(hwb=0; hwb < num_HW_blocks; hwb++){
+          for (hwb=0; hwb < num_HW_blocks; hwb++){
             ho = (hwb*(HW/num_HW_blocks))/W;
             hi = ho;
             w  = (hwb*(HW/num_HW_blocks))%W;
@@ -2739,14 +2738,14 @@ LIBXSMM_API void libxsmm_dnn_gn_bwd_exec_bf16( libxsmm_dnn_gn_bwd_config cfg, li
       /* b = (db * mean[nb] - ds) * a * a * a * scale; */
       /* c = -b * mean[nb] - db * a * scale; */
 
-      for(g = 0; g < G; g++){                                                 /* compute b and c for each channel from group means and variance */
+      for (g = 0; g < G; g++){                                                 /* compute b and c for each channel from group means and variance */
         float gds = 0.0f;
         float gdb = 0.0f;
-        for(j = 0; j < group_size; j++){
+        for (j = 0; j < group_size; j++){
           gds += ds[g*group_size + j];                                        /* Group ds and db calculation */
           gdb += db[g*group_size + j];
         }
-        for(j = 0; j < group_size; j++){
+        for (j = 0; j < group_size; j++){
           b[g*group_size + j] = (gdb * mean[n*G + g] - gds) * a[g*group_size + j] * a[g*group_size + j] * a[g*group_size + j] * scale;
           c[g*group_size + j] = -b[g*group_size + j] * mean[n*G + g] - gdb * a[g*group_size + j] * scale;
         }
@@ -2794,7 +2793,7 @@ LIBXSMM_API void libxsmm_dnn_gn_bwd_exec_bf16( libxsmm_dnn_gn_bwd_config cfg, li
             cfg.all_zero_hp_kernel(&all_zero_param);
           }
         } else { /* hw-blocking (implies no padding) */
-          for(hwb=0; hwb < num_HW_blocks; hwb++){
+          for (hwb=0; hwb < num_HW_blocks; hwb++){
             ho = (hwb*(HW/num_HW_blocks))/W;
             hi = ho;
             w  = (hwb*(HW/num_HW_blocks))%W;
@@ -2820,7 +2819,7 @@ LIBXSMM_API void libxsmm_dnn_gn_bwd_exec_bf16( libxsmm_dnn_gn_bwd_config cfg, li
 
       for (n=0; n < N; n++ ) {
         int cb;
-        for(cb = 0; cb < bc; cb++){
+        for (cb = 0; cb < bc; cb++){
           LIBXSMM_VLA_ACCESS(2, dgamma, cp, cb, bc) += LIBXSMM_VLA_ACCESS(3, dgamma_N, n, cp, cb, CP, bc);
           LIBXSMM_VLA_ACCESS(2, dbeta, cp, cb, bc)  += LIBXSMM_VLA_ACCESS(3, dbeta_N,  n, cp, cb, CP, bc);
         }
