@@ -260,10 +260,10 @@ LIBXSMM_API_INLINE int libxsmm_dnn_conv_setup_blocksifm_blocking( libxsmm_dnn_co
     if ((cfg->C >= 2048) && (cfg->K >= 512)) {
       result = 1;
     }
-    if ( (cfg->target_archid < LIBXSMM_X86_AVX512_VL256) && (cfg->C >= 512) ) {
+    if ( (cfg->target_archid < LIBXSMM_X86_AVX512_VL128_SKX) && (cfg->C >= 512) ) {
       result = 2;
     }
-    if ( (cfg->target_archid < LIBXSMM_X86_AVX512_VL256) && (cfg->C >= 1024) ) {
+    if ( (cfg->target_archid < LIBXSMM_X86_AVX512_VL128_SKX) && (cfg->C >= 1024) ) {
       result = 4;
     }
   } else {
