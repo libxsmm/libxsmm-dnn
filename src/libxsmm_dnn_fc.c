@@ -410,10 +410,19 @@ LIBXSMM_API libxsmm_dnn_fc_fwd_config setup_libxsmm_dnn_fc_fwd(libxsmm_blasint N
 
     l_flags = ( LIBXSMM_GEMM_VNNI_FLAGS('N', 'N', 'V', 'N') ) | LIBXSMM_GEMM_FLAG_NO_RESET_TILECONFIG | LIBXSMM_GEMM_FLAG_NO_SETUP_TILECONFIG;
     unroll_hint = (res.C/res.bc)/res.fwd_bf;
-    l_shape = libxsmm_create_gemm_shape( res.bk, res.bn, res.bc,
-                                         lda, ldb, ldc,
-                                         LIBXSMM_DATATYPE_BF16, LIBXSMM_DATATYPE_BF16,
-                                         LIBXSMM_DATATYPE_F32, LIBXSMM_DATATYPE_F32 );
+
+    if (getenv("OVERWRITE_F16")) {
+      l_flags = ( LIBXSMM_GEMM_VNNI_FLAGS('N', 'N', 'N', 'N') );
+      l_shape = libxsmm_create_gemm_shape( res.bk, res.bn, res.bc,
+                                           lda, ldb, ldc,
+                                           LIBXSMM_DATATYPE_F16, LIBXSMM_DATATYPE_F16,
+                                           LIBXSMM_DATATYPE_F16, LIBXSMM_DATATYPE_F16 );
+    } else {
+      l_shape = libxsmm_create_gemm_shape( res.bk, res.bn, res.bc,
+                                           lda, ldb, ldc,
+                                           LIBXSMM_DATATYPE_BF16, LIBXSMM_DATATYPE_BF16,
+                                           LIBXSMM_DATATYPE_F32, LIBXSMM_DATATYPE_F32 );
+    }
     l_brconfig = libxsmm_create_gemm_batch_reduce_config( LIBXSMM_GEMM_BATCH_REDUCE_STRIDE,
                                                           res.bk*res.bc*sizeof(libxsmm_bfloat16),
                                                           res.bc*res.bn*sizeof(libxsmm_bfloat16),
@@ -426,7 +435,11 @@ LIBXSMM_API libxsmm_dnn_fc_fwd_config setup_libxsmm_dnn_fc_fwd(libxsmm_blasint N
     }
 
     l_flags = l_flags | LIBXSMM_GEMM_FLAG_BETA_0;
-    l_shape.out_type = LIBXSMM_DATATYPE_BF16;
+    if (getenv("OVERWRITE_F16")) { 
+      l_shape.out_type = LIBXSMM_DATATYPE_F16;
+    } else {
+      l_shape.out_type = LIBXSMM_DATATYPE_BF16;
+    }
     /* strdied BRGEMM, BF16 out, Betat = 0 */
     res.fwd_compute_kernel2_strd = libxsmm_dispatch_brgemm_v2( l_shape, l_flags, l_prefetch_flags, l_brconfig );
     if ( res.fwd_compute_kernel2_strd == NULL ) {
