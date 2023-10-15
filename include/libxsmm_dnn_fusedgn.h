@@ -8,7 +8,6 @@
 ******************************************************************************/
 /* Kirill Voronin (Intel Corp.)
 ******************************************************************************/
-
 #ifndef LIBXSMM_DNN_FUSEDGN_H
 #define LIBXSMM_DNN_FUSEDGN_H
 
@@ -21,6 +20,7 @@
 #if defined(_OPENMP)
 # include <omp.h>
 #endif
+
 
 typedef enum libxsmm_dnn_gn_fuse {
   LIBXSMM_DNN_GN_FUSE_NONE = 0,
@@ -135,4 +135,3 @@ LIBXSMM_API void libxsmm_dnn_gn_bwd_exec_bf16( libxsmm_dnn_gn_bwd_config cfg, li
                           int start_tid, int my_tid, void *scratch);
 
 #endif
-

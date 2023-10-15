@@ -12,16 +12,13 @@
 #include <dnn_common.h>
 
 #include <mpi.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdio.h>
-#include <math.h>
 #if defined(_OPENMP)
 # include <omp.h>
 #endif
 
 #define DETAILED_PROFILE
 #define N_PROF_THREADS 128
+
 
 LIBXSMM_INLINE void my_init_buf_mlp(float* buf, size_t size, int initPos, int initOne)
 {
@@ -37,7 +34,7 @@ int main(int argc, char* argv[])
   /* Initialize the MPI environment */
   int provided;
   MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
-  if(provided < MPI_THREAD_MULTIPLE) {
+  if (provided < MPI_THREAD_MULTIPLE) {
     printf("The threading support level is lesser than that demanded.\n");
     MPI_Abort(MPI_COMM_WORLD, EXIT_FAILURE);
   }

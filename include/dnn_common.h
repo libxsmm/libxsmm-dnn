@@ -8,13 +8,16 @@
 ******************************************************************************/
 /* Alexander Heinecke (Intel Corp.)
 ******************************************************************************/
+#ifndef LIBXSMM_DNN_COMMON_H
+#define LIBXSMM_DNN_COMMON_H
 
-#include <libxsmm.h>
 #include <libxsmm_intrinsics_x86.h>
+#include <libxsmm.h>
 
 #if defined(_OPENMP)
 # include <omp.h>
 #endif
+
 
 typedef struct {
   int nImg;
@@ -2729,7 +2732,7 @@ LIBXSMM_INLINE void naive_fullyconnected_fp(naive_fullyconnected_t* param, const
 # pragma omp parallel for private(img, ofm, ifm)
 #endif
   for (ofm = 0; ofm < nOFm; ++ofm) {
-    for(img = 0; img < nImg; ++img) {
+    for (img = 0; img < nImg; ++img) {
       LIBXSMM_VLA_ACCESS(2, output, img, ofm, nOFm) = (float)0;
       for (ifm = 0; ifm < nIFm; ++ifm) {
         LIBXSMM_VLA_ACCESS(2, output, img, ofm, nOFm) +=
@@ -2756,7 +2759,7 @@ LIBXSMM_INLINE void naive_fullyconnected_bp(naive_fullyconnected_t* param, float
 # pragma omp parallel for private(img, ofm, ifm)
 #endif
   for (ifm = 0; ifm < nIFm; ++ifm) {
-    for(img = 0; img < nImg; ++img) {
+    for (img = 0; img < nImg; ++img) {
       LIBXSMM_VLA_ACCESS(2, dinput, img, ifm, nIFm) = (float)0;
       for (ofm = 0; ofm < nOFm; ++ofm) {
         LIBXSMM_VLA_ACCESS(2, dinput, img, ifm, nIFm) +=
@@ -2783,7 +2786,7 @@ LIBXSMM_INLINE void naive_fullyconnected_fused_fp(naive_fullyconnected_t* param,
 # pragma omp parallel for private(img, ofm, ifm)
 #endif
   for (ofm = 0; ofm < nOFm; ++ofm) {
-    for(img = 0; img < nImg; ++img) {
+    for (img = 0; img < nImg; ++img) {
       float accum = 0.f;
       for (ifm = 0; ifm < nIFm; ++ifm) {
         accum += LIBXSMM_VLA_ACCESS(2, filter, ofm, ifm, nIFm) * LIBXSMM_VLA_ACCESS(2, input, img, ifm, nIFm);
@@ -2831,7 +2834,7 @@ LIBXSMM_INLINE void naive_fullyconnected_fused_bp(naive_fullyconnected_t* param,
 #endif
     for (ofm = 0; ofm < nOFm; ++ofm) {
       float dbias = 0.0f;
-      for(img = 0; img < nImg; ++img) {
+      for (img = 0; img < nImg; ++img) {
         if ( param->fuse_type == 1 ) {
           dbias += LIBXSMM_VLA_ACCESS(2, doutput, img, ofm, nOFm);
         } else if ( param->fuse_type == 2 ) {
@@ -2860,7 +2863,7 @@ LIBXSMM_INLINE void naive_fullyconnected_fused_bp(naive_fullyconnected_t* param,
 # pragma omp parallel for private(img, ofm, ifm)
 #endif
   for (ifm = 0; ifm < nIFm; ++ifm) {
-    for(img = 0; img < nImg; ++img) {
+    for (img = 0; img < nImg; ++img) {
       LIBXSMM_VLA_ACCESS(2, dinput, img, ifm, nIFm) = (float)0;
       for (ofm = 0; ofm < nOFm; ++ofm) {
         LIBXSMM_VLA_ACCESS(2, dinput, img, ifm, nIFm) +=
@@ -2889,7 +2892,7 @@ LIBXSMM_INLINE void naive_fullyconnected_wu(naive_fullyconnected_t* param, const
   for (ofm = 0; ofm < nOFm; ++ofm) {
     for (ifm = 0; ifm < nIFm; ++ifm) {
       LIBXSMM_VLA_ACCESS(2, dfilter, ofm, ifm, nIFm) = (float)0;
-      for(img = 0; img < nImg; ++img) {
+      for (img = 0; img < nImg; ++img) {
         LIBXSMM_VLA_ACCESS(2, dfilter, ofm, ifm, nIFm) +=
           LIBXSMM_VLA_ACCESS(2, doutput, img, ofm, nOFm) * LIBXSMM_VLA_ACCESS(2, input, img, ifm, nIFm);
       }
@@ -2948,13 +2951,13 @@ LIBXSMM_INLINE void naive_pooling_fp(naive_pooling_t* param, const float* input_
         /* should not happen */
       }
 
-      for( ho = 0; ho < ofh; ho++ ) {
+      for ( ho = 0; ho < ofh; ho++ ) {
         hi = (ho * sh) - pad_h;
-        for( wo = 0; wo < ofw; wo++ ) {
+        for ( wo = 0; wo < ofw; wo++ ) {
           wi = (wo * sw) - pad_w;
-          for( kh = 0; kh < r; kh++ ) {
+          for ( kh = 0; kh < r; kh++ ) {
             if (hi+kh < 0 || hi+kh >= ifh) continue;
-            for( kw = 0; kw < s; kw++ ) {
+            for ( kw = 0; kw < s; kw++ ) {
               if (wi+kw < 0 || wi+kw >= ifw) continue;
               if ( param->type == 0 ) {
                 const int index = (hi+kh)*ifw + wi+kw;
@@ -2973,14 +2976,14 @@ LIBXSMM_INLINE void naive_pooling_fp(naive_pooling_t* param, const float* input_
       }
 
       if (param->type == 0 ) {
-        for( ho = 0; ho < ofh; ho++ ) {
-          for( wo = 0; wo < ofw; wo++ ) {
+        for ( ho = 0; ho < ofh; ho++ ) {
+          for ( wo = 0; wo < ofw; wo++ ) {
             LIBXSMM_VLA_ACCESS(4, output, img, fm, ho, wo, nFm, ofh, ofw) = LIBXSMM_VLA_ACCESS(2, lcl_buffer, ho, wo, ofw);
           }
         }
       } else if (param->type == 1) {
-        for( ho = 0; ho < ofh; ho++ ) {
-          for( wo = 0; wo < ofw; wo++ ) {
+        for ( ho = 0; ho < ofh; ho++ ) {
+          for ( wo = 0; wo < ofw; wo++ ) {
             LIBXSMM_VLA_ACCESS(4, output, img, fm, ho, wo, nFm, ofh, ofw) = LIBXSMM_VLA_ACCESS(2, lcl_buffer, ho, wo, ofw) * (1.0f/(((float)r) * ((float)s)));
           }
         }
@@ -3036,19 +3039,19 @@ LIBXSMM_INLINE void naive_pooling_bp(naive_pooling_t* param, float* dinput_ptr, 
       }
 
       if (param->type == 0 ) {
-        for( ho = 0; ho < ofh; ho++ ) {
-          for( wo = 0; wo < ofw; wo++ ) {
+        for ( ho = 0; ho < ofh; ho++ ) {
+          for ( wo = 0; wo < ofw; wo++ ) {
             lcl_buffer_ptr[LIBXSMM_VLA_ACCESS(4, mask, img, fm, ho, wo, nFm, ofh, ofw)] += LIBXSMM_VLA_ACCESS(4, doutput, img, fm, ho, wo, nFm, ofh, ofw);
           }
         }
       } else if ( param->type == 1 ) {
-        for( ho = 0; ho < ofh; ho++ ) {
+        for ( ho = 0; ho < ofh; ho++ ) {
           hi = (ho * sh) - pad_h;
-          for( wo = 0; wo < ofw; wo++ ) {
+          for ( wo = 0; wo < ofw; wo++ ) {
             wi = (wo * sw) - pad_w;
-            for( kh = 0; kh < r; kh++ ) {
+            for ( kh = 0; kh < r; kh++ ) {
               if (hi+kh < 0 || hi+kh >= ifh) continue;
-              for( kw = 0; kw < s; kw++ ) {
+              for ( kw = 0; kw < s; kw++ ) {
                 if (wi+kw < 0 || wi+kw >= ifw) continue;
                 LIBXSMM_VLA_ACCESS(2, lcl_buffer, hi+kh, wi+kw, ifw) += ( LIBXSMM_VLA_ACCESS(4, doutput, img, fm, ho, wo, nFm, ofh, ofw) * (1.0f/(((float)r) * ((float)s))) );
               }
@@ -3059,8 +3062,8 @@ LIBXSMM_INLINE void naive_pooling_bp(naive_pooling_t* param, float* dinput_ptr, 
         /* should not happen */
       }
 
-      for( hi = 0; hi < ifh; hi++ ) {
-        for( wi = 0; wi < ifw; wi++ ) {
+      for ( hi = 0; hi < ifh; hi++ ) {
+        for ( wi = 0; wi < ifw; wi++ ) {
           LIBXSMM_VLA_ACCESS(4, dinput, img, fm, hi, wi, nFm, ifh, ifw) = LIBXSMM_VLA_ACCESS(2, lcl_buffer, hi, wi, ifw);
         }
       }
@@ -4852,3 +4855,5 @@ LIBXSMM_INLINE void gru_ref_bwd_upd( int N, int C, int K, int t,
     }
   }
 }
+
+#endif

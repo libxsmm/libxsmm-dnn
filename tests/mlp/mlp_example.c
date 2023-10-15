@@ -11,10 +11,6 @@
 #include <libxsmm_dnn.h>
 #include <dnn_common.h>
 
-#include <stdlib.h>
-#include <string.h>
-#include <stdio.h>
-#include <math.h>
 #if defined(_OPENMP)
 # include <omp.h>
 #endif
@@ -28,6 +24,7 @@
 #if 0
 #define USE_OPTI
 #endif
+
 
 LIBXSMM_INLINE void my_init_buf_mlp(float* buf, size_t size, int initPos, int initOne)
 {

@@ -8,7 +8,6 @@
 ******************************************************************************/
 /* Evangelos Georganas (Intel Corp.)
 ******************************************************************************/
-
 #ifndef LIBXSMM_DNN_CONV_H
 #define LIBXSMM_DNN_CONV_H
 
@@ -21,6 +20,7 @@
 #if defined(_OPENMP)
 # include <omp.h>
 #endif
+
 
 typedef enum libxsmm_dnn_conv_eltwise_fuse {
   LIBXSMM_DNN_CONV_ELTWISE_FUSE_NONE = 0,
@@ -373,4 +373,3 @@ LIBXSMM_API void libxsmm_dnn_conv_upd_exec_bf8( libxsmm_dnn_conv_config cfg, con
     unsigned char* bias_ptr, int start_tid, int my_tid, void* scratch );
 
 #endif
-

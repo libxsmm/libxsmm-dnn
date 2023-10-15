@@ -8,7 +8,6 @@
 ******************************************************************************/
 /* Evangelos Georganas (Intel Corp.)
 ******************************************************************************/
-
 #include <libxsmm_dnn_conv.h>
 
 LIBXSMM_API void libxsmm_dnn_conv_bwd_exec_bf8( libxsmm_dnn_conv_config cfg, const libxsmm_bfloat8* wt_ptr, const libxsmm_bfloat8* tr_wt_ptr,  const libxsmm_bfloat8* dout_act_ptr, libxsmm_bfloat8* din_act_ptr,
@@ -431,4 +430,3 @@ LIBXSMM_API void libxsmm_dnn_conv_bwd_exec_bf8( libxsmm_dnn_conv_config cfg, con
   }
   libxsmm_barrier_wait(cfg.barrier, ltid);
 }
-

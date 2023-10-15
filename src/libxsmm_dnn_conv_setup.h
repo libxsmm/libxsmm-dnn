@@ -8,7 +8,6 @@
 ******************************************************************************/
 /* Evangelos Georganas (Intel Corp.)
 ******************************************************************************/
-
 #ifndef LIBXSMM_DNN_CONV_SETUP_H
 #define LIBXSMM_DNN_CONV_SETUP_H
 
@@ -140,4 +139,3 @@ LIBXSMM_API_INLINE void libxsmm_dnn_conv_generate_upd_kernels( libxsmm_dnn_conv_
 LIBXSMM_API_INLINE void libxsmm_dnn_conv_free_offset_brgemm_aux_arrays( libxsmm_dnn_conv_config* cfg);
 
 #endif
-
