@@ -11,16 +11,8 @@
 #ifndef LIBXSMM_DNN_OPT_H
 #define LIBXSMM_DNN_OPT_H
 
+#include <libxsmm_utils.h>
 #include <libxsmm.h>
-#include <libxsmm_sync.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdio.h>
-#include <math.h>
-#if defined(_OPENMP)
-# include <omp.h>
-#endif
-
 
 typedef struct libxsmm_dnn_opt_config {
   libxsmm_blasint C;

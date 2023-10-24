@@ -11,16 +11,8 @@
 #ifndef LIBXSMM_DNN_CONV_H
 #define LIBXSMM_DNN_CONV_H
 
+#include <libxsmm_utils.h>
 #include <libxsmm.h>
-#include <libxsmm_sync.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdio.h>
-#include <math.h>
-#if defined(_OPENMP)
-# include <omp.h>
-#endif
-
 
 typedef enum libxsmm_dnn_conv_eltwise_fuse {
   LIBXSMM_DNN_CONV_ELTWISE_FUSE_NONE = 0,
