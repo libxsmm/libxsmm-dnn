@@ -125,7 +125,7 @@ LIBXSMM_INLINE void rnaz_mask_fp32_bf16(float* in, float* out, unsigned int len)
   for ( i = 0; i < len; ++i ) {
     unsigned int int_round = 0;
     unsigned int do_round = 1;
-    const void *const ptr = &int_round;
+    void* ptr = &int_round;
 
     int_round = *((unsigned int*)&(in[i]));
 
@@ -154,7 +154,7 @@ LIBXSMM_INLINE void rne_mask_fp32_bf16(float* in, float* out, unsigned int len) 
   for ( i = 0; i < len; ++i ) {
     unsigned int int_round = 0;
     unsigned int do_round = 1;
-    const void *const ptr = &int_round;
+    void* ptr = &int_round;
 
     int_round = *((unsigned int*)&(in[i]));
 
@@ -184,7 +184,7 @@ LIBXSMM_INLINE void rne_mask_fp32_bfp16(float* in, float* out, unsigned int len)
   for ( i = 0; i < len; ++i ) {
     unsigned int int_round = 0;
     unsigned int do_round = 1;
-    const void *const ptr = &int_round;
+    void* ptr = &int_round;
 
     int_round = *((unsigned int*)&(in[i]));
 
