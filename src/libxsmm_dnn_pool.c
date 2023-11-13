@@ -10,6 +10,8 @@
 ******************************************************************************/
 #include <libxsmm_dnn_pool.h>
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wcast-qual"
 LIBXSMM_API libxsmm_dnn_pooling_fwd_config setup_libxsmm_dnn_pooling_fwd( const libxsmm_blasint N, const libxsmm_blasint C, const libxsmm_blasint H, const libxsmm_blasint W,
                                             const libxsmm_blasint R, const libxsmm_blasint S,
                                             const libxsmm_blasint stride_h, const libxsmm_blasint stride_w,
@@ -545,5 +547,5 @@ LIBXSMM_API void destroy_libxsmm_dnn_pooling_fwd(libxsmm_dnn_pooling_fwd_config*
 
 LIBXSMM_API void destroy_libxsmm_dnn_pooling_bwd(libxsmm_dnn_pooling_bwd_config* cfg) {
   libxsmm_barrier_destroy(cfg->barrier);
-
 }
+#pragma GCC diagnostic pop

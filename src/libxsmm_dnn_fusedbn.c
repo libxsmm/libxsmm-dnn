@@ -11,7 +11,8 @@
 #include <libxsmm_dnn_fusedbn.h>
 
 #define BITS_PER_CHAR (8)
-
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wcast-qual"
 LIBXSMM_API libxsmm_dnn_bn_fwd_config setup_libxsmm_dnn_bn_fwd(libxsmm_blasint N, libxsmm_blasint C, libxsmm_blasint H, libxsmm_blasint W, libxsmm_blasint bc,
                                  libxsmm_blasint pad_h_in, libxsmm_blasint pad_w_in, libxsmm_blasint pad_h_out, libxsmm_blasint pad_w_out,
                                  libxsmm_blasint threads, libxsmm_dnn_bn_fuse fuse_type,
@@ -2069,3 +2070,4 @@ LIBXSMM_API void libxsmm_dnn_bn_bwd_exec_bf16( libxsmm_dnn_bn_bwd_config cfg, li
 
   libxsmm_barrier_wait(cfg.barrier, ltid);
 }
+#pragma GCC diagnostic pop
