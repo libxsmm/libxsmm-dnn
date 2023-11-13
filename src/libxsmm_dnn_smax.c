@@ -10,6 +10,8 @@
 ******************************************************************************/
 #include <libxsmm_dnn_smax.h>
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wcast-qual"
 LIBXSMM_API libxsmm_dnn_smax_fwd_config setup_libxsmm_dnn_smax_fwd(libxsmm_blasint N, libxsmm_blasint C, libxsmm_blasint bn, libxsmm_blasint bc,
                                      libxsmm_blasint threads, libxsmm_datatype datatype_in,
                                      libxsmm_datatype datatype_out, libxsmm_datatype datatype_comp) {
@@ -400,3 +402,4 @@ LIBXSMM_API void libxsmm_dnn_smax_bwd_exec_bf16( libxsmm_dnn_smax_bwd_config cfg
 
   libxsmm_barrier_wait( cfg.barrier, ltid );
 }
+#pragma GCC diagnostic pop

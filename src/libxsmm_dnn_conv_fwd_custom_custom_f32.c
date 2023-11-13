@@ -10,6 +10,8 @@
 ******************************************************************************/
 #include <libxsmm_dnn_conv.h>
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wcast-qual"
 LIBXSMM_API void libxsmm_dnn_conv_fwd_exec( libxsmm_dnn_conv_config cfg, const float* wt_ptr, const float* in_act_ptr, float* out_act_ptr,
     const float* bias_ptr, unsigned char* relu_ptr, int start_tid, int my_tid, void* scratch ) {
 
@@ -529,3 +531,4 @@ LIBXSMM_API void libxsmm_dnn_conv_fwd_exec( libxsmm_dnn_conv_config cfg, const f
 
   libxsmm_barrier_wait(cfg.barrier, ltid);
 }
+#pragma GCC diagnostic pop
