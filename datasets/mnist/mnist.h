@@ -81,7 +81,7 @@ void FlipLong(unsigned char * ptr)
 }
 
 
-void read_mnist_char(char *file_path, int num_data, int len_info, int arr_n, unsigned char data_char[][arr_n], int info_arr[])
+void read_mnist_char(const char *file_path, int num_data, int len_info, int arr_n, unsigned char data_char[][arr_n], int info_arr[])
 {
     int i, fd;
     unsigned char *ptr;
@@ -124,7 +124,7 @@ void label_char2int(int num_data, unsigned char data_label_char[][1], int data_l
 }
 
 
-void load_mnist(char *TRAIN_IMAGE, char *TRAIN_LABEL, char *TEST_IMAGE, char *TEST_LABEL)
+void load_mnist(const char *TRAIN_IMAGE, const char *TRAIN_LABEL, const char *TEST_IMAGE, const char *TEST_LABEL)
 {
     read_mnist_char(TRAIN_IMAGE, NUM_TRAIN, LEN_INFO_IMAGE, SIZE, train_image_char, info_image);
     image_char2double(NUM_TRAIN, train_image_char, train_image);
@@ -166,7 +166,7 @@ void print_mnist_label(int data_label[], int num_data)
 }
 
 
-void save_image(int n, char name[])
+void save_image(int n, const char name[])
 {
     char file_name[MAX_FILENAME];
     FILE *fp;

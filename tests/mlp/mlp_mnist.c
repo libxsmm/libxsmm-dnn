@@ -17,9 +17,11 @@
 
 #define TEST_ACCURACY
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wcast-qual"
 /* include c-based dnn library */
 #include "../../datasets/mnist/mnist.h"
-
+#pragma GCC diagnostic pop
 
 LIBXSMM_INLINE void my_init_buf_mlp(float* buf, size_t size, int initPos, int initOne)
 {
@@ -384,10 +386,10 @@ int main(int argc, char* argv[])
   }
 
   /* Read in input data */
-  char *train_image_path = "../../datasets/mnist/train-images.idx3-ubyte";
-  char *train_label_path = "../../datasets/mnist/train-labels.idx1-ubyte";
-  char *test_image_path = "../../datasets/mnist/t10k-images.idx3-ubyte";
-  char *test_label_path = "../../datasets/mnist/t10k-labels.idx1-ubyte";
+  const char *train_image_path = "../../datasets/mnist/train-images.idx3-ubyte";
+  const char *train_label_path = "../../datasets/mnist/train-labels.idx1-ubyte";
+  const char *test_image_path = "../../datasets/mnist/t10k-images.idx3-ubyte";
+  const char *test_label_path = "../../datasets/mnist/t10k-labels.idx1-ubyte";
   load_mnist(train_image_path, train_label_path, test_image_path, test_label_path);
 
   /* Format the input layer in NCNC blocked format  */

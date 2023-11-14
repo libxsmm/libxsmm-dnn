@@ -18,6 +18,8 @@
 # include <omp.h>
 #endif
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wcast-qual"
 
 typedef struct {
   int nImg;
@@ -4855,5 +4857,5 @@ LIBXSMM_INLINE void gru_ref_bwd_upd( int N, int C, int K, int t,
     }
   }
 }
-
+#pragma GCC diagnostic pop
 #endif
