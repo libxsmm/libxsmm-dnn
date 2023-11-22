@@ -60,6 +60,7 @@ typedef struct libxsmm_dnn_fc_fwd_config {
   libxsmm_meltwfunction_unary fwd_act_kernel;
   libxsmm_meltwfunction_unary fwd_colbcast_load_kernel;
   libxsmm_meltwfunction_unary fwd_store_kernel;
+  libxsmm_meltwfunction_binary fwd_bias_kernel;
 } libxsmm_dnn_fc_fwd_config;
 
 typedef struct libxsmm_dnn_fc_bwd_config {

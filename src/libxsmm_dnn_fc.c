@@ -21,14 +21,15 @@ LIBXSMM_API libxsmm_dnn_fc_fwd_config setup_libxsmm_dnn_fc_fwd(libxsmm_blasint N
   libxsmm_blasint ldc = bk;
   libxsmm_blasint ld_zero = bk*bn;
   libxsmm_blasint unroll_hint = 0;
-  int arch_cpuid = libxsmm_cpuid(NULL);
-  int l_is_aarch64 = ( arch_cpuid >= LIBXSMM_AARCH64_V81 && arch_cpuid <= LIBXSMM_AARCH64_ALLFEAT ) ? 1 : 0;
 
   libxsmm_bitfield l_flags, l_tc_flags, l_tr_flags;
   libxsmm_bitfield l_prefetch_flags = LIBXSMM_GEMM_PREFETCH_NONE;
 
   libxsmm_meltw_unary_shape  l_unary_shape;
   libxsmm_bitfield  l_unary_flags;
+
+  libxsmm_meltw_binary_shape  l_binary_shape;
+  libxsmm_bitfield  l_binary_flags;
 
   libxsmm_gemm_shape l_shape;
   libxsmm_gemm_batch_reduce_config l_brconfig;
@@ -60,184 +61,6 @@ LIBXSMM_API libxsmm_dnn_fc_fwd_config setup_libxsmm_dnn_fc_fwd(libxsmm_blasint N
   res.fwd_col_teams = 1;
   res.fwd_row_teams = 1;
 
-  if ( l_is_aarch64 == 0 ) {
-    if (threads == 16) {
-      res.fwd_bf = 1;
-      res.fwd_2d_blocking = 1;
-      res.fwd_col_teams = 2;
-      res.fwd_row_teams = 8;
-    } else if (threads == 14) {
-      res.fwd_bf = 1;
-      res.fwd_2d_blocking = 1;
-      res.fwd_col_teams = 2;
-      res.fwd_row_teams = 7;
-    } else if (threads == 8) {
-      res.fwd_bf = 1;
-      res.fwd_2d_blocking = 1;
-      res.fwd_col_teams = 2;
-      res.fwd_row_teams = 4;
-    } else if (threads == 28) {
-      res.fwd_bf = 1;
-      res.fwd_2d_blocking = 1;
-      res.fwd_col_teams = 1;
-      res.fwd_row_teams = 14;
-      res.fwd_M_hyperpartitions = 1;
-      res.fwd_N_hyperpartitions = 2;
-    } else if (threads == 56) {
-      res.fwd_bf = 1;
-      res.fwd_2d_blocking = 1;
-      res.fwd_col_teams = 1;
-      res.fwd_row_teams = 14;
-      res.fwd_M_hyperpartitions = 1;
-      res.fwd_N_hyperpartitions = 4;
-    } else if (threads == 64) {
-      res.fwd_bf = 1;
-      res.fwd_2d_blocking = 1;
-      res.fwd_col_teams = 1;
-      res.fwd_row_teams = 8;
-      res.fwd_M_hyperpartitions = 1;
-      res.fwd_N_hyperpartitions = 8;
-    } else if (threads == 1) {
-      res.fwd_bf = 1;
-      res.fwd_2d_blocking = 1;
-      res.fwd_col_teams = 1;
-      res.fwd_row_teams = 1;
-      res.fwd_M_hyperpartitions = 1;
-      res.fwd_N_hyperpartitions = 1;
-    } else {
-      res.fwd_bf = 1;
-      res.fwd_2d_blocking = 0;
-      res.fwd_col_teams = 1;
-      res.fwd_row_teams = 1;
-    }
-
-    if (res.C == 100 && res.K == 1024 && res.threads == 28) {
-      res.fwd_bf = 1/*((res.C/res.bc) % 1 == 0) ? 1 : 1*/;
-      res.fwd_2d_blocking = 1;
-      res.fwd_col_teams = 14;
-      res.fwd_row_teams = 2;
-    } else if (res.C == 1024 && res.K == 1024 && res.threads == 28) {
-      res.fwd_bf = 1/*((res.C/res.bc) % 1 == 0) ? 1 : 1*/;
-      res.fwd_2d_blocking = 1;
-      res.fwd_col_teams = 7;
-      res.fwd_row_teams = 4;
-    } else if (res.C == 100 && res.K == 1024 && res.threads == 40) {
-      res.fwd_bf = 1/*((res.C/res.bc) % 1 == 0) ? 1 : 1*/;
-      res.fwd_2d_blocking = 1;
-      res.fwd_col_teams = 10;
-      res.fwd_row_teams = 4;
-    } else if (res.C == 1024 && res.K == 1024 && res.threads == 40) {
-      res.fwd_bf = 1/*((res.C/res.bc) % 1 == 0) ? 1 : 1*/;
-      res.fwd_2d_blocking = 1;
-      res.fwd_col_teams = 10;
-      res.fwd_row_teams = 4;
-    } else if (res.C == 100 && res.K == 1024 && res.threads == 22) {
-      res.fwd_bf = 1/*((res.C/res.bc) % 1 == 0) ? 1 : 1*/;
-      res.fwd_2d_blocking = 1;
-      res.fwd_col_teams = 11;
-      res.fwd_row_teams = 2;
-    } else if (res.C == 1024 && res.K == 1024 && res.threads == 22) {
-      res.fwd_bf = 1/*((res.C/res.bc) % 1 == 0) ? 1 : 1*/;
-      res.fwd_2d_blocking = 1;
-      res.fwd_col_teams = 11;
-      res.fwd_row_teams = 2;
-    } else if (res.C == 100 && res.K == 1024 && res.threads == 64) {
-      res.fwd_2d_blocking = 1;
-      res.fwd_col_teams = 8;
-      res.fwd_row_teams = 8;
-    } else if (res.C == 1024 && res.K == 1024 && res.threads == 64) {
-      res.fwd_2d_blocking = 1;
-      res.fwd_col_teams = 8;
-      res.fwd_row_teams = 8;
-    } else if (res.C == 512 && res.K == 512 && res.threads == 28) {
-      res.fwd_bf = 1/*((res.C/res.bc) % 1 == 0) ? 1 : 1*/;
-      res.fwd_2d_blocking = 0;
-      res.fwd_col_teams = 1;
-      res.fwd_row_teams = 1;
-    } else if (res.C == 1024 && res.K == 1 && res.threads == 28) {
-      res.fwd_bf = 1/*((res.C/res.bc) % 1 == 0) ? 1 : 1*/;
-      res.fwd_2d_blocking = 0;
-      res.fwd_col_teams = 1;
-      res.fwd_row_teams = 1;
-    } else if (res.C == 512 && res.K == 512 && res.threads == 40) {
-      res.fwd_bf = 1/*((res.C/res.bc) % 1 == 0) ? 1 : 1*/;
-      res.fwd_2d_blocking = 0;
-      res.fwd_col_teams = 1;
-      res.fwd_row_teams = 1;
-    } else if (res.C == 1024 && res.K == 1 && res.threads == 40) {
-      res.fwd_bf = 1/*((res.C/res.bc) % 1 == 0) ? 1 : 1*/;
-      res.fwd_2d_blocking = 0;
-      res.fwd_col_teams = 1;
-      res.fwd_row_teams = 1;
-    } else if (res.C == 1024 && res.K == 1024 && res.threads == 20) {
-      res.fwd_bf = 1/*((res.C/res.bc) % 1 == 0) ? 1 : 1*/;
-      res.fwd_2d_blocking = 0;
-      res.fwd_col_teams = 5;
-      res.fwd_row_teams = 4;
-    } else if (res.C == 100 && res.K == 1024 && res.threads == 20) {
-      res.fwd_bf = 1/*((res.C/res.bc) % 1 == 0) ? 1 : 1*/;
-      res.fwd_2d_blocking = 1;
-      res.fwd_col_teams = 5;
-      res.fwd_row_teams = 4;
-    } else if (res.C == 1024 && res.K == 1024 && res.threads == 24) {
-      res.fwd_bf = 1/*((res.C/res.bc) % 1 == 0) ? 1 : 1*/;
-      res.fwd_2d_blocking = 0;
-      res.fwd_col_teams = 6;
-      res.fwd_row_teams = 4;
-    } else if (res.C == 100 && res.K == 1024 && res.threads == 24) {
-      res.fwd_bf = 1/*((res.C/res.bc) % 1 == 0) ? 1 : 1*/;
-      res.fwd_2d_blocking = 0;
-      res.fwd_col_teams = 5;
-      res.fwd_row_teams = 4;
-    } else if (res.C == 512 && res.K == 512 && res.threads == 24) {
-      res.fwd_bf = 1/*((res.C/res.bc) % 1 == 0) ? 1 : 1*/;
-      res.fwd_2d_blocking = 0;
-      res.fwd_col_teams = 5;
-      res.fwd_row_teams = 4;
-    } else if (res.C == 512 && res.K == 512 && res.threads == 20) {
-      res.fwd_bf = 1/*((res.C/res.bc) % 1 == 0) ? 1 : 1*/;
-      res.fwd_2d_blocking = 1;
-      res.fwd_col_teams = 5;
-      res.fwd_row_teams = 4;
-    } else if (res.C == 1024 && res.K == 1 && res.threads == 24) {
-      res.fwd_bf = 1/*((res.C/res.bc) % 1 == 0) ? 1 : 1*/;
-      res.fwd_2d_blocking = 0;
-      res.fwd_col_teams = 5;
-      res.fwd_row_teams = 4;
-    } else if (res.C == 1024 && res.K == 1 && res.threads == 20) {
-      res.fwd_bf = 1/*((res.C/res.bc) % 1 == 0) ? 1 : 1*/;
-      res.fwd_2d_blocking = 0;
-      res.fwd_col_teams = 6;
-      res.fwd_row_teams = 4;
-    } else if (res.C == 4096 && res.K == 4096 && res.threads == 8) {
-      res.fwd_bf = 8/*((res.C/res.bc) % 1 == 0) ? 1 : 1*/;
-      res.fwd_2d_blocking = 1;
-      res.fwd_col_teams = 4;
-      res.fwd_row_teams = 2;
-    } else if (res.C == 1024 && res.K == 1024 && res.threads == 8) {
-      res.fwd_bf = 1/*((res.C/res.bc) % 1 == 0) ? 1 : 1*/;
-      res.fwd_2d_blocking = 1;
-      res.fwd_col_teams = 4;
-      res.fwd_row_teams = 2;
-    } else {}
-
-    if ((res.C >= 512) && (res.threads == 22)) {
-      res.fwd_bf = 4;
-      while  ((res.C/res.bc) % res.fwd_bf != 0) {
-        res.fwd_bf--;
-      }
-    }
-  } else {
-    if (threads == 64) {
-      res.fwd_bf = 1;
-      res.fwd_2d_blocking = 0;
-      res.fwd_col_teams = 1;
-      res.fwd_row_teams = 1;
-      res.fwd_M_hyperpartitions = 1;
-      res.fwd_N_hyperpartitions = 1;
-    }
-  }
-
 #if 0
   res.fwd_bf = atoi(getenv("FWD_BF"));
   res.fwd_2d_blocking = atoi(getenv("FWD_2D_BLOCKING"));
@@ -266,6 +89,7 @@ LIBXSMM_API libxsmm_dnn_fc_fwd_config setup_libxsmm_dnn_fc_fwd(libxsmm_blasint N
       exit(-1);
     }
 
+#if 0
     if (res.fuse_type == LIBXSMM_DNN_FC_ELTW_FUSE_RELU || res.fuse_type == LIBXSMM_DNN_FC_ELTW_FUSE_BIAS_RELU ||
         res.fuse_type == LIBXSMM_DNN_FC_ELTW_FUSE_RELU_WITH_MASK || res.fuse_type == LIBXSMM_DNN_FC_ELTW_FUSE_BIAS_RELU_WITH_MASK) {
       memset( &l_argops,  0, sizeof(libxsmm_gemm_ext_unary_argops  ) );
@@ -285,6 +109,7 @@ LIBXSMM_API libxsmm_dnn_fc_fwd_config setup_libxsmm_dnn_fc_fwd(libxsmm_blasint N
         exit(-1);
       }
     }
+#endif
 
     l_flags |= LIBXSMM_GEMM_FLAG_BETA_0;
     res.fwd_compute_kernel2_strd = libxsmm_dispatch_brgemm_v2( l_shape, l_flags, l_prefetch_flags, l_brconfig );
@@ -293,6 +118,7 @@ LIBXSMM_API libxsmm_dnn_fc_fwd_config setup_libxsmm_dnn_fc_fwd(libxsmm_blasint N
       exit(-1);
     }
 
+#if 0
     if (res.fuse_type == LIBXSMM_DNN_FC_ELTW_FUSE_BIAS || res.fuse_type == LIBXSMM_DNN_FC_ELTW_FUSE_BIAS_RELU ||
         res.fuse_type == LIBXSMM_DNN_FC_ELTW_FUSE_BIAS_RELU_WITH_MASK) {
 
@@ -357,15 +183,7 @@ LIBXSMM_API libxsmm_dnn_fc_fwd_config setup_libxsmm_dnn_fc_fwd(libxsmm_blasint N
         exit(-1);
       }
     }
-
-#if 0
-    /* Eltwise TPPs  */
-    l_unary_shape       = libxsmm_create_meltw_unary_shape(res.bn * res.bk, 1, ld_zero, ld_zero, dtype, dtype, dtype);
-    res.fwd_zero_kernel = libxsmm_dispatch_meltw_unary_v2(LIBXSMM_MELTW_TYPE_UNARY_XOR, unary_shape, LIBXSMM_MELTW_FLAG_UNARY_NONE);
-    if ( res.fwd_zero_kernel == NULL ) {
-      fprintf( stderr, "JIT for TPP fwd_zero_kernel failed. Bailing...!\n");
-      exit(-1);
-    }
+#endif
 
     l_unary_shape         = libxsmm_create_meltw_unary_shape(res.bk, res.bn, ldc, ldc, dtype, dtype, dtype);
     if ( res.fuse_type == LIBXSMM_DNN_FC_ELTW_FUSE_RELU_WITH_MASK || res.fuse_type == LIBXSMM_DNN_FC_ELTW_FUSE_BIAS_RELU_WITH_MASK )
@@ -375,6 +193,23 @@ LIBXSMM_API libxsmm_dnn_fc_fwd_config setup_libxsmm_dnn_fc_fwd(libxsmm_blasint N
     res.fwd_act_kernel = libxsmm_dispatch_meltw_unary_v2(LIBXSMM_MELTW_TYPE_UNARY_RELU, l_unary_shape, l_unary_flags);
     if ( res.fwd_act_kernel == NULL ) {
       fprintf( stderr, "JIT for TPP fwd_relu_kernel failed. Bailing...!\n");
+      exit(-1);
+    }
+
+    l_binary_shape       = libxsmm_create_meltw_binary_shape(res.bk, res.bn, ldc, ldc, ldc, dtype, dtype, dtype, dtype);
+    l_binary_flags       = LIBXSMM_MELTW_FLAG_BINARY_BCAST_COL_IN_0;
+    res.fwd_bias_kernel  = libxsmm_dispatch_meltw_binary_v2(LIBXSMM_MELTW_TYPE_BINARY_ADD, l_binary_shape, l_binary_flags);
+    if ( res.fwd_bias_kernel == NULL ) {
+      fprintf( stderr, "JIT for TPP fwd_bias_kernel failed. Bailing...!\n");
+      exit(-1);
+    }
+
+#if 0
+    /* Eltwise TPPs  */
+    l_unary_shape       = libxsmm_create_meltw_unary_shape(res.bn * res.bk, 1, ld_zero, ld_zero, dtype, dtype, dtype);
+    res.fwd_zero_kernel = libxsmm_dispatch_meltw_unary_v2(LIBXSMM_MELTW_TYPE_UNARY_XOR, unary_shape, LIBXSMM_MELTW_FLAG_UNARY_NONE);
+    if ( res.fwd_zero_kernel == NULL ) {
+      fprintf( stderr, "JIT for TPP fwd_zero_kernel failed. Bailing...!\n");
       exit(-1);
     }
 
@@ -1561,13 +1396,8 @@ LIBXSMM_API void libxsmm_dnn_fc_fwd_exec_f32( libxsmm_dnn_fc_fwd_config cfg, con
   const libxsmm_blasint nBlocksMB  = cfg.N / cfg.bn;
 
   libxsmm_gemm_param gemm_param;
-
-  gemm_param.a.secondary = NULL;
-  gemm_param.b.secondary = NULL;
-
-  libxsmm_gemm_ext_param gemm_param_ext;
-  gemm_param_ext.a.secondary = NULL;
-  gemm_param_ext.b.secondary = NULL;
+  libxsmm_meltw_unary_param unary_param /*= { 0 }*/;
+  libxsmm_meltw_binary_param binary_param /*= { 0 }*/;
 
   /* computing first logical thread */
   const libxsmm_blasint ltid = my_tid - start_tid;
@@ -1581,10 +1411,7 @@ LIBXSMM_API void libxsmm_dnn_fc_fwd_exec_f32( libxsmm_dnn_fc_fwd_config cfg, con
   const libxsmm_blasint thr_end = ((ltid + 1) * chunksize < work) ? ((ltid + 1) * chunksize) : work;
 
   /* loop variables */
-  libxsmm_blasint mb1ofm1 = 0, mb1 = 0, ofm1 = 0, ifm1 = 0;
-  libxsmm_blasint N_tasks_per_thread = 0, M_tasks_per_thread = 0;
-  libxsmm_blasint my_M_start = 0, my_M_end = 0, my_N_start = 0, my_N_end = 0;
-  libxsmm_blasint my_col_id = 0, my_row_id = 0, col_teams = 0, row_teams = 0;
+  libxsmm_blasint mb1ofm1 = 0, mb1 = 0, ofm1 = 0;
 
   LIBXSMM_VLA_DECL(4, float,           output, out_act_ptr, nBlocksOFm, cfg.bn, cfg.bk);
   LIBXSMM_VLA_DECL(4, const float,      input,  in_act_ptr, nBlocksIFm, cfg.bn, cfg.bc);
@@ -1593,180 +1420,57 @@ LIBXSMM_API void libxsmm_dnn_fc_fwd_exec_f32( libxsmm_dnn_fc_fwd_config cfg, con
   LIBXSMM_VLA_DECL(4, unsigned char, relubitmask,    relu_ptr, nBlocksOFm, cfg.bn, cfg.bk/8);
 
   unsigned long long  blocks = nBlocksIFm;
-  libxsmm_blasint CB_BLOCKS = nBlocksIFm, BF = 1;
   LIBXSMM_UNUSED( scratch );
 
-  BF = cfg.fwd_bf;
-  CB_BLOCKS = nBlocksIFm/BF;
-  blocks = CB_BLOCKS;
-
-  col_teams = cfg.fwd_col_teams;
-  row_teams = cfg.fwd_row_teams;
-  my_row_id = ltid % row_teams;
-  my_col_id = ltid / row_teams;
-  N_tasks_per_thread = LIBXSMM_UPDIV(nBlocksMB, col_teams);
-  M_tasks_per_thread = LIBXSMM_UPDIV(nBlocksOFm, row_teams);
-  my_N_start = LIBXSMM_MIN(my_col_id * N_tasks_per_thread, nBlocksMB);
-  my_N_end = LIBXSMM_MIN((my_col_id+1) * N_tasks_per_thread, nBlocksMB);
-  my_M_start = LIBXSMM_MIN(my_row_id * M_tasks_per_thread, nBlocksOFm);
-  my_M_end = LIBXSMM_MIN((my_row_id+1) * M_tasks_per_thread, nBlocksOFm);
+  gemm_param.a.secondary = NULL;
+  gemm_param.b.secondary = NULL;
 
   /* lazy barrier init */
   libxsmm_barrier_init(cfg.barrier, ltid);
 
-  if (cfg.fwd_2d_blocking == 1) {
-    if (BF > 1) {
-      for (ifm1 = 0; ifm1 < BF; ++ifm1) {
-        for (ofm1 = my_M_start; ofm1 < my_M_end; ++ofm1) {
-          for (mb1 = my_N_start; mb1 < my_N_end; ++mb1) {
-            if ( ifm1 == 0 ) {
-              if ( cfg.fuse_type == LIBXSMM_DNN_FC_ELTW_FUSE_BIAS || cfg.fuse_type == LIBXSMM_DNN_FC_ELTW_FUSE_BIAS_RELU || cfg.fuse_type == LIBXSMM_DNN_FC_ELTW_FUSE_BIAS_RELU_WITH_MASK ) {
-                  gemm_param_ext.op.tertiary = &blocks;
-                  gemm_param_ext.a.primary = (void*)&LIBXSMM_VLA_ACCESS(4, filter, ofm1, ifm1*CB_BLOCKS, 0, 0, nBlocksIFm, cfg.bc, cfg.bk);
-                  gemm_param_ext.b.primary = (void*)&LIBXSMM_VLA_ACCESS(4, input,  mb1, ifm1*CB_BLOCKS, 0, 0, nBlocksIFm, cfg.bn, cfg.bc);
-                  gemm_param_ext.c.primary = (void*)&LIBXSMM_VLA_ACCESS(4, output, mb1, ofm1, 0, 0, nBlocksOFm, cfg.bn, cfg.bk);
-                  gemm_param_ext.d.primary = (void*)&LIBXSMM_VLA_ACCESS(2, bias, ofm1, 0, cfg.bk);
-                  cfg.fwd_compute_kernel2_strd_fused_f32( &gemm_param_ext ); /* beta = 0.0 + bias */
-              } else {
-                gemm_param.op.tertiary = &blocks;
-                gemm_param.a.primary = (void*)&LIBXSMM_VLA_ACCESS(4, filter, ofm1, ifm1*CB_BLOCKS, 0, 0, nBlocksIFm, cfg.bc, cfg.bk);
-                gemm_param.b.primary = (void*)&LIBXSMM_VLA_ACCESS(4, input,  mb1, ifm1*CB_BLOCKS, 0, 0, nBlocksIFm, cfg.bn, cfg.bc);
-                gemm_param.c.primary = (void*)&LIBXSMM_VLA_ACCESS(4, output, mb1, ofm1, 0, 0, nBlocksOFm, cfg.bn, cfg.bk);
-                cfg.fwd_compute_kernel2_strd( &gemm_param ); /* beta = 0.0 */
-              }
-            } else { /* not ifm1 = 0 */
-              if ( ( ifm1 == BF-1 ) &&
-                   (cfg.fuse_type == LIBXSMM_DNN_FC_ELTW_FUSE_RELU || cfg.fuse_type == LIBXSMM_DNN_FC_ELTW_FUSE_BIAS_RELU ||
-                      cfg.fuse_type == LIBXSMM_DNN_FC_ELTW_FUSE_RELU_WITH_MASK || cfg.fuse_type == LIBXSMM_DNN_FC_ELTW_FUSE_BIAS_RELU_WITH_MASK)
-                 ) {
-                gemm_param_ext.op.tertiary = &blocks;
-                gemm_param_ext.a.primary   = (void*)&LIBXSMM_VLA_ACCESS(4, filter, ofm1, ifm1*CB_BLOCKS, 0, 0, nBlocksIFm, cfg.bc, cfg.bk);
-                gemm_param_ext.b.primary   = (void*)&LIBXSMM_VLA_ACCESS(4, input,   mb1, ifm1*CB_BLOCKS, 0, 0, nBlocksIFm, cfg.bn, cfg.bc);
-                gemm_param_ext.c.primary   = (void*)&LIBXSMM_VLA_ACCESS(4, output,      mb1, ofm1, 0, 0, nBlocksOFm, cfg.bn, cfg.bk);
-                gemm_param_ext.c.secondary = (void*)&LIBXSMM_VLA_ACCESS(4, relubitmask, mb1, ofm1, 0, 0, nBlocksOFm, cfg.bn, cfg.bk/8);
-                cfg.fwd_compute_kernel_strd_fused_f32( &gemm_param_ext ); /* beta = 1.0 + relu */
-              } else {
-                gemm_param.op.tertiary = &blocks;
-                gemm_param.a.primary = (void*)&LIBXSMM_VLA_ACCESS(4, filter, ofm1, ifm1*CB_BLOCKS, 0, 0, nBlocksIFm, cfg.bc, cfg.bk);
-                gemm_param.b.primary = (void*)&LIBXSMM_VLA_ACCESS(4, input,  mb1, ifm1*CB_BLOCKS, 0, 0, nBlocksIFm, cfg.bn, cfg.bc);
-                gemm_param.c.primary = (void*)&LIBXSMM_VLA_ACCESS(4, output, mb1, ofm1, 0, 0, nBlocksOFm, cfg.bn, cfg.bk);
-                cfg.fwd_compute_kernel_strd( &gemm_param ); /* beta = 1.0 */
-              }
-            }
-          }
-        }
-      }
-    } else {
-      for (ofm1 = my_M_start; ofm1 < my_M_end; ++ofm1) {
-        for (mb1 = my_N_start; mb1 < my_N_end; ++mb1) {
-          if ( cfg.fuse_type == LIBXSMM_DNN_FC_ELTW_FUSE_BIAS ) { /* bias only */
-            gemm_param_ext.op.tertiary = &blocks;
-            gemm_param_ext.a.primary = (void*)&LIBXSMM_VLA_ACCESS(4, filter, ofm1, 0, 0, 0, nBlocksIFm, cfg.bc, cfg.bk);
-            gemm_param_ext.b.primary = (void*)&LIBXSMM_VLA_ACCESS(4, input,  mb1, 0, 0, 0, nBlocksIFm, cfg.bn, cfg.bc);
-            gemm_param_ext.c.primary = (void*)&LIBXSMM_VLA_ACCESS(4, output, mb1, ofm1, 0, 0, nBlocksOFm, cfg.bn, cfg.bk);
-            gemm_param_ext.d.primary = (void*)&LIBXSMM_VLA_ACCESS(2, bias, ofm1, 0, cfg.bk);
-            cfg.fwd_compute_kernel2_strd_fused_f32( &gemm_param_ext ); /* beta = 0.0 + bias */
-          } else if ( cfg.fuse_type == LIBXSMM_DNN_FC_ELTW_FUSE_BIAS_RELU || cfg.fuse_type == LIBXSMM_DNN_FC_ELTW_FUSE_BIAS_RELU_WITH_MASK ) { /* bias + relu */
-            gemm_param_ext.op.tertiary = &blocks;
-            gemm_param_ext.a.primary   = (void*)&LIBXSMM_VLA_ACCESS(4, filter, ofm1, 0, 0, 0, nBlocksIFm, cfg.bc, cfg.bk);
-            gemm_param_ext.b.primary   = (void*)&LIBXSMM_VLA_ACCESS(4, input,  mb1,  0, 0, 0, nBlocksIFm, cfg.bn, cfg.bc);
-            gemm_param_ext.d.primary   = (void*)&LIBXSMM_VLA_ACCESS(2, bias,   ofm1, 0, cfg.bk);
-            gemm_param_ext.c.primary   = (void*)&LIBXSMM_VLA_ACCESS(4, output,      mb1, ofm1, 0, 0, nBlocksOFm, cfg.bn, cfg.bk);
-            gemm_param_ext.c.secondary = (void*)&LIBXSMM_VLA_ACCESS(4, relubitmask, mb1, ofm1, 0, 0, nBlocksOFm, cfg.bn, cfg.bk/8);
-            cfg.fwd_compute_kernel3_strd_fused_f32( &gemm_param_ext ); /* beta = 0.0 + bias + relu */
-          } else if ( cfg.fuse_type == LIBXSMM_DNN_FC_ELTW_FUSE_RELU || cfg.fuse_type == LIBXSMM_DNN_FC_ELTW_FUSE_RELU_WITH_MASK ) { /* only relu */
-            gemm_param_ext.op.tertiary = &blocks;
-            gemm_param_ext.a.primary   = (void*)&LIBXSMM_VLA_ACCESS(4, filter, ofm1, 0, 0, 0, nBlocksIFm, cfg.bc, cfg.bk);
-            gemm_param_ext.b.primary   = (void*)&LIBXSMM_VLA_ACCESS(4, input,  mb1,  0, 0, 0, nBlocksIFm, cfg.bn, cfg.bc);
-            gemm_param_ext.c.primary   = (void*)&LIBXSMM_VLA_ACCESS(4, output,      mb1, ofm1, 0, 0, nBlocksOFm, cfg.bn, cfg.bk);
-            gemm_param_ext.c.secondary = (void*)&LIBXSMM_VLA_ACCESS(4, relubitmask, mb1, ofm1, 0, 0, nBlocksOFm, cfg.bn, cfg.bk/8);
-            cfg.fwd_compute_kernel4_strd_fused_f32( &gemm_param_ext ); /* beta = 0.0 + relu */
-          } else { /* no fusion */
-            gemm_param.op.tertiary = &blocks;
-            gemm_param.a.primary = (void*)&LIBXSMM_VLA_ACCESS(4, filter, ofm1, 0, 0, 0, nBlocksIFm, cfg.bc, cfg.bk);
-            gemm_param.b.primary = (void*)&LIBXSMM_VLA_ACCESS(4, input,  mb1, 0, 0, 0, nBlocksIFm, cfg.bn, cfg.bc);
-            gemm_param.c.primary = (void*)&LIBXSMM_VLA_ACCESS(4, output, mb1, ofm1, 0, 0, nBlocksOFm, cfg.bn, cfg.bk);
-            cfg.fwd_compute_kernel2_strd( &gemm_param ); /* beta = 0.0 */
-          }
-        }
-      }
-    }
-  } else {
-    if (BF > 1) {
-      for ( ifm1 = 0; ifm1 < BF; ++ifm1 ) {
-        for ( mb1ofm1 = thr_begin; mb1ofm1 < thr_end; ++mb1ofm1 ) {
-          mb1  = mb1ofm1%nBlocksMB;
-          ofm1 = mb1ofm1/nBlocksMB;
-          if ( ifm1 == 0 ) {
-            if ( cfg.fuse_type == LIBXSMM_DNN_FC_ELTW_FUSE_BIAS || cfg.fuse_type == LIBXSMM_DNN_FC_ELTW_FUSE_BIAS_RELU || cfg.fuse_type == LIBXSMM_DNN_FC_ELTW_FUSE_BIAS_RELU_WITH_MASK ) {
-              gemm_param_ext.op.tertiary = &blocks;
-              gemm_param_ext.a.primary = (void*)&LIBXSMM_VLA_ACCESS(4, filter, ofm1, ifm1*CB_BLOCKS, 0, 0, nBlocksIFm, cfg.bc, cfg.bk);
-              gemm_param_ext.b.primary = (void*)&LIBXSMM_VLA_ACCESS(4, input,  mb1, ifm1*CB_BLOCKS, 0, 0, nBlocksIFm, cfg.bn, cfg.bc);
-              gemm_param_ext.c.primary = (void*)&LIBXSMM_VLA_ACCESS(4, output, mb1, ofm1, 0, 0, nBlocksOFm, cfg.bn, cfg.bk);
-              gemm_param_ext.d.primary = (void*)&LIBXSMM_VLA_ACCESS(2, bias, ofm1, 0, cfg.bk);
-              cfg.fwd_compute_kernel2_strd_fused_f32( &gemm_param_ext ); /* beta = 0.0 + bias */
-            } else {
-              gemm_param.op.tertiary = &blocks;
-              gemm_param.a.primary = (void*)&LIBXSMM_VLA_ACCESS(4, filter, ofm1, ifm1*CB_BLOCKS, 0, 0, nBlocksIFm, cfg.bc, cfg.bk);
-              gemm_param.b.primary = (void*)&LIBXSMM_VLA_ACCESS(4, input,  mb1, ifm1*CB_BLOCKS, 0, 0, nBlocksIFm, cfg.bn, cfg.bc);
-              gemm_param.c.primary = (void*)&LIBXSMM_VLA_ACCESS(4, output, mb1, ofm1, 0, 0, nBlocksOFm, cfg.bn, cfg.bk);
-              cfg.fwd_compute_kernel2_strd( &gemm_param ); /* beta = 0.0 */
-            }
-          } else { /* not ifm1 = 0 */
-            if ( ( ifm1 == BF-1 ) &&
-                 (cfg.fuse_type == LIBXSMM_DNN_FC_ELTW_FUSE_RELU || cfg.fuse_type == LIBXSMM_DNN_FC_ELTW_FUSE_BIAS_RELU ||
-                    cfg.fuse_type == LIBXSMM_DNN_FC_ELTW_FUSE_RELU_WITH_MASK || cfg.fuse_type == LIBXSMM_DNN_FC_ELTW_FUSE_BIAS_RELU_WITH_MASK)
-               ) {
-              gemm_param_ext.op.tertiary = &blocks;
-              gemm_param_ext.a.primary   = (void*)&LIBXSMM_VLA_ACCESS(4, filter, ofm1, ifm1*CB_BLOCKS, 0, 0, nBlocksIFm, cfg.bc, cfg.bk);
-              gemm_param_ext.b.primary   = (void*)&LIBXSMM_VLA_ACCESS(4, input,  mb1,  ifm1*CB_BLOCKS, 0, 0, nBlocksIFm, cfg.bn, cfg.bc);
-              gemm_param_ext.c.primary   = (void*)&LIBXSMM_VLA_ACCESS(4, output,      mb1, ofm1, 0, 0, nBlocksOFm, cfg.bn, cfg.bk);
-              gemm_param_ext.c.secondary = (void*)&LIBXSMM_VLA_ACCESS(4, relubitmask, mb1, ofm1, 0, 0, nBlocksOFm, cfg.bn, cfg.bk/8);
-              cfg.fwd_compute_kernel_strd_fused_f32( &gemm_param_ext ); /* beta = 1.0 + relu */
-            } else {
-              gemm_param.op.tertiary = &blocks;
-              gemm_param.a.primary = (void*)&LIBXSMM_VLA_ACCESS(4, filter, ofm1, ifm1*CB_BLOCKS, 0, 0, nBlocksIFm, cfg.bc, cfg.bk);
-              gemm_param.b.primary = (void*)&LIBXSMM_VLA_ACCESS(4, input,  mb1, ifm1*CB_BLOCKS, 0, 0, nBlocksIFm, cfg.bn, cfg.bc);
-              gemm_param.c.primary = (void*)&LIBXSMM_VLA_ACCESS(4, output, mb1, ofm1, 0, 0, nBlocksOFm, cfg.bn, cfg.bk);
-              cfg.fwd_compute_kernel_strd( &gemm_param ); /* beta = 1.0 */
-            }
-          }
-        }
-      }
-    } else {
-      for ( mb1ofm1 = thr_begin; mb1ofm1 < thr_end; ++mb1ofm1 ) {
-        mb1  = mb1ofm1%nBlocksMB;
-        ofm1 = mb1ofm1/nBlocksMB;
-        if ( cfg.fuse_type == LIBXSMM_DNN_FC_ELTW_FUSE_BIAS ) { /* bias only */
-          gemm_param_ext.op.tertiary = &blocks;
-          gemm_param_ext.a.primary = (void*)&LIBXSMM_VLA_ACCESS(4, filter, ofm1, 0, 0, 0, nBlocksIFm, cfg.bc, cfg.bk);
-          gemm_param_ext.b.primary = (void*)&LIBXSMM_VLA_ACCESS(4, input,  mb1, 0, 0, 0, nBlocksIFm, cfg.bn, cfg.bc);
-          gemm_param_ext.c.primary = (void*)&LIBXSMM_VLA_ACCESS(4, output, mb1, ofm1, 0, 0, nBlocksOFm, cfg.bn, cfg.bk);
-          gemm_param_ext.d.primary = (void*)&LIBXSMM_VLA_ACCESS(2, bias, ofm1, 0, cfg.bk);
-          cfg.fwd_compute_kernel2_strd_fused_f32( &gemm_param_ext ); /* beta = 0.0 + bias */
-        } else if ( cfg.fuse_type == LIBXSMM_DNN_FC_ELTW_FUSE_BIAS_RELU || cfg.fuse_type == LIBXSMM_DNN_FC_ELTW_FUSE_BIAS_RELU_WITH_MASK ) { /* bias and relu */
-          gemm_param_ext.op.tertiary = &blocks;
-          gemm_param_ext.a.primary   = (void*)&LIBXSMM_VLA_ACCESS(4, filter, ofm1, 0, 0, 0, nBlocksIFm, cfg.bc, cfg.bk);
-          gemm_param_ext.b.primary   = (void*)&LIBXSMM_VLA_ACCESS(4, input,  mb1, 0, 0, 0, nBlocksIFm, cfg.bn, cfg.bc);
-          gemm_param_ext.d.primary   = (void*)&LIBXSMM_VLA_ACCESS(2, bias,   ofm1, 0, cfg.bk);
-          gemm_param_ext.c.primary   = (void*)&LIBXSMM_VLA_ACCESS(4, output,      mb1, ofm1, 0, 0, nBlocksOFm, cfg.bn, cfg.bk);
-          gemm_param_ext.c.secondary = (void*)&LIBXSMM_VLA_ACCESS(4, relubitmask, mb1, ofm1, 0, 0, nBlocksOFm, cfg.bn, cfg.bk/8);
-          cfg.fwd_compute_kernel3_strd_fused_f32( &gemm_param_ext ); /* beta = 0.0 + bias + relu */
-        } else if ( cfg.fuse_type == LIBXSMM_DNN_FC_ELTW_FUSE_RELU || cfg.fuse_type == LIBXSMM_DNN_FC_ELTW_FUSE_RELU_WITH_MASK ) { /* relu only */
-          gemm_param_ext.op.tertiary = &blocks;
-          gemm_param_ext.a.primary   = (void*)&LIBXSMM_VLA_ACCESS(4, filter, ofm1, 0, 0, 0, nBlocksIFm, cfg.bc, cfg.bk);
-          gemm_param_ext.b.primary   = (void*)&LIBXSMM_VLA_ACCESS(4, input,  mb1,  0, 0, 0, nBlocksIFm, cfg.bn, cfg.bc);
-          gemm_param_ext.c.primary   = (void*)&LIBXSMM_VLA_ACCESS(4, output,      mb1, ofm1, 0, 0, nBlocksOFm, cfg.bn, cfg.bk);
-          gemm_param_ext.c.secondary = (void*)&LIBXSMM_VLA_ACCESS(4, relubitmask, mb1, ofm1, 0, 0, nBlocksOFm, cfg.bn, cfg.bk/8);
-          cfg.fwd_compute_kernel4_strd_fused_f32( &gemm_param_ext ); /* beta = 0.0 + relu */
-        } else { /* no fusion */
-          gemm_param.op.tertiary = &blocks;
-          gemm_param.a.primary = (void*)&LIBXSMM_VLA_ACCESS(4, filter, ofm1, 0, 0, 0, nBlocksIFm, cfg.bc, cfg.bk);
-          gemm_param.b.primary = (void*)&LIBXSMM_VLA_ACCESS(4, input,  mb1, 0, 0, 0, nBlocksIFm, cfg.bn, cfg.bc);
-          gemm_param.c.primary = (void*)&LIBXSMM_VLA_ACCESS(4, output, mb1, ofm1, 0, 0, nBlocksOFm, cfg.bn, cfg.bk);
-          cfg.fwd_compute_kernel2_strd( &gemm_param ); /* beta = 0.0 */
-        }
-      }
+  for ( mb1ofm1 = thr_begin; mb1ofm1 < thr_end; ++mb1ofm1 ) {
+    mb1  = mb1ofm1%nBlocksMB;
+    ofm1 = mb1ofm1/nBlocksMB;
+    if ( cfg.fuse_type == LIBXSMM_DNN_FC_ELTW_FUSE_BIAS ) { /* bias only */
+      gemm_param.op.tertiary = &blocks;
+      gemm_param.a.primary = (void*)&LIBXSMM_VLA_ACCESS(4, filter, ofm1, 0, 0, 0, nBlocksIFm, cfg.bc, cfg.bk);
+      gemm_param.b.primary = (void*)&LIBXSMM_VLA_ACCESS(4, input,  mb1, 0, 0, 0, nBlocksIFm, cfg.bn, cfg.bc);
+      gemm_param.c.primary = (void*)&LIBXSMM_VLA_ACCESS(4, output, mb1, ofm1, 0, 0, nBlocksOFm, cfg.bn, cfg.bk);
+      cfg.fwd_compute_kernel2_strd( &gemm_param ); /* beta = 0.0 */
+      binary_param.in0.primary  = (void*)&LIBXSMM_VLA_ACCESS(2, bias, ofm1, 0, cfg.bk);;
+      binary_param.in1.primary  = (void*)gemm_param.c.primary;
+      binary_param.out.primary  = (void*)gemm_param.c.primary;
+      cfg.fwd_bias_kernel( &binary_param );
+    } else if ( cfg.fuse_type == LIBXSMM_DNN_FC_ELTW_FUSE_BIAS_RELU || cfg.fuse_type == LIBXSMM_DNN_FC_ELTW_FUSE_BIAS_RELU_WITH_MASK ) { /* bias and relu */
+      gemm_param.op.tertiary = &blocks;
+      gemm_param.a.primary = (void*)&LIBXSMM_VLA_ACCESS(4, filter, ofm1, 0, 0, 0, nBlocksIFm, cfg.bc, cfg.bk);
+      gemm_param.b.primary = (void*)&LIBXSMM_VLA_ACCESS(4, input,  mb1, 0, 0, 0, nBlocksIFm, cfg.bn, cfg.bc);
+      gemm_param.c.primary = (void*)&LIBXSMM_VLA_ACCESS(4, output, mb1, ofm1, 0, 0, nBlocksOFm, cfg.bn, cfg.bk);
+      cfg.fwd_compute_kernel2_strd( &gemm_param ); /* beta = 0.0 */
+      binary_param.in0.primary  = (void*)&LIBXSMM_VLA_ACCESS(2, bias, ofm1, 0, cfg.bk);;
+      binary_param.in1.primary  = (void*)gemm_param.c.primary;
+      binary_param.out.primary  = (void*)gemm_param.c.primary;
+      cfg.fwd_bias_kernel( &binary_param );
+      unary_param.in.primary   = (void*)gemm_param.c.primary;
+      unary_param.out.primary  = (void*)gemm_param.c.primary;
+      unary_param.out.secondary = (void*)&LIBXSMM_VLA_ACCESS(4, relubitmask, mb1, ofm1, 0, 0, nBlocksOFm, cfg.bn, cfg.bk/8);
+      cfg.fwd_act_kernel( &unary_param );
+    } else if ( cfg.fuse_type == LIBXSMM_DNN_FC_ELTW_FUSE_RELU || cfg.fuse_type == LIBXSMM_DNN_FC_ELTW_FUSE_RELU_WITH_MASK ) { /* relu only */
+      gemm_param.op.tertiary = &blocks;
+      gemm_param.a.primary = (void*)&LIBXSMM_VLA_ACCESS(4, filter, ofm1, 0, 0, 0, nBlocksIFm, cfg.bc, cfg.bk);
+      gemm_param.b.primary = (void*)&LIBXSMM_VLA_ACCESS(4, input,  mb1, 0, 0, 0, nBlocksIFm, cfg.bn, cfg.bc);
+      gemm_param.c.primary = (void*)&LIBXSMM_VLA_ACCESS(4, output, mb1, ofm1, 0, 0, nBlocksOFm, cfg.bn, cfg.bk);
+      cfg.fwd_compute_kernel2_strd( &gemm_param ); /* beta = 0.0 */
+      unary_param.in.primary   = (void*)gemm_param.c.primary;
+      unary_param.out.primary  = (void*)gemm_param.c.primary;
+      unary_param.out.secondary = (void*)&LIBXSMM_VLA_ACCESS(4, relubitmask, mb1, ofm1, 0, 0, nBlocksOFm, cfg.bn, cfg.bk/8);
+      cfg.fwd_act_kernel( &unary_param );
+    } else { /* no fusion */
+      gemm_param.op.tertiary = &blocks;
+      gemm_param.a.primary = (void*)&LIBXSMM_VLA_ACCESS(4, filter, ofm1, 0, 0, 0, nBlocksIFm, cfg.bc, cfg.bk);
+      gemm_param.b.primary = (void*)&LIBXSMM_VLA_ACCESS(4, input,  mb1, 0, 0, 0, nBlocksIFm, cfg.bn, cfg.bc);
+      gemm_param.c.primary = (void*)&LIBXSMM_VLA_ACCESS(4, output, mb1, ofm1, 0, 0, nBlocksOFm, cfg.bn, cfg.bk);
+      cfg.fwd_compute_kernel2_strd( &gemm_param ); /* beta = 0.0 */
     }
   }
 
