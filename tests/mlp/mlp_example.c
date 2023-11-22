@@ -146,8 +146,13 @@ int main(int argc, char* argv[])
     printf("type needs to be 'A' (All), 'F' (FP only), 'B' (BP only)\n");
     return -1;
   }
-  if ( (fuse_type < 0) || (fuse_type > 3) ) {
-    printf("fuse type needs to be 0 (None), 1 (Bias), 2 (ReLU), 3 (Bias+ReLU)\n");
+  if ( (fuse_type < 0) || (fuse_type > 5) ) {
+    printf("fuse type needs to be 0 (None), 1 (Bias), 2 (ReLU, mask), 3 (Bias+ReLU, maks), 4 (ReLU), 5 (Bias+RELU)\n");
+    return -1;
+  }
+
+  if ( type != 'F' && ((fuse_type == 4) || (fuse_type == 5))) {
+    printf("fuse type 4 & 5 (ReLU without mask) is only available when running only Forward\n");
     return -1;
   }
 
@@ -335,6 +340,10 @@ int main(int argc, char* argv[])
     my_fuse = LIBXSMM_DNN_FC_ELTW_FUSE_RELU_WITH_MASK;
   } else if ( fuse_type == 3 ) {
     my_fuse = LIBXSMM_DNN_FC_ELTW_FUSE_BIAS_RELU_WITH_MASK;
+  } else if ( fuse_type == 4 ) {
+    my_fuse = LIBXSMM_DNN_FC_ELTW_FUSE_RELU;
+  } else if ( fuse_type == 5 ) {
+    my_fuse = LIBXSMM_DNN_FC_ELTW_FUSE_BIAS_RELU;
   } else {
     my_fuse = LIBXSMM_DNN_FC_ELTW_FUSE_NONE;
   }
