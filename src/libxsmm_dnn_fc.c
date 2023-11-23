@@ -1458,8 +1458,8 @@ LIBXSMM_API void libxsmm_dnn_fc_fwd_exec_f32( libxsmm_dnn_fc_fwd_config cfg, con
   libxsmm_barrier_init(cfg.barrier, ltid);
 
   for ( mb1ofm1 = thr_begin; mb1ofm1 < thr_end; ++mb1ofm1 ) {
-    mb1  = mb1ofm1%nBlocksMB;
-    ofm1 = mb1ofm1/nBlocksMB;
+    mb1  = mb1ofm1/nBlocksOFm;
+    ofm1 = mb1ofm1%nBlocksOFm;
     if ( cfg.fuse_type == LIBXSMM_DNN_FC_ELTW_FUSE_BIAS ) { /* bias only */
       gemm_param.op.tertiary = &blocks;
       gemm_param.a.primary = (void*)&LIBXSMM_VLA_ACCESS(4, filter, ofm1, 0, 0, 0, nBlocksIFm, cfg.bc, cfg.bk);
@@ -1552,8 +1552,8 @@ LIBXSMM_API void libxsmm_dnn_fc_fwd_exec_bf16_vnni_format( libxsmm_dnn_fc_fwd_co
 #endif
 
   for ( mb1ofm1 = thr_begin; mb1ofm1 < thr_end; ++mb1ofm1 ) {
-    mb1  = mb1ofm1%nBlocksMB;
-    ofm1 = mb1ofm1/nBlocksMB;
+    mb1  = mb1ofm1/nBlocksOFm;
+    ofm1 = mb1ofm1%nBlocksOFm;
     if ( cfg.fuse_type == LIBXSMM_DNN_FC_ELTW_FUSE_BIAS ) { /* bias only */
       gemm_param.op.tertiary = &blocks;
       gemm_param.a.primary = (void*)&LIBXSMM_VLA_ACCESS(5, filter, ofm1, 0, 0, 0, 0, nBlocksIFm, bc_lp, cfg.bk, lpb);
