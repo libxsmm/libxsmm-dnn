@@ -53,7 +53,7 @@ int main(int argc, char* argv[])
   int bk = 32;
   int bc = 32;
   int prec = 4;   /* 4=f32, 2=bf16, 1=bf8 */
-  int layout = 1;
+  int layout = 0;
 
   const char *const env_check = getenv("CHECK");
   const double check = LIBXSMM_ABS(NULL == env_check ? 1 : atof(env_check));
