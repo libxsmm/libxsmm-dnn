@@ -229,13 +229,28 @@ LIBXSMM_API libxsmm_dnn_fc_fwd_config setup_libxsmm_dnn_fc_fwd(libxsmm_blasint N
       }
     }
   } else {
-    if (threads == 64) {
+    if (threads == 16) {
       res.fwd_bf = 1;
-      res.fwd_2d_blocking = 0;
+      res.fwd_2d_blocking = 1;
+      res.fwd_col_teams = 4;
+      res.fwd_row_teams = 4;
+    } else if (threads == 8) {
+      res.fwd_bf = 1;
+      res.fwd_2d_blocking = 1;
+      res.fwd_col_teams = 2;
+      res.fwd_row_teams = 4;
+    } else if (threads == 1) {
+      res.fwd_bf = 1;
+      res.fwd_2d_blocking = 1;
       res.fwd_col_teams = 1;
       res.fwd_row_teams = 1;
       res.fwd_M_hyperpartitions = 1;
       res.fwd_N_hyperpartitions = 1;
+    } else {
+      res.fwd_bf = 1;
+      res.fwd_2d_blocking = 0;
+      res.fwd_col_teams = 1;
+      res.fwd_row_teams = 1;
     }
   }
 
