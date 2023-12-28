@@ -392,6 +392,11 @@ LIBXSMM_API libxsmm_dnn_fc_fwd_config setup_libxsmm_dnn_fc_fwd(libxsmm_blasint N
   } else if ( (datatype_in == LIBXSMM_DATATYPE_BF16) &&
               (datatype_out == LIBXSMM_DATATYPE_BF16) &&
               (datatype_comp == LIBXSMM_DATATYPE_F32) ) {
+    if ( (vnnipack == LIBXSMM_DNN_FC_VNNIPACK_WT_IACT_TRANS_OACT_TRANS) &&
+         ((fuse_type & LIBXSMM_DNN_FC_ELTW_FUSE_RELU_WITH_MASK) == LIBXSMM_DNN_FC_ELTW_FUSE_RELU_WITH_MASK) ) {
+      fprintf( stderr, "Output trans and ReLU with mask are not combinable!\n");
+      exit(-1);
+    }
     if ( vnnipack == LIBXSMM_DNN_FC_VNNIPACK_WT ) {
       l_tc_flags = LIBXSMM_GEMM_FLAG_NO_RESET_TILECONFIG | ( LIBXSMM_GEMM_VNNI_FLAGS('N', 'N', 'V', 'N') );
       l_tr_flags = LIBXSMM_GEMM_FLAG_NO_SETUP_TILECONFIG | ( LIBXSMM_GEMM_VNNI_FLAGS('N', 'N', 'V', 'N') );
@@ -2432,7 +2437,7 @@ LIBXSMM_API void libxsmm_dnn_fc_fwd_exec_bf16_wt_vnni_iact_vnniT_format( libxsmm
 }
 
 LIBXSMM_API void libxsmm_dnn_fc_fwd_exec_bf16_wt_vnni_iact_vnniT_oact_vnniT_format( libxsmm_dnn_fc_fwd_config cfg, const libxsmm_bfloat16* wt_ptr, const libxsmm_bfloat16* in_act_ptr,
-                                      libxsmm_bfloat16* out_act_ptr, const libxsmm_bfloat16* bias_ptr, unsigned char* relu_ptr, int start_tid, int my_tid, void* scratch )
+                                      libxsmm_bfloat16* out_act_ptr, const libxsmm_bfloat16* bias_ptr, int start_tid, int my_tid, void* scratch )
 {
   const libxsmm_blasint nBlocksIFm = cfg.C / cfg.bc;
   const libxsmm_blasint nBlocksOFm = cfg.K / cfg.bk;
@@ -2461,11 +2466,9 @@ LIBXSMM_API void libxsmm_dnn_fc_fwd_exec_bf16_wt_vnni_iact_vnniT_oact_vnniT_form
   LIBXSMM_VLA_DECL(5, libxsmm_bfloat16,       output,  out_act_ptr, nBlocksOFm, bk_lp, cfg.bn, lpb);
   LIBXSMM_VLA_DECL(5, const libxsmm_bfloat16,  input,   in_act_ptr,  nBlocksIFm, bc_lp, cfg.bn, lpb);
   LIBXSMM_VLA_DECL(5, const libxsmm_bfloat16, filter,       wt_ptr, nBlocksIFm, bc_lp, cfg.bk, lpb);
-  LIBXSMM_VLA_DECL(2, libxsmm_bfloat16, output_bf16, (libxsmm_bfloat16*)((char*)scratch + (my_tid *  cfg.bn * cfg.bk * sizeof(libxsmm_bfloat16))), bk);
+  LIBXSMM_VLA_DECL(2, libxsmm_bfloat16, output_bf16, (libxsmm_bfloat16*)((char*)scratch + (my_tid * cfg.bn * cfg.bk * sizeof(libxsmm_bfloat16))), bk);
   LIBXSMM_VLA_DECL(4, float, output_f32, (float*)((char*)scratch + (cfg.threads * cfg.bn * cfg.bk * sizeof(libxsmm_bfloat16))), nBlocksOFm, bn, bk);
-
   LIBXSMM_VLA_DECL(2, const libxsmm_bfloat16, bias, ((cfg.fuse_type & LIBXSMM_DNN_FC_ELTW_FUSE_BIAS) == LIBXSMM_DNN_FC_ELTW_FUSE_BIAS) ? (libxsmm_bfloat16*) bias_ptr : NULL, cfg.bk);
-  LIBXSMM_VLA_DECL(4, unsigned int,  relubitmask, ((cfg.fuse_type & LIBXSMM_DNN_FC_ELTW_FUSE_RELU_WITH_MASK) == LIBXSMM_DNN_FC_ELTW_FUSE_RELU_WITH_MASK) ? (unsigned int*)relu_ptr : NULL, nBlocksOFm, cfg.bn, cfg.bk/32);
 
   libxsmm_meltw_unary_param unary_st_param;
   libxsmm_meltw_unary_param unary_ld_param;
@@ -2536,9 +2539,6 @@ LIBXSMM_API void libxsmm_dnn_fc_fwd_exec_bf16_wt_vnni_iact_vnniT_oact_vnniT_form
                    ((cfg.fuse_type & LIBXSMM_DNN_FC_ELTW_FUSE_RELU_WITH_MASK) == LIBXSMM_DNN_FC_ELTW_FUSE_RELU_WITH_MASK) ) {
                 unary_st_param.in.primary = &LIBXSMM_VLA_ACCESS(4, output_f32, mb1, ofm1, 0, 0, nBlocksOFm, cfg.bn, cfg.bk);
                 unary_st_param.out.primary = &LIBXSMM_VLA_ACCESS(2, output_bf16, 0, 0, cfg.bk);
-                if ((cfg.fuse_type & LIBXSMM_DNN_FC_ELTW_FUSE_RELU_WITH_MASK) == LIBXSMM_DNN_FC_ELTW_FUSE_RELU_WITH_MASK) {
-                  unary_st_param.out.secondary = &LIBXSMM_VLA_ACCESS(4, relubitmask, mb1, ofm1, 0, 0, nBlocksOFm, cfg.bn, cfg.bk/32);
-                }
                 cfg.fwd_act_kernel( &unary_st_param );
               } else {
                 unary_st_param.in.primary = &LIBXSMM_VLA_ACCESS(4, output_f32, mb1, ofm1, 0, 0, nBlocksOFm, cfg.bn, cfg.bk);
@@ -2564,9 +2564,6 @@ LIBXSMM_API void libxsmm_dnn_fc_fwd_exec_bf16_wt_vnni_iact_vnniT_oact_vnniT_form
             gemm_ext_param.c.primary = (void*)&LIBXSMM_VLA_ACCESS(2, output_bf16, 0, 0, cfg.bk);
             if ((cfg.fuse_type & LIBXSMM_DNN_FC_ELTW_FUSE_BIAS) == LIBXSMM_DNN_FC_ELTW_FUSE_BIAS) {
               gemm_ext_param.d.primary = (void*)&LIBXSMM_VLA_ACCESS(2, bias, ofm1, 0, cfg.bk);
-            }
-            if ((cfg.fuse_type & LIBXSMM_DNN_FC_ELTW_FUSE_RELU_WITH_MASK) == LIBXSMM_DNN_FC_ELTW_FUSE_RELU_WITH_MASK) {
-              gemm_ext_param.c.secondary = (void*)&LIBXSMM_VLA_ACCESS(4, relubitmask, mb1, ofm1, 0, 0, nBlocksOFm, cfg.bn, cfg.bk/32);
             }
             cfg.fwd_compute_kernel5_strd_fused( &gemm_ext_param );
           } else {
@@ -2609,9 +2606,6 @@ LIBXSMM_API void libxsmm_dnn_fc_fwd_exec_bf16_wt_vnni_iact_vnniT_oact_vnniT_form
                  ((cfg.fuse_type & LIBXSMM_DNN_FC_ELTW_FUSE_RELU_WITH_MASK) == LIBXSMM_DNN_FC_ELTW_FUSE_RELU_WITH_MASK) ) {
               unary_st_param.in.primary = &LIBXSMM_VLA_ACCESS(4, output_f32, mb1, ofm1, 0, 0, nBlocksOFm, cfg.bn, cfg.bk);
               unary_st_param.out.primary = &LIBXSMM_VLA_ACCESS(2, output_bf16, 0, 0, cfg.bk);
-              if ( (cfg.fuse_type & LIBXSMM_DNN_FC_ELTW_FUSE_RELU_WITH_MASK) == LIBXSMM_DNN_FC_ELTW_FUSE_RELU_WITH_MASK ) {
-                unary_st_param.out.secondary = &LIBXSMM_VLA_ACCESS(4, relubitmask, mb1, ofm1, 0, 0, nBlocksOFm, cfg.bn, cfg.bk/32);
-              }
               cfg.fwd_act_kernel( &unary_st_param );
             } else {
               unary_st_param.in.primary = &LIBXSMM_VLA_ACCESS(4, output_f32, mb1, ofm1, 0, 0, nBlocksOFm, cfg.bn, cfg.bk);
@@ -2637,9 +2631,6 @@ LIBXSMM_API void libxsmm_dnn_fc_fwd_exec_bf16_wt_vnni_iact_vnniT_oact_vnniT_form
           gemm_ext_param.c.primary = (void*)&LIBXSMM_VLA_ACCESS(2, output_bf16, 0, 0, cfg.bk);
           if ((cfg.fuse_type & LIBXSMM_DNN_FC_ELTW_FUSE_BIAS) == LIBXSMM_DNN_FC_ELTW_FUSE_BIAS) {
             gemm_ext_param.d.primary = (void*)&LIBXSMM_VLA_ACCESS(2, bias, ofm1, 0, cfg.bk);
-          }
-          if ((cfg.fuse_type & LIBXSMM_DNN_FC_ELTW_FUSE_RELU_WITH_MASK) == LIBXSMM_DNN_FC_ELTW_FUSE_RELU_WITH_MASK) {
-            gemm_ext_param.c.secondary = (void*)&LIBXSMM_VLA_ACCESS(4, relubitmask, mb1, ofm1, 0, 0, nBlocksOFm, cfg.bn, cfg.bk/32);
           }
           cfg.fwd_compute_kernel5_strd_fused( &gemm_ext_param );
         } else {
@@ -2668,7 +2659,7 @@ LIBXSMM_API void libxsmm_dnn_fc_fwd_exec_bf16( libxsmm_dnn_fc_fwd_config cfg, co
   } else if ( cfg.vnnipack == LIBXSMM_DNN_FC_VNNIPACK_WT_IACT_TRANS ) {
     libxsmm_dnn_fc_fwd_exec_bf16_wt_vnni_iact_vnniT_format( cfg, wt_ptr, in_act_ptr, out_act_ptr, bias_ptr, relu_ptr, start_tid, my_tid, scratch );
   } else if ( cfg.vnnipack == LIBXSMM_DNN_FC_VNNIPACK_WT_IACT_TRANS_OACT_TRANS ) {
-    libxsmm_dnn_fc_fwd_exec_bf16_wt_vnni_iact_vnniT_oact_vnniT_format( cfg, wt_ptr, in_act_ptr, out_act_ptr, bias_ptr, relu_ptr, start_tid, my_tid, scratch );
+    libxsmm_dnn_fc_fwd_exec_bf16_wt_vnni_iact_vnniT_oact_vnniT_format( cfg, wt_ptr, in_act_ptr, out_act_ptr, bias_ptr, start_tid, my_tid, scratch );
   } else {
     libxsmm_dnn_fc_fwd_exec_bf16_flat( cfg, wt_ptr, in_act_ptr, out_act_ptr, bias_ptr, relu_ptr, start_tid, my_tid, scratch );
   }

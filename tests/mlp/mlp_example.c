@@ -151,7 +151,7 @@ int main(int argc, char* argv[])
     return -1;
   }
   if ( (fuse_type < 0) || (fuse_type > 5) ) {
-    printf("fuse type needs to be 0 (None), 1 (Bias), 2 (ReLU, mask), 3 (Bias+ReLU, maks), 4 (ReLU), 5 (Bias+RELU)\n");
+    printf("fuse type needs to be 0 (None), 1 (Bias), 2 (ReLU, mask), 3 (Bias+ReLU, mask), 4 (ReLU), 5 (Bias+RELU)\n");
     return -1;
   }
   if ( type != 'F' && ((fuse_type == 4) || (fuse_type == 5))) {
@@ -163,6 +163,10 @@ int main(int argc, char* argv[])
     return -1;
   } else if ( ((prec_bf16 > 0) && (type != 'F') && (layout == 3)) || ((prec_bf16 > 0) && (layout == 0)) ) {
     printf("illegal vnnipack for BF16\n");
+    return -1;
+  }
+  if ( (layout == 7) && (( fuse_type == 3) || ( fuse_type == 2 )) ) {
+    printf("illegal vnnipack & relu with mask for BF16\n");
     return -1;
   }
 
@@ -364,6 +368,8 @@ int main(int argc, char* argv[])
     my_vnnipack = LIBXSMM_DNN_FC_VNNIPACK_WT;
   } else if ( layout == 3 ) {
     my_vnnipack = LIBXSMM_DNN_FC_VNNIPACK_WT_IACT_TRANS;
+  } else if ( layout == 3 ) {
+    my_vnnipack = LIBXSMM_DNN_FC_VNNIPACK_WT_IACT_TRANS_OACT_TRANS;
   } else {
     printf("Illegal packing\n");
     return -1;
