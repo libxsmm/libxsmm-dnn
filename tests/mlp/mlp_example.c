@@ -56,6 +56,7 @@ int main(int argc, char* argv[])
   int *label_libxsmm;
   libxsmm_datatype in_dt, out_dt, comp_dt;
   libxsmm_dnn_fc_eltw_fuse my_fuse;
+  libxsmm_dnn_fc_vnnipack my_vnnipack;
   libxsmm_dnn_fc_fwd_config* libxsmm_dnn_fc_fwd;
   libxsmm_dnn_fc_bwd_config* libxsmm_dnn_fc_bwd;
   libxsmm_dnn_opt_config* libxsmm_dnn_opt;
@@ -76,6 +77,7 @@ int main(int argc, char* argv[])
   int *C;               /* number of input feature maps, "C" */
   int num_layers = 0;
   int prec_bf16 = 0;
+  int layout = 0;
 
 #if defined(_OPENMP)
   int nThreads = omp_get_max_threads(); /* number of threads */
@@ -130,9 +132,11 @@ int main(int argc, char* argv[])
   if (argc > i) bk         = atoi(argv[i++]);
   if (argc > i) bc         = atoi(argv[i++]);
   if (argc > i) prec_bf16  = atoi(argv[i++]);
+  if (argc > i) layout     = atoi(argv[i++]);
+
   /* allocate the number of channles buffer */
   if ( num_layers < 1 ) {
-    printf("Usage: %s iters MB fuse_type type bn bk bc prec_bf16 C1 C2 ... CN\n", argv[0]);
+    printf("Usage: %s iters MB fuse_type type bn bk bc prec_bf16 layout C1 C2 ... CN\n", argv[0]);
     return 0;
   }
   C = (int*)malloc((num_layers+2)*sizeof(int));
@@ -150,9 +154,15 @@ int main(int argc, char* argv[])
     printf("fuse type needs to be 0 (None), 1 (Bias), 2 (ReLU, mask), 3 (Bias+ReLU, maks), 4 (ReLU), 5 (Bias+RELU)\n");
     return -1;
   }
-
   if ( type != 'F' && ((fuse_type == 4) || (fuse_type == 5))) {
     printf("fuse type 4 & 5 (ReLU without mask) is only available when running only Forward\n");
+    return -1;
+  }
+  if ( (prec_bf16 == 0) && (layout != 0) ) {
+    printf("vnnipack must not specify for FP32\n");
+    return -1;
+  } else if ( ((prec_bf16 > 0) && (type != 'F') && (layout == 3)) || ((prec_bf16 > 0) && (layout == 0)) ) {
+    printf("illegal vnnipack for BF16\n");
     return -1;
   }
 
@@ -348,6 +358,17 @@ int main(int argc, char* argv[])
     my_fuse = LIBXSMM_DNN_FC_ELTW_FUSE_NONE;
   }
 
+  if ( layout == 0 ) {
+    my_vnnipack = LIBXSMM_DNN_FC_VNNIPACK_NONE;
+  } else if ( layout == 1 ) {
+    my_vnnipack = LIBXSMM_DNN_FC_VNNIPACK_WT;
+  } else if ( layout == 3 ) {
+    my_vnnipack = LIBXSMM_DNN_FC_VNNIPACK_WT_IACT_TRANS;
+  } else {
+    printf("Illegal packing\n");
+    return -1;
+  }
+
   /* allocating handles */
   libxsmm_dnn_fc_fwd = (libxsmm_dnn_fc_fwd_config*) malloc( num_layers*sizeof(libxsmm_dnn_fc_fwd_config) );
   libxsmm_dnn_fc_bwd = (libxsmm_dnn_fc_bwd_config*) malloc( num_layers*sizeof(libxsmm_dnn_fc_bwd_config) );
@@ -362,7 +383,7 @@ int main(int argc, char* argv[])
       libxsmm_dnn_fc_fwd[i] = setup_libxsmm_dnn_fc_fwd(MB, C[i], C[i+1], (MB % bn == 0) ? bn : MB,
                                                (C[i  ] % bc == 0) ? bc : C[i  ],
                                                (C[i+1] % bk == 0) ? bk : C[i+1],
-                                               nThreads, my_fuse, in_dt, out_dt, comp_dt );
+                                               nThreads, my_fuse, my_vnnipack, in_dt, out_dt, comp_dt );
     }
     if ( (type == 'B') || (type == 'A') ) {
       libxsmm_dnn_fc_bwd[i] = setup_libxsmm_dnn_fc_bwd(MB, C[i], C[i+1], (MB % bn == 0) ? bn : MB,
