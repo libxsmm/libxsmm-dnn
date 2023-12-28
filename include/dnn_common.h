@@ -797,6 +797,33 @@ LIBXSMM_INLINE void matrix_copy_NC_to_NCNC_bf16(libxsmm_bfloat16 *src, libxsmm_b
   }
 }
 
+LIBXSMM_INLINE void matrix_copy_NC_to_NCNC_bf16_vnniT(libxsmm_bfloat16 *src, libxsmm_bfloat16 *dst, int T, int N, int C, int bn, int bc)
+{
+  int t, n1, n2, c1, c2;
+  int nBlocks = N/bn;
+  int cBlocks = C/bc;
+  int vnni_block = libxsmm_cpuid_dot_pack_factor(LIBXSMM_DATATYPE_BF16);
+  LIBXSMM_VLA_DECL(3, libxsmm_bfloat16, real_src, src, N, C);
+  LIBXSMM_VLA_DECL(6, libxsmm_bfloat16, real_dst, dst, nBlocks, cBlocks, bc/vnni_block, bn, vnni_block);
+
+#if defined(_OPENMP)
+  LIBXSMM_OMP_VAR(n1); LIBXSMM_OMP_VAR(c1); LIBXSMM_OMP_VAR(n2); LIBXSMM_OMP_VAR(c2);
+# pragma omp parallel for private(t,n1,c1,n2,c2)
+#endif
+  for (t = 0; t < T; t++) {
+    for (n1 = 0; n1 < nBlocks; n1++) {
+      for (c1 = 0; c1 < cBlocks; c1++) {
+        for (n2 = 0; n2 < bn; n2++) {
+          for (c2 = 0; c2 < bc; c2++) {
+            LIBXSMM_VLA_ACCESS(6, real_dst, t, n1, c1, c2/vnni_block, n2, c2%vnni_block, nBlocks, cBlocks, bc/vnni_block, bn, vnni_block) =
+              LIBXSMM_VLA_ACCESS(3, real_src, t, n1*bn+n2, c1*bc+c2, N, C);
+          }
+        }
+      }
+    }
+  }
+}
+
 LIBXSMM_INLINE void matrix_copy_NC_to_NCNC_bf16_serial(libxsmm_bfloat16 *src, libxsmm_bfloat16 *dst, int T, int N, int C, int bn, int bc)
 {
   int t, n1, n2, c1, c2;
