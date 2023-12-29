@@ -34,6 +34,7 @@ int main(int argc, char* argv[])
   libxsmm_datatype in_dt, out_dt, comp_dt;
 
   libxsmm_dnn_fc_eltw_fuse my_fuse = LIBXSMM_DNN_FC_ELTW_FUSE_NONE;
+  libxsmm_dnn_fc_vnnipack my_vnnipack = LIBXSMM_DNN_FC_VNNIPACK_NONE;
   libxsmm_dnn_fc_fwd_config libxsmm_dnn_fc_fwd;
   libxsmm_dnn_fc_bwd_config libxsmm_dnn_fc_bwd;
 
@@ -52,6 +53,7 @@ int main(int argc, char* argv[])
   int bk = 32;
   int bc = 32;
   int prec = 4;   /* 4=f32, 2=bf16, 1=bf8 */
+  int layout = 0;
 
   const char *const env_check = getenv("CHECK");
   const double check = LIBXSMM_ABS(NULL == env_check ? 1 : atof(env_check));
@@ -135,7 +137,7 @@ int main(int argc, char* argv[])
   relumask_libxsmm = NULL;
 
   if (argc > 1 && !strncmp(argv[1], "-h", 3)) {
-    printf("Usage: %s iters nImg nIFm nOFm fuse_type type bn bk bc prec\n", argv[0]);
+    printf("Usage: %s iters nImg nIFm nOFm fuse_type type bn bk bc prec vnnipack\n", argv[0]);
     return 0;
   }
   libxsmm_rng_set_seed(1);
@@ -152,17 +154,33 @@ int main(int argc, char* argv[])
   if (argc > i) bk         = atoi(argv[i++]);
   if (argc > i) bc         = atoi(argv[i++]);
   if (argc > i) prec       = atoi(argv[i++]);
+  if (argc > i) layout     = atoi(argv[i++]);
 
   if (type != 'A' && type != 'F' && type != 'B' && type != 'U' && type != 'M') {
     printf("type needs to be 'A' (All), 'F' (FP only), 'B' (BP only), 'U' (UP only). 'M' (BPUP-fused only)\n");
     return -1;
   }
   if ( (fuse_type < 0) || (fuse_type > 5) ) {
-    printf("fuse type needs to be 0 (None), 1 (Bias), 2 (ReLU), 3 (Bias+ReLU), 4 (ReLU, mask), 5 (Bias+ReLU, mask)\n");
+    printf("fuse type needs to be 0 (None), 1 (Bias), 2 (ReLU mask), 3 (Bias+ReLU mask), 4 (ReLU), 5 (Bias+ReLU)\n");
     return -1;
   }
 
-  printf( "iters : %d, nImg : %d, nIFm: %d, nOFm: %d, fuse_type: %d, type: %d, bn: %d, bk: %d, bc: %d, prec: %d\n", iters, nImg, nIFm, nOFm, fuse_type, type, bn, bk, bc, prec);
+  if ( (prec == 4) && (layout != 0) ) {
+    printf("vnnipack must not specify for FP32\n");
+    return -1;
+  } else if ( (prec == 1) && (layout != 1) ) {
+    printf("illegal vnnipack for FP8\n");
+    return -1;
+  } else if ( ((prec == 2) && (type != 'F') && (layout == 3 || layout == 7)) || ((prec == 2) && (layout == 0)) ) {
+    printf("illegal vnnipack for BF16\n");
+    return -1;
+  }
+  if ( (layout == 7) && (( fuse_type == 3) || ( fuse_type == 2 )) ) {
+    printf("illegal vnnipack & relu with mask for BF16\n");
+    return -1;
+  }
+
+  printf( "iters : %d, nImg : %d, nIFm: %d, nOFm: %d, fuse_type: %d, type: %d, bn: %d, bk: %d, bc: %d, prec: %d, vnnipack: %d\n", iters, nImg, nIFm, nOFm, fuse_type, type, bn, bk, bc, prec, layout);
   /* set struct for naive convolution */
   naive_param.N = nImg;
   naive_param.C = nIFm;
@@ -369,14 +387,28 @@ int main(int argc, char* argv[])
   } else if ( fuse_type == 5 ) {
     my_fuse = LIBXSMM_DNN_FC_ELTW_FUSE_BIAS_RELU;
   } else {
-    /* cannot happen */
+    printf("Illegal fusion\n");
+    return -1;
+  }
+
+  if ( layout == 0 ) {
+    my_vnnipack = LIBXSMM_DNN_FC_VNNIPACK_NONE;
+  } else if ( layout == 1 ) {
+    my_vnnipack = LIBXSMM_DNN_FC_VNNIPACK_WT;
+  } else if ( layout == 3 ) {
+    my_vnnipack = LIBXSMM_DNN_FC_VNNIPACK_WT_IACT_TRANS;
+  } else if ( layout == 7 ) {
+    my_vnnipack = LIBXSMM_DNN_FC_VNNIPACK_WT_IACT_TRANS_OACT_TRANS;
+  } else {
+    printf("Illegal packing\n");
+    return -1;
   }
 
   /* scratch memory size */
   size_t alloc_size = 0;
 
   if (type == 'A' || type == 'F') {
-    libxsmm_dnn_fc_fwd = setup_libxsmm_dnn_fc_fwd(nImg, nIFm, nOFm, bn, bc, bk, nThreads, my_fuse, in_dt, out_dt, comp_dt);
+    libxsmm_dnn_fc_fwd = setup_libxsmm_dnn_fc_fwd(nImg, nIFm, nOFm, bn, bc, bk, nThreads, my_fuse, my_vnnipack, in_dt, out_dt, comp_dt);
 
     alloc_size = libxsmm_dnn_fc_fwd.scratch_size;
   }
@@ -389,9 +421,17 @@ int main(int argc, char* argv[])
   /* we can also use the layout functions and set the data on our
      own external to the library */
   if ( prec == 2 ) {
-    matrix_copy_NC_to_NCNC_bf16( naive_input_bf16,     input_libxsmm_bf16,     1, nImg, nIFm, bn, bc );
+    if ( (my_vnnipack == LIBXSMM_DNN_FC_VNNIPACK_WT_IACT_TRANS) || (my_vnnipack == LIBXSMM_DNN_FC_VNNIPACK_WT_IACT_TRANS_OACT_TRANS) ) {
+      matrix_copy_NC_to_NCNC_bf16_vnniT( naive_input_bf16,     input_libxsmm_bf16,     1, nImg, nIFm, bn, bc );
+    } else {
+      matrix_copy_NC_to_NCNC_bf16( naive_input_bf16,     input_libxsmm_bf16,     1, nImg, nIFm, bn, bc );
+    }
     matrix_copy_NC_to_NCNC_bf16( naive_delinput_bf16,  delinput_libxsmm_bf16,  1, nImg, nIFm, bn, bc );
-    matrix_copy_NC_to_NCNC_bf16( naive_output_bf16,    output_libxsmm_bf16,    1, nImg, nOFm, bn, bk );
+    if ( my_vnnipack == LIBXSMM_DNN_FC_VNNIPACK_WT_IACT_TRANS_OACT_TRANS ) {
+      matrix_copy_NC_to_NCNC_bf16_vnniT( naive_output_bf16,    output_libxsmm_bf16,    1, nImg, nOFm, bn, bk );
+    } else {
+      matrix_copy_NC_to_NCNC_bf16( naive_output_bf16,    output_libxsmm_bf16,    1, nImg, nOFm, bn, bk );
+    }
     matrix_copy_NC_to_NCNC_bf16( naive_deloutput_bf16, deloutput_libxsmm_bf16, 1, nImg, nOFm, bn, bk );
     matrix_copy_KC_to_KCCK_bf16( naive_filter_bf16,    filter_libxsmm_bf16      , nIFm, nOFm, bc, bk );
     matrix_copy_KC_to_KCCK_bf16( naive_delfilter_bf16, delfilter_libxsmm_bf16   , nIFm, nOFm, bc, bk );
@@ -451,7 +491,11 @@ int main(int argc, char* argv[])
 
     /* copy out data */
     if ( prec == 2 ) {
-      matrix_copy_NCNC_to_NC_bf16( output_libxsmm_bf16, naive_libxsmm_output_bf16, 1, nImg, nOFm, bn, bk );
+      if ( my_vnnipack == LIBXSMM_DNN_FC_VNNIPACK_WT_IACT_TRANS_OACT_TRANS ) {
+        matrix_copy_NCNC_vnniT_to_NC_bf16( output_libxsmm_bf16, naive_libxsmm_output_bf16, 1, nImg, nOFm, bn, bk );
+      } else {
+        matrix_copy_NCNC_to_NC_bf16( output_libxsmm_bf16, naive_libxsmm_output_bf16, 1, nImg, nOFm, bn, bk );
+      }
       libxsmm_convert_bf16_f32( naive_libxsmm_output_bf16, naive_libxsmm_output, nImg*nOFm );
     } else if ( prec == 1 ) {
       matrix_copy_NCNC_to_NC_bf8( output_libxsmm_bf8, naive_libxsmm_output_bf8, 1, nImg, nOFm, bn, bk );

@@ -52,6 +52,7 @@ int main(int argc, char* argv[])
   unsigned char **relumask_libxsmm;
   int *label_libxsmm;
   libxsmm_datatype in_dt, out_dt, comp_dt;
+  libxsmm_dnn_fc_vnnipack my_vnnipack;
   libxsmm_dnn_fc_eltw_fuse my_fuse;
   libxsmm_dnn_fc_fwd_config* libxsmm_dnn_fc_fwd;
   libxsmm_dnn_fc_bwd_config* libxsmm_dnn_fc_bwd;
@@ -320,6 +321,12 @@ int main(int argc, char* argv[])
   libxsmm_dnn_fc_bwd = (libxsmm_dnn_fc_bwd_config*) malloc( num_layers*sizeof(libxsmm_dnn_fc_bwd_config) );
   libxsmm_dnn_opt    = (libxsmm_dnn_opt_config*)    malloc( num_layers*sizeof(libxsmm_dnn_opt_config)    );
 
+  if ( prec_bf16 > 0 ) {
+    my_vnnipack = LIBXSMM_DNN_FC_VNNIPACK_WT;
+  } else {
+    my_vnnipack = LIBXSMM_DNN_FC_VNNIPACK_NONE;
+  }
+
   /* setting up handles + scratch */
   for ( i = 0; i < num_layers; ++i ) {
     /* MNIST Specific where everywhere we use relu act except the last layer */
@@ -331,7 +338,7 @@ int main(int argc, char* argv[])
     libxsmm_dnn_fc_fwd[i] = setup_libxsmm_dnn_fc_fwd(MB, C[i], C[i+1], (MB % bn == 0) ? bn : MB,
                                              (C[i  ] % bc == 0) ? bc : C[i  ],
                                              (C[i+1] % bk == 0) ? bk : C[i+1],
-                                             nThreads, my_fuse, in_dt, out_dt, comp_dt );
+                                             nThreads, my_fuse, my_vnnipack, in_dt, out_dt, comp_dt );
 
     libxsmm_dnn_fc_bwd[i] = setup_libxsmm_dnn_fc_bwd(MB, C[i], C[i+1], (MB % bn == 0) ? bn : MB,
                                              (C[i  ] % bc == 0) ? bc : C[i  ],
@@ -544,11 +551,11 @@ int main(int argc, char* argv[])
             int max_id = 0;
             float max_val = 0.0;
             max_val = *(act_libxsmm[num_layers+1] +  _i * 10);
-            float sum = max_val;
+            /*float sum = max_val;*/
             /* Find predicted label */
             for (_j = 1; _j < 10; _j++) {
               float val = *(act_libxsmm[num_layers+1] + _i * 10  + _j);
-              sum += val;
+              /*sum += val;*/
               if (val > max_val) {
                 max_id = _j;
                 max_val = val;

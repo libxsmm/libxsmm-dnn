@@ -13,7 +13,7 @@
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wcast-qual"
 LIBXSMM_API libxsmm_dnn_fc_fwd_config setup_libxsmm_dnn_fc_fwd(libxsmm_blasint N, libxsmm_blasint C, libxsmm_blasint K, libxsmm_blasint bn,
-                                 libxsmm_blasint bc, libxsmm_blasint bk, libxsmm_blasint threads, libxsmm_dnn_fc_eltw_fuse fuse_type,
+                                 libxsmm_blasint bc, libxsmm_blasint bk, libxsmm_blasint threads, libxsmm_dnn_fc_eltw_fuse fuse_type, libxsmm_dnn_fc_vnnipack vnnipack,
                                  libxsmm_datatype datatype_in, libxsmm_datatype datatype_out, libxsmm_datatype datatype_comp ) {
   libxsmm_dnn_fc_fwd_config res;
   libxsmm_blasint lda = bk;
@@ -51,6 +51,7 @@ LIBXSMM_API libxsmm_dnn_fc_fwd_config setup_libxsmm_dnn_fc_fwd(libxsmm_blasint N
   res.bk = bk;
   res.threads = threads;
   res.fuse_type = fuse_type;
+  res.vnnipack = vnnipack;
 
   /* setup parallelization strategy */
   res.fwd_M_hyperpartitions = 1; /* TODO: enable hyperpartitions */
@@ -228,13 +229,28 @@ LIBXSMM_API libxsmm_dnn_fc_fwd_config setup_libxsmm_dnn_fc_fwd(libxsmm_blasint N
       }
     }
   } else {
-    if (threads == 64) {
+    if (threads == 16) {
       res.fwd_bf = 1;
-      res.fwd_2d_blocking = 0;
+      res.fwd_2d_blocking = 1;
+      res.fwd_col_teams = 4;
+      res.fwd_row_teams = 4;
+    } else if (threads == 8) {
+      res.fwd_bf = 1;
+      res.fwd_2d_blocking = 1;
+      res.fwd_col_teams = 2;
+      res.fwd_row_teams = 4;
+    } else if (threads == 1) {
+      res.fwd_bf = 1;
+      res.fwd_2d_blocking = 1;
       res.fwd_col_teams = 1;
       res.fwd_row_teams = 1;
       res.fwd_M_hyperpartitions = 1;
       res.fwd_N_hyperpartitions = 1;
+    } else {
+      res.fwd_bf = 1;
+      res.fwd_2d_blocking = 0;
+      res.fwd_col_teams = 1;
+      res.fwd_row_teams = 1;
     }
   }
 
@@ -391,8 +407,24 @@ LIBXSMM_API libxsmm_dnn_fc_fwd_config setup_libxsmm_dnn_fc_fwd(libxsmm_blasint N
   } else if ( (datatype_in == LIBXSMM_DATATYPE_BF16) &&
               (datatype_out == LIBXSMM_DATATYPE_BF16) &&
               (datatype_comp == LIBXSMM_DATATYPE_F32) ) {
-    l_tc_flags = LIBXSMM_GEMM_FLAG_NO_RESET_TILECONFIG | ( LIBXSMM_GEMM_VNNI_FLAGS('N', 'N', 'V', 'N') );
-    l_tr_flags = LIBXSMM_GEMM_FLAG_NO_SETUP_TILECONFIG | ( LIBXSMM_GEMM_VNNI_FLAGS('N', 'N', 'V', 'N') );
+    if ( (vnnipack == LIBXSMM_DNN_FC_VNNIPACK_WT_IACT_TRANS_OACT_TRANS) &&
+         ((fuse_type & LIBXSMM_DNN_FC_ELTW_FUSE_RELU_WITH_MASK) == LIBXSMM_DNN_FC_ELTW_FUSE_RELU_WITH_MASK) ) {
+      fprintf( stderr, "Output trans and ReLU with mask are not combinable!\n");
+      exit(-1);
+    }
+    if ( vnnipack == LIBXSMM_DNN_FC_VNNIPACK_WT ) {
+      l_tc_flags = LIBXSMM_GEMM_FLAG_NO_RESET_TILECONFIG | ( LIBXSMM_GEMM_VNNI_FLAGS('N', 'N', 'V', 'N') );
+      l_tr_flags = LIBXSMM_GEMM_FLAG_NO_SETUP_TILECONFIG | ( LIBXSMM_GEMM_VNNI_FLAGS('N', 'N', 'V', 'N') );
+      l_flags = ( LIBXSMM_GEMM_VNNI_FLAGS('N', 'N', 'V', 'N') ) | LIBXSMM_GEMM_FLAG_NO_RESET_TILECONFIG | LIBXSMM_GEMM_FLAG_NO_SETUP_TILECONFIG;
+    } else if ( (vnnipack == LIBXSMM_DNN_FC_VNNIPACK_WT_IACT_TRANS) || (vnnipack == LIBXSMM_DNN_FC_VNNIPACK_WT_IACT_TRANS_OACT_TRANS) ) {
+      l_tc_flags = LIBXSMM_GEMM_FLAG_NO_RESET_TILECONFIG | ( LIBXSMM_GEMM_VNNI_FLAGS('N', 'T', 'V', 'V') );
+      l_tr_flags = LIBXSMM_GEMM_FLAG_NO_SETUP_TILECONFIG | ( LIBXSMM_GEMM_VNNI_FLAGS('N', 'T', 'V', 'V') );
+      l_flags = ( LIBXSMM_GEMM_VNNI_FLAGS('N', 'T', 'V', 'V') ) | LIBXSMM_GEMM_FLAG_NO_RESET_TILECONFIG | LIBXSMM_GEMM_FLAG_NO_SETUP_TILECONFIG;
+    } else {
+      l_tc_flags = LIBXSMM_GEMM_FLAG_NO_RESET_TILECONFIG | ( LIBXSMM_GEMM_VNNI_FLAGS('N', 'N', 'N', 'N') );
+      l_tr_flags = LIBXSMM_GEMM_FLAG_NO_SETUP_TILECONFIG | ( LIBXSMM_GEMM_VNNI_FLAGS('N', 'N', 'N', 'N') );
+      l_flags = ( LIBXSMM_GEMM_VNNI_FLAGS('N', 'N', 'N', 'N') ) | LIBXSMM_GEMM_FLAG_NO_RESET_TILECONFIG | LIBXSMM_GEMM_FLAG_NO_SETUP_TILECONFIG;
+    }
     l_shape = libxsmm_create_gemm_shape( res.bk, res.bn, res.bc,
                                          lda, ldb, ldc,
                                          LIBXSMM_DATATYPE_BF16, LIBXSMM_DATATYPE_BF16,
@@ -409,7 +441,6 @@ LIBXSMM_API libxsmm_dnn_fc_fwd_config setup_libxsmm_dnn_fc_fwd(libxsmm_blasint N
       exit(-1);
     }
 
-    l_flags = ( LIBXSMM_GEMM_VNNI_FLAGS('N', 'N', 'V', 'N') ) | LIBXSMM_GEMM_FLAG_NO_RESET_TILECONFIG | LIBXSMM_GEMM_FLAG_NO_SETUP_TILECONFIG;
     unroll_hint = (res.C/res.bc)/res.fwd_bf;
     l_shape = libxsmm_create_gemm_shape( res.bk, res.bn, res.bc,
                                          lda, ldb, ldc,
@@ -490,8 +521,21 @@ LIBXSMM_API libxsmm_dnn_fc_fwd_config setup_libxsmm_dnn_fc_fwd(libxsmm_blasint N
       exit(-1);
     }
 
+    l_unary_shape = libxsmm_create_meltw_unary_shape( res.bk, res.bn, res.bk, res.bn, LIBXSMM_DATATYPE_BF16, LIBXSMM_DATATYPE_BF16, LIBXSMM_DATATYPE_BF16 );
+    if ( 2 == libxsmm_cpuid_dot_pack_factor(LIBXSMM_DATATYPE_BF16) ) {
+      res.fwd_vnniT_kernel = libxsmm_dispatch_meltw_unary_v2( LIBXSMM_MELTW_TYPE_UNARY_TRANSFORM_NORM_TO_VNNI2T, l_unary_shape, LIBXSMM_MELTW_FLAG_UNARY_NONE );
+    } else if ( 4 == libxsmm_cpuid_dot_pack_factor(LIBXSMM_DATATYPE_BF16) ) {
+      res.fwd_vnniT_kernel = libxsmm_dispatch_meltw_unary_v2( LIBXSMM_MELTW_TYPE_UNARY_TRANSFORM_NORM_TO_VNNI4T, l_unary_shape, LIBXSMM_MELTW_FLAG_UNARY_NONE );
+    } else {
+      /* should not happen */
+    }
+    if ( res.fwd_vnniT_kernel == NULL ) {
+      fprintf( stderr, "JIT for TPP fwd_zero_kernel failed. Bailing...!\n");
+      exit(-1);
+    }
+
     /* init scratch */
-    res.scratch_size = sizeof(float) *  LIBXSMM_MAX(res.K * res.N, res.threads * LIBXSMM_MAX(res.bk * res.bn, res.K));
+    res.scratch_size = (sizeof(float) * LIBXSMM_MAX(res.K * res.N, res.threads * LIBXSMM_MAX(res.bk * res.bn, res.K))) + (sizeof(libxsmm_bfloat16) * res.threads * res.bk * res.bn);
   } else if ( (datatype_in == LIBXSMM_DATATYPE_BF8) &&
               (datatype_out == LIBXSMM_DATATYPE_BF8) &&
               (datatype_comp == LIBXSMM_DATATYPE_F32) ) {
@@ -1773,7 +1817,217 @@ LIBXSMM_API void libxsmm_dnn_fc_fwd_exec_f32( libxsmm_dnn_fc_fwd_config cfg, con
   libxsmm_barrier_wait(cfg.barrier, ltid);
 }
 
-LIBXSMM_API void libxsmm_dnn_fc_fwd_exec_bf16_vnni_format( libxsmm_dnn_fc_fwd_config cfg, const libxsmm_bfloat16* wt_ptr, const libxsmm_bfloat16* in_act_ptr, libxsmm_bfloat16* out_act_ptr,
+LIBXSMM_API void libxsmm_dnn_fc_fwd_exec_bf16_flat( libxsmm_dnn_fc_fwd_config cfg, const libxsmm_bfloat16* wt_ptr, const libxsmm_bfloat16* in_act_ptr, libxsmm_bfloat16* out_act_ptr,
+                                      const libxsmm_bfloat16* bias_ptr, unsigned char* relu_ptr, int start_tid, int my_tid, void* scratch )
+{
+  const libxsmm_blasint nBlocksIFm = cfg.C / cfg.bc;
+  const libxsmm_blasint nBlocksOFm = cfg.K / cfg.bk;
+  const libxsmm_blasint nBlocksMB  = cfg.N / cfg.bn;
+  const libxsmm_blasint bn = cfg.bn;
+  const libxsmm_blasint bk = cfg.bk;
+  /* const libxsmm_blasint bc = cfg.bc;*/
+  libxsmm_blasint use_2d_blocking = cfg.fwd_2d_blocking;
+
+  /* computing first logical thread */
+  const libxsmm_blasint ltid = my_tid - start_tid;
+  /* number of tasks that could be run in parallel */
+  const libxsmm_blasint work = nBlocksOFm * nBlocksMB;
+  /* compute chunk size */
+  const libxsmm_blasint chunksize = (work % cfg.threads == 0) ? (work / cfg.threads) : ((work / cfg.threads) + 1);
+  /* compute thr_begin and thr_end */
+  const libxsmm_blasint thr_begin = (ltid * chunksize < work) ? (ltid * chunksize) : work;
+  const libxsmm_blasint thr_end = ((ltid + 1) * chunksize < work) ? ((ltid + 1) * chunksize) : work;
+
+  /* loop variables */
+  libxsmm_blasint mb1ofm1 = 0, mb1 = 0, ofm1 = 0, ifm1 = 0;
+  libxsmm_blasint N_tasks_per_thread = 0, M_tasks_per_thread = 0, my_M_start = 0, my_M_end = 0, my_N_start = 0, my_N_end = 0, my_col_id = 0, my_row_id = 0, col_teams = 0, row_teams = 0;
+  LIBXSMM_VLA_DECL(4, libxsmm_bfloat16,       output,  out_act_ptr, nBlocksOFm, cfg.bn, cfg.bk);
+  LIBXSMM_VLA_DECL(4, const libxsmm_bfloat16,  input,   in_act_ptr,  nBlocksIFm, cfg.bn, cfg.bc);
+  LIBXSMM_VLA_DECL(4, const libxsmm_bfloat16, filter,       wt_ptr, nBlocksIFm, cfg.bc, cfg.bk);
+  LIBXSMM_VLA_DECL(4, float, output_f32, (float*)scratch, nBlocksOFm, bn, bk);
+  LIBXSMM_VLA_DECL(2, const libxsmm_bfloat16, bias, ((cfg.fuse_type & LIBXSMM_DNN_FC_ELTW_FUSE_BIAS) == LIBXSMM_DNN_FC_ELTW_FUSE_BIAS) ? (libxsmm_bfloat16*) bias_ptr : NULL, cfg.bk);
+  LIBXSMM_VLA_DECL(4, unsigned int,  relubitmask, ((cfg.fuse_type & LIBXSMM_DNN_FC_ELTW_FUSE_RELU_WITH_MASK) == LIBXSMM_DNN_FC_ELTW_FUSE_RELU_WITH_MASK) ? (unsigned int*)relu_ptr : NULL, nBlocksOFm, cfg.bn, cfg.bk/32);
+
+  libxsmm_meltw_unary_param unary_st_param;
+  libxsmm_meltw_unary_param unary_ld_param;
+  libxsmm_gemm_param gemm_param;
+  libxsmm_gemm_ext_param gemm_ext_param;
+
+  unsigned long long  blocks = nBlocksIFm;
+  libxsmm_blasint CB_BLOCKS = nBlocksIFm, BF = 1;
+
+  memset( &gemm_param, 0, sizeof(libxsmm_gemm_param) );
+  memset( &gemm_ext_param, 0, sizeof(libxsmm_gemm_ext_param) );
+  memset( &unary_st_param, 0, sizeof(libxsmm_meltw_unary_param) );
+  memset( &unary_ld_param, 0, sizeof(libxsmm_meltw_unary_param) );
+
+  BF = cfg.fwd_bf;
+  CB_BLOCKS = nBlocksIFm/BF;
+  blocks = CB_BLOCKS;
+
+  if (use_2d_blocking == 1) {
+    int _ltid, M_hyperpartition_id, N_hyperpartition_id, _nBlocksOFm, _nBlocksMB, hyperteam_id;
+    col_teams    = cfg.fwd_col_teams;
+    row_teams = cfg.fwd_row_teams;
+    hyperteam_id = ltid/(col_teams*row_teams);
+    _nBlocksOFm  = LIBXSMM_UPDIV(nBlocksOFm,cfg.fwd_M_hyperpartitions);
+    _nBlocksMB   = LIBXSMM_UPDIV(nBlocksMB,cfg.fwd_N_hyperpartitions);
+    _ltid = ltid % (col_teams * row_teams);
+    M_hyperpartition_id = hyperteam_id % cfg.fwd_M_hyperpartitions;
+    N_hyperpartition_id = hyperteam_id / cfg.fwd_M_hyperpartitions;
+    my_row_id = _ltid % row_teams;
+    my_col_id = _ltid / row_teams;
+    N_tasks_per_thread = (_nBlocksMB + col_teams-1)/col_teams;
+    M_tasks_per_thread = (_nBlocksOFm + row_teams-1)/row_teams;
+    my_N_start = N_hyperpartition_id * _nBlocksMB + LIBXSMM_MIN( my_col_id * N_tasks_per_thread, _nBlocksMB);
+    my_N_end   = LIBXSMM_MIN(N_hyperpartition_id * _nBlocksMB + LIBXSMM_MIN( (my_col_id+1) * N_tasks_per_thread, _nBlocksMB), nBlocksMB);
+    my_M_start = M_hyperpartition_id * _nBlocksOFm + LIBXSMM_MIN( my_row_id * M_tasks_per_thread, _nBlocksOFm);
+    my_M_end   = LIBXSMM_MIN(M_hyperpartition_id * _nBlocksOFm + LIBXSMM_MIN( (my_row_id+1) * M_tasks_per_thread, _nBlocksOFm), nBlocksOFm);
+  }
+
+  /* lazy barrier init */
+  libxsmm_barrier_init(cfg.barrier, ltid);
+
+  cfg.fwd_tileconfig_kernel( NULL );
+
+  if (use_2d_blocking == 1) {
+    if ((BF > 1) || (cfg.K % 32 != 0)) {
+      for ( ifm1 = 0; ifm1 < BF; ++ifm1 ) {
+        for (ofm1 = my_M_start; ofm1 < my_M_end; ++ofm1) {
+          for (mb1 = my_N_start; mb1 < my_N_end; ++mb1) {
+            if ( ifm1 == 0 ) {
+              if ( (cfg.fuse_type & LIBXSMM_DNN_FC_ELTW_FUSE_BIAS) == LIBXSMM_DNN_FC_ELTW_FUSE_BIAS ) {
+                unary_ld_param.in.primary  = (void*) &LIBXSMM_VLA_ACCESS(2, bias, ofm1, 0,cfg.bk);
+                unary_ld_param.out.primary = &LIBXSMM_VLA_ACCESS(4, output_f32, mb1, ofm1, 0, 0, nBlocksOFm,cfg.bn,cfg.bk);
+                cfg.fwd_colbcast_load_kernel( &unary_ld_param );
+              } else {
+                unary_ld_param.out.primary = &LIBXSMM_VLA_ACCESS(4, output_f32, mb1, ofm1, 0, 0, nBlocksOFm, cfg.bn, cfg.bk);
+                cfg.fwd_zero_kernel( &unary_ld_param );
+              }
+            }
+            gemm_param.op.tertiary = (void*)&blocks;
+            gemm_param.a.primary = (void*)&LIBXSMM_VLA_ACCESS(4, filter, ofm1, ifm1*CB_BLOCKS, 0, 0, nBlocksIFm, cfg.bc, cfg.bk);
+            gemm_param.b.primary = (void*)&LIBXSMM_VLA_ACCESS(4, input,  mb1, ifm1*CB_BLOCKS, 0, 0, nBlocksIFm, cfg.bn, cfg.bc);
+            gemm_param.c.primary = (void*)&LIBXSMM_VLA_ACCESS(4, output_f32, mb1, ofm1, 0, 0, nBlocksOFm, cfg.bn, cfg.bk);
+            cfg.fwd_compute_kernel_strd( &gemm_param );
+            if ( ifm1 == BF-1  ) {
+              if ( ((cfg.fuse_type & LIBXSMM_DNN_FC_ELTW_FUSE_RELU) == LIBXSMM_DNN_FC_ELTW_FUSE_RELU ) ||
+                   ((cfg.fuse_type & LIBXSMM_DNN_FC_ELTW_FUSE_RELU_WITH_MASK) == LIBXSMM_DNN_FC_ELTW_FUSE_RELU_WITH_MASK) ) {
+                unary_st_param.in.primary = &LIBXSMM_VLA_ACCESS(4, output_f32, mb1, ofm1, 0, 0, nBlocksOFm, cfg.bn, cfg.bk);
+                unary_st_param.out.primary = &LIBXSMM_VLA_ACCESS(4, output, mb1, ofm1, 0, 0, nBlocksOFm, cfg.bn, cfg.bk);
+                if ((cfg.fuse_type & LIBXSMM_DNN_FC_ELTW_FUSE_RELU_WITH_MASK) == LIBXSMM_DNN_FC_ELTW_FUSE_RELU_WITH_MASK) {
+                  unary_st_param.out.secondary = &LIBXSMM_VLA_ACCESS(4, relubitmask, mb1, ofm1, 0, 0, nBlocksOFm, cfg.bn, cfg.bk/32);
+                }
+                cfg.fwd_act_kernel( &unary_st_param );
+              } else {
+                unary_st_param.in.primary = &LIBXSMM_VLA_ACCESS(4, output_f32, mb1, ofm1, 0, 0, nBlocksOFm, cfg.bn, cfg.bk);
+                unary_st_param.out.primary = &LIBXSMM_VLA_ACCESS(4, output, mb1, ofm1, 0, 0, nBlocksOFm, cfg.bn, cfg.bk);
+                cfg.fwd_store_kernel( &unary_st_param );
+              }
+            }
+          }
+        }
+      }
+    } else {
+      for (ofm1 = my_M_start; ofm1 < my_M_end; ++ofm1) {
+        for (mb1 = my_N_start; mb1 < my_N_end; ++mb1) {
+          if ( ((cfg.fuse_type & LIBXSMM_DNN_FC_ELTW_FUSE_BIAS) == LIBXSMM_DNN_FC_ELTW_FUSE_BIAS) ||
+               ((cfg.fuse_type & LIBXSMM_DNN_FC_ELTW_FUSE_RELU) == LIBXSMM_DNN_FC_ELTW_FUSE_RELU) ||
+               ((cfg.fuse_type & LIBXSMM_DNN_FC_ELTW_FUSE_RELU_WITH_MASK) == LIBXSMM_DNN_FC_ELTW_FUSE_RELU_WITH_MASK) ) {
+            gemm_ext_param.op.tertiary = (void*)&blocks;
+            gemm_ext_param.a.primary = (void*)&LIBXSMM_VLA_ACCESS(4, filter, ofm1, 0, 0, 0, nBlocksIFm, cfg.bc, cfg.bk);
+            gemm_ext_param.b.primary = (void*)&LIBXSMM_VLA_ACCESS(4, input,  mb1, 0, 0, 0, nBlocksIFm, cfg.bn, cfg.bc);
+            gemm_ext_param.c.primary = (void*)&LIBXSMM_VLA_ACCESS(4, output, mb1, ofm1, 0, 0, nBlocksOFm, cfg.bn, cfg.bk);
+            if ((cfg.fuse_type & LIBXSMM_DNN_FC_ELTW_FUSE_BIAS) == LIBXSMM_DNN_FC_ELTW_FUSE_BIAS) {
+              gemm_ext_param.d.primary = (void*)&LIBXSMM_VLA_ACCESS(2, bias, ofm1, 0, cfg.bk);
+            }
+            if ((cfg.fuse_type & LIBXSMM_DNN_FC_ELTW_FUSE_RELU_WITH_MASK) == LIBXSMM_DNN_FC_ELTW_FUSE_RELU_WITH_MASK) {
+              gemm_ext_param.c.secondary = (void*)&LIBXSMM_VLA_ACCESS(4, relubitmask, mb1, ofm1, 0, 0, nBlocksOFm, cfg.bn, cfg.bk/32);
+            }
+            cfg.fwd_compute_kernel5_strd_fused( &gemm_ext_param );
+          } else {
+            gemm_param.op.tertiary = (void*)&blocks;
+            gemm_param.a.primary = (void*)&LIBXSMM_VLA_ACCESS(4, filter, ofm1, 0, 0, 0, nBlocksIFm, cfg.bc, cfg.bk);
+            gemm_param.b.primary = (void*)&LIBXSMM_VLA_ACCESS(4, input,  mb1, 0, 0, 0, nBlocksIFm, cfg.bn, cfg.bc);
+            gemm_param.c.primary = (void*)&LIBXSMM_VLA_ACCESS(4, output, mb1, ofm1, 0, 0, nBlocksOFm, cfg.bn, cfg.bk);
+            cfg.fwd_compute_kernel2_strd( &gemm_param );
+          }
+        }
+      }
+    }
+  } else {
+    if ((BF > 1) || (cfg.K % 32 != 0)) {
+      for ( ifm1 = 0; ifm1 < BF; ++ifm1 ) {
+        for ( mb1ofm1 = thr_begin; mb1ofm1 < thr_end; ++mb1ofm1 ) {
+          mb1  = mb1ofm1%nBlocksMB;
+          ofm1 = mb1ofm1/nBlocksMB;
+          /* Initialize libxsmm_blasintermediate f32 tensor */
+          if ( ifm1 == 0 ) {
+            if ( (cfg.fuse_type & LIBXSMM_DNN_FC_ELTW_FUSE_BIAS) == LIBXSMM_DNN_FC_ELTW_FUSE_BIAS ) {
+              unary_ld_param.in.primary  = (void*)&LIBXSMM_VLA_ACCESS(2, bias, ofm1, 0,cfg.bk);
+              unary_ld_param.out.primary = (void*)&LIBXSMM_VLA_ACCESS(4, output_f32, mb1, ofm1, 0, 0, nBlocksOFm,cfg.bn,cfg.bk);
+              cfg.fwd_colbcast_load_kernel( &unary_ld_param );
+            } else {
+              unary_ld_param.out.primary = (void*)&LIBXSMM_VLA_ACCESS(4, output_f32, mb1, ofm1, 0, 0, nBlocksOFm, cfg.bn, cfg.bk);
+              cfg.fwd_zero_kernel( &unary_ld_param );
+            }
+          }
+          gemm_param.op.tertiary = (void*)&blocks;
+          gemm_param.a.primary = (void*)&LIBXSMM_VLA_ACCESS(4, filter, ofm1, ifm1*CB_BLOCKS, 0, 0, nBlocksIFm, cfg.bc, cfg.bk);
+          gemm_param.b.primary = (void*)&LIBXSMM_VLA_ACCESS(4, input,  mb1, ifm1*CB_BLOCKS, 0, 0, nBlocksIFm, cfg.bn, cfg.bc);
+          gemm_param.c.primary = (void*)&LIBXSMM_VLA_ACCESS(4, output_f32, mb1, ofm1, 0, 0, nBlocksOFm, cfg.bn, cfg.bk);
+          cfg.fwd_compute_kernel_strd( &gemm_param );
+          if ( ifm1 == BF-1  ) {
+            if ( ((cfg.fuse_type & LIBXSMM_DNN_FC_ELTW_FUSE_RELU) == LIBXSMM_DNN_FC_ELTW_FUSE_RELU) ||
+                 ((cfg.fuse_type & LIBXSMM_DNN_FC_ELTW_FUSE_RELU_WITH_MASK) == LIBXSMM_DNN_FC_ELTW_FUSE_RELU_WITH_MASK) ) {
+              unary_st_param.in.primary = &LIBXSMM_VLA_ACCESS(4, output_f32, mb1, ofm1, 0, 0, nBlocksOFm, cfg.bn, cfg.bk);
+              unary_st_param.out.primary = &LIBXSMM_VLA_ACCESS(4, output, mb1, ofm1, 0, 0, nBlocksOFm, cfg.bn, cfg.bk);
+              if ( (cfg.fuse_type & LIBXSMM_DNN_FC_ELTW_FUSE_RELU_WITH_MASK) == LIBXSMM_DNN_FC_ELTW_FUSE_RELU_WITH_MASK ) {
+                unary_st_param.out.secondary = &LIBXSMM_VLA_ACCESS(4, relubitmask, mb1, ofm1, 0, 0, nBlocksOFm, cfg.bn, cfg.bk/32);
+              }
+              cfg.fwd_act_kernel( &unary_st_param );
+            } else {
+              unary_st_param.in.primary = &LIBXSMM_VLA_ACCESS(4, output_f32, mb1, ofm1, 0, 0, nBlocksOFm, cfg.bn, cfg.bk);
+              unary_st_param.out.primary = &LIBXSMM_VLA_ACCESS(4, output, mb1, ofm1, 0, 0, nBlocksOFm, cfg.bn, cfg.bk);
+              cfg.fwd_store_kernel( &unary_st_param );
+            }
+          }
+        }
+      }
+    } else {
+      for ( mb1ofm1 = thr_begin; mb1ofm1 < thr_end; ++mb1ofm1 ) {
+        mb1  = mb1ofm1%nBlocksMB;
+        ofm1 = mb1ofm1/nBlocksMB;
+        if ( ((cfg.fuse_type & LIBXSMM_DNN_FC_ELTW_FUSE_BIAS) == LIBXSMM_DNN_FC_ELTW_FUSE_BIAS) ||
+             ((cfg.fuse_type & LIBXSMM_DNN_FC_ELTW_FUSE_RELU) == LIBXSMM_DNN_FC_ELTW_FUSE_RELU) ||
+             ((cfg.fuse_type & LIBXSMM_DNN_FC_ELTW_FUSE_RELU_WITH_MASK) == LIBXSMM_DNN_FC_ELTW_FUSE_RELU_WITH_MASK) ) {
+          gemm_ext_param.op.tertiary = (void*)&blocks;
+          gemm_ext_param.a.primary = (void*)&LIBXSMM_VLA_ACCESS(4, filter, ofm1, 0, 0, 0, nBlocksIFm, cfg.bc, cfg.bk);
+          gemm_ext_param.b.primary = (void*)&LIBXSMM_VLA_ACCESS(4, input,  mb1, 0, 0, 0, nBlocksIFm, cfg.bn, cfg.bc);
+          gemm_ext_param.c.primary = (void*)&LIBXSMM_VLA_ACCESS(4, output, mb1, ofm1, 0, 0, nBlocksOFm, cfg.bn, cfg.bk);
+          if ((cfg.fuse_type & LIBXSMM_DNN_FC_ELTW_FUSE_BIAS) == LIBXSMM_DNN_FC_ELTW_FUSE_BIAS) {
+            gemm_ext_param.d.primary = (void*)&LIBXSMM_VLA_ACCESS(2, bias, ofm1, 0, cfg.bk);
+          }
+          if ((cfg.fuse_type & LIBXSMM_DNN_FC_ELTW_FUSE_RELU_WITH_MASK) == LIBXSMM_DNN_FC_ELTW_FUSE_RELU_WITH_MASK) {
+            gemm_ext_param.c.secondary = (void*)&LIBXSMM_VLA_ACCESS(4, relubitmask, mb1, ofm1, 0, 0, nBlocksOFm, cfg.bn, cfg.bk/32);
+          }
+          cfg.fwd_compute_kernel5_strd_fused( &gemm_ext_param );
+        } else {
+          gemm_param.op.tertiary = (void*)&blocks;
+          gemm_param.a.primary = (void*)&LIBXSMM_VLA_ACCESS(4, filter, ofm1, 0, 0, 0, nBlocksIFm, cfg.bc, cfg.bk);
+          gemm_param.b.primary = (void*)&LIBXSMM_VLA_ACCESS(4, input,  mb1, 0, 0, 0, nBlocksIFm, cfg.bn, cfg.bc);
+          gemm_param.c.primary = (void*)&LIBXSMM_VLA_ACCESS(4, output, mb1, ofm1, 0, 0, nBlocksOFm, cfg.bn, cfg.bk);
+          cfg.fwd_compute_kernel2_strd( &gemm_param );
+        }
+      }
+    }
+  }
+
+  cfg.fwd_tilerelease_kernel( NULL );
+  libxsmm_barrier_wait(cfg.barrier, ltid);
+}
+
+LIBXSMM_API void libxsmm_dnn_fc_fwd_exec_bf16_wt_vnni_format( libxsmm_dnn_fc_fwd_config cfg, const libxsmm_bfloat16* wt_ptr, const libxsmm_bfloat16* in_act_ptr, libxsmm_bfloat16* out_act_ptr,
                                       const libxsmm_bfloat16* bias_ptr, unsigned char* relu_ptr, int start_tid, int my_tid, void* scratch )
 {
   const libxsmm_blasint nBlocksIFm = cfg.C / cfg.bc;
@@ -1985,10 +2239,445 @@ LIBXSMM_API void libxsmm_dnn_fc_fwd_exec_bf16_vnni_format( libxsmm_dnn_fc_fwd_co
   libxsmm_barrier_wait(cfg.barrier, ltid);
 }
 
+LIBXSMM_API void libxsmm_dnn_fc_fwd_exec_bf16_wt_vnni_iact_vnniT_format( libxsmm_dnn_fc_fwd_config cfg, const libxsmm_bfloat16* wt_ptr, const libxsmm_bfloat16* in_act_ptr, libxsmm_bfloat16* out_act_ptr,
+                                      const libxsmm_bfloat16* bias_ptr, unsigned char* relu_ptr, int start_tid, int my_tid, void* scratch )
+{
+  const libxsmm_blasint nBlocksIFm = cfg.C / cfg.bc;
+  const libxsmm_blasint nBlocksOFm = cfg.K / cfg.bk;
+  const libxsmm_blasint nBlocksMB  = cfg.N / cfg.bn;
+  const libxsmm_blasint bn = cfg.bn;
+  const libxsmm_blasint bk = cfg.bk;
+  const libxsmm_blasint lpb = libxsmm_cpuid_dot_pack_factor(LIBXSMM_DATATYPE_BF16);
+  const libxsmm_blasint bc_lp = (cfg.bc/lpb > 0) ? cfg.bc/lpb : 1;
+  /* const libxsmm_blasint bc = cfg.bc;*/
+  libxsmm_blasint use_2d_blocking = cfg.fwd_2d_blocking;
+
+  /* computing first logical thread */
+  const libxsmm_blasint ltid = my_tid - start_tid;
+  /* number of tasks that could be run in parallel */
+  const libxsmm_blasint work = nBlocksOFm * nBlocksMB;
+  /* compute chunk size */
+  const libxsmm_blasint chunksize = (work % cfg.threads == 0) ? (work / cfg.threads) : ((work / cfg.threads) + 1);
+  /* compute thr_begin and thr_end */
+  const libxsmm_blasint thr_begin = (ltid * chunksize < work) ? (ltid * chunksize) : work;
+  const libxsmm_blasint thr_end = ((ltid + 1) * chunksize < work) ? ((ltid + 1) * chunksize) : work;
+
+  /* loop variables */
+  libxsmm_blasint mb1ofm1 = 0, mb1 = 0, ofm1 = 0, ifm1 = 0;
+  libxsmm_blasint N_tasks_per_thread = 0, M_tasks_per_thread = 0, my_M_start = 0, my_M_end = 0, my_N_start = 0, my_N_end = 0, my_col_id = 0, my_row_id = 0, col_teams = 0, row_teams = 0;
+  LIBXSMM_VLA_DECL(4, libxsmm_bfloat16,       output,  out_act_ptr, nBlocksOFm, cfg.bn, cfg.bk);
+  LIBXSMM_VLA_DECL(5, const libxsmm_bfloat16,  input,   in_act_ptr,  nBlocksIFm, bc_lp, cfg.bn, lpb);
+  LIBXSMM_VLA_DECL(5, const libxsmm_bfloat16, filter,       wt_ptr, nBlocksIFm, bc_lp, cfg.bk, lpb);
+  LIBXSMM_VLA_DECL(4, float, output_f32, (float*)scratch, nBlocksOFm, bn, bk);
+  LIBXSMM_VLA_DECL(2, const libxsmm_bfloat16, bias, ((cfg.fuse_type & LIBXSMM_DNN_FC_ELTW_FUSE_BIAS) == LIBXSMM_DNN_FC_ELTW_FUSE_BIAS) ? (libxsmm_bfloat16*) bias_ptr : NULL, cfg.bk);
+  LIBXSMM_VLA_DECL(4, unsigned int,  relubitmask, ((cfg.fuse_type & LIBXSMM_DNN_FC_ELTW_FUSE_RELU_WITH_MASK) == LIBXSMM_DNN_FC_ELTW_FUSE_RELU_WITH_MASK) ? (unsigned int*)relu_ptr : NULL, nBlocksOFm, cfg.bn, cfg.bk/32);
+
+  libxsmm_meltw_unary_param unary_st_param;
+  libxsmm_meltw_unary_param unary_ld_param;
+  libxsmm_gemm_param gemm_param;
+  libxsmm_gemm_ext_param gemm_ext_param;
+
+  unsigned long long  blocks = nBlocksIFm;
+  libxsmm_blasint CB_BLOCKS = nBlocksIFm, BF = 1;
+
+  memset( &gemm_param, 0, sizeof(libxsmm_gemm_param) );
+  memset( &gemm_ext_param, 0, sizeof(libxsmm_gemm_ext_param) );
+  memset( &unary_st_param, 0, sizeof(libxsmm_meltw_unary_param) );
+  memset( &unary_ld_param, 0, sizeof(libxsmm_meltw_unary_param) );
+
+  BF = cfg.fwd_bf;
+  CB_BLOCKS = nBlocksIFm/BF;
+  blocks = CB_BLOCKS;
+
+  if (use_2d_blocking == 1) {
+    int _ltid, M_hyperpartition_id, N_hyperpartition_id, _nBlocksOFm, _nBlocksMB, hyperteam_id;
+    col_teams    = cfg.fwd_col_teams;
+    row_teams = cfg.fwd_row_teams;
+    hyperteam_id = ltid/(col_teams*row_teams);
+    _nBlocksOFm  = LIBXSMM_UPDIV(nBlocksOFm,cfg.fwd_M_hyperpartitions);
+    _nBlocksMB   = LIBXSMM_UPDIV(nBlocksMB,cfg.fwd_N_hyperpartitions);
+    _ltid = ltid % (col_teams * row_teams);
+    M_hyperpartition_id = hyperteam_id % cfg.fwd_M_hyperpartitions;
+    N_hyperpartition_id = hyperteam_id / cfg.fwd_M_hyperpartitions;
+    my_row_id = _ltid % row_teams;
+    my_col_id = _ltid / row_teams;
+    N_tasks_per_thread = (_nBlocksMB + col_teams-1)/col_teams;
+    M_tasks_per_thread = (_nBlocksOFm + row_teams-1)/row_teams;
+    my_N_start = N_hyperpartition_id * _nBlocksMB + LIBXSMM_MIN( my_col_id * N_tasks_per_thread, _nBlocksMB);
+    my_N_end   = LIBXSMM_MIN(N_hyperpartition_id * _nBlocksMB + LIBXSMM_MIN( (my_col_id+1) * N_tasks_per_thread, _nBlocksMB), nBlocksMB);
+    my_M_start = M_hyperpartition_id * _nBlocksOFm + LIBXSMM_MIN( my_row_id * M_tasks_per_thread, _nBlocksOFm);
+    my_M_end   = LIBXSMM_MIN(M_hyperpartition_id * _nBlocksOFm + LIBXSMM_MIN( (my_row_id+1) * M_tasks_per_thread, _nBlocksOFm), nBlocksOFm);
+  }
+
+  /* lazy barrier init */
+  libxsmm_barrier_init(cfg.barrier, ltid);
+
+  cfg.fwd_tileconfig_kernel( NULL );
+
+  if (use_2d_blocking == 1) {
+    if ((BF > 1) || (cfg.K % 32 != 0)) {
+      for ( ifm1 = 0; ifm1 < BF; ++ifm1 ) {
+        for (ofm1 = my_M_start; ofm1 < my_M_end; ++ofm1) {
+          for (mb1 = my_N_start; mb1 < my_N_end; ++mb1) {
+            if ( ifm1 == 0 ) {
+              if ( (cfg.fuse_type & LIBXSMM_DNN_FC_ELTW_FUSE_BIAS) == LIBXSMM_DNN_FC_ELTW_FUSE_BIAS ) {
+                unary_ld_param.in.primary  = (void*) &LIBXSMM_VLA_ACCESS(2, bias, ofm1, 0,cfg.bk);
+                unary_ld_param.out.primary = &LIBXSMM_VLA_ACCESS(4, output_f32, mb1, ofm1, 0, 0, nBlocksOFm,cfg.bn,cfg.bk);
+                cfg.fwd_colbcast_load_kernel( &unary_ld_param );
+              } else {
+                unary_ld_param.out.primary = &LIBXSMM_VLA_ACCESS(4, output_f32, mb1, ofm1, 0, 0, nBlocksOFm, cfg.bn, cfg.bk);
+                cfg.fwd_zero_kernel( &unary_ld_param );
+              }
+            }
+            gemm_param.op.tertiary = (void*)&blocks;
+            gemm_param.a.primary = (void*)&LIBXSMM_VLA_ACCESS(5, filter, ofm1, ifm1*CB_BLOCKS, 0, 0, 0, nBlocksIFm, bc_lp, cfg.bk, lpb);
+            gemm_param.b.primary = (void*)&LIBXSMM_VLA_ACCESS(5, input,  mb1, ifm1*CB_BLOCKS, 0, 0, 0, nBlocksIFm, bc_lp, cfg.bn, lpb);
+            gemm_param.c.primary = (void*)&LIBXSMM_VLA_ACCESS(4, output_f32, mb1, ofm1, 0, 0, nBlocksOFm, cfg.bn, cfg.bk);
+            cfg.fwd_compute_kernel_strd( &gemm_param );
+            if ( ifm1 == BF-1  ) {
+              if ( ((cfg.fuse_type & LIBXSMM_DNN_FC_ELTW_FUSE_RELU) == LIBXSMM_DNN_FC_ELTW_FUSE_RELU ) ||
+                   ((cfg.fuse_type & LIBXSMM_DNN_FC_ELTW_FUSE_RELU_WITH_MASK) == LIBXSMM_DNN_FC_ELTW_FUSE_RELU_WITH_MASK) ) {
+                unary_st_param.in.primary = &LIBXSMM_VLA_ACCESS(4, output_f32, mb1, ofm1, 0, 0, nBlocksOFm, cfg.bn, cfg.bk);
+                unary_st_param.out.primary = &LIBXSMM_VLA_ACCESS(4, output, mb1, ofm1, 0, 0, nBlocksOFm, cfg.bn, cfg.bk);
+                if ((cfg.fuse_type & LIBXSMM_DNN_FC_ELTW_FUSE_RELU_WITH_MASK) == LIBXSMM_DNN_FC_ELTW_FUSE_RELU_WITH_MASK) {
+                  unary_st_param.out.secondary = &LIBXSMM_VLA_ACCESS(4, relubitmask, mb1, ofm1, 0, 0, nBlocksOFm, cfg.bn, cfg.bk/32);
+                }
+                cfg.fwd_act_kernel( &unary_st_param );
+              } else {
+                unary_st_param.in.primary = &LIBXSMM_VLA_ACCESS(4, output_f32, mb1, ofm1, 0, 0, nBlocksOFm, cfg.bn, cfg.bk);
+                unary_st_param.out.primary = &LIBXSMM_VLA_ACCESS(4, output, mb1, ofm1, 0, 0, nBlocksOFm, cfg.bn, cfg.bk);
+                cfg.fwd_store_kernel( &unary_st_param );
+              }
+            }
+          }
+        }
+      }
+    } else {
+      for (ofm1 = my_M_start; ofm1 < my_M_end; ++ofm1) {
+        for (mb1 = my_N_start; mb1 < my_N_end; ++mb1) {
+          if ( ((cfg.fuse_type & LIBXSMM_DNN_FC_ELTW_FUSE_BIAS) == LIBXSMM_DNN_FC_ELTW_FUSE_BIAS) ||
+               ((cfg.fuse_type & LIBXSMM_DNN_FC_ELTW_FUSE_RELU) == LIBXSMM_DNN_FC_ELTW_FUSE_RELU) ||
+               ((cfg.fuse_type & LIBXSMM_DNN_FC_ELTW_FUSE_RELU_WITH_MASK) == LIBXSMM_DNN_FC_ELTW_FUSE_RELU_WITH_MASK) ) {
+            gemm_ext_param.op.tertiary = (void*)&blocks;
+            gemm_ext_param.a.primary = (void*)&LIBXSMM_VLA_ACCESS(5, filter, ofm1, 0, 0, 0, 0, nBlocksIFm, bc_lp, cfg.bk, lpb);
+            gemm_ext_param.b.primary = (void*)&LIBXSMM_VLA_ACCESS(5, input,  mb1, 0, 0, 0, 0, nBlocksIFm, bc_lp, cfg.bn, lpb);
+            gemm_ext_param.c.primary = (void*)&LIBXSMM_VLA_ACCESS(4, output, mb1, ofm1, 0, 0, nBlocksOFm, cfg.bn, cfg.bk);
+            if ((cfg.fuse_type & LIBXSMM_DNN_FC_ELTW_FUSE_BIAS) == LIBXSMM_DNN_FC_ELTW_FUSE_BIAS) {
+              gemm_ext_param.d.primary = (void*)&LIBXSMM_VLA_ACCESS(2, bias, ofm1, 0, cfg.bk);
+            }
+            if ((cfg.fuse_type & LIBXSMM_DNN_FC_ELTW_FUSE_RELU_WITH_MASK) == LIBXSMM_DNN_FC_ELTW_FUSE_RELU_WITH_MASK) {
+              gemm_ext_param.c.secondary = (void*)&LIBXSMM_VLA_ACCESS(4, relubitmask, mb1, ofm1, 0, 0, nBlocksOFm, cfg.bn, cfg.bk/32);
+            }
+            cfg.fwd_compute_kernel5_strd_fused( &gemm_ext_param );
+          } else {
+            gemm_param.op.tertiary = (void*)&blocks;
+            gemm_param.a.primary = (void*)&LIBXSMM_VLA_ACCESS(5, filter, ofm1, 0, 0, 0, 0, nBlocksIFm, bc_lp, cfg.bk, lpb);
+            gemm_param.b.primary = (void*)&LIBXSMM_VLA_ACCESS(5, input,  mb1, 0, 0, 0, 0, nBlocksIFm, bc_lp, cfg.bn, lpb);
+            gemm_param.c.primary = (void*)&LIBXSMM_VLA_ACCESS(4, output, mb1, ofm1, 0, 0, nBlocksOFm, cfg.bn, cfg.bk);
+            cfg.fwd_compute_kernel2_strd( &gemm_param );
+          }
+        }
+      }
+    }
+  } else {
+    if ((BF > 1) || (cfg.K % 32 != 0)) {
+      for ( ifm1 = 0; ifm1 < BF; ++ifm1 ) {
+        for ( mb1ofm1 = thr_begin; mb1ofm1 < thr_end; ++mb1ofm1 ) {
+          mb1  = mb1ofm1%nBlocksMB;
+          ofm1 = mb1ofm1/nBlocksMB;
+          /* Initialize libxsmm_blasintermediate f32 tensor */
+          if ( ifm1 == 0 ) {
+            if ( (cfg.fuse_type & LIBXSMM_DNN_FC_ELTW_FUSE_BIAS) == LIBXSMM_DNN_FC_ELTW_FUSE_BIAS ) {
+              unary_ld_param.in.primary  = (void*)&LIBXSMM_VLA_ACCESS(2, bias, ofm1, 0,cfg.bk);
+              unary_ld_param.out.primary = (void*)&LIBXSMM_VLA_ACCESS(4, output_f32, mb1, ofm1, 0, 0, nBlocksOFm,cfg.bn,cfg.bk);
+              cfg.fwd_colbcast_load_kernel( &unary_ld_param );
+            } else {
+              unary_ld_param.out.primary = (void*)&LIBXSMM_VLA_ACCESS(4, output_f32, mb1, ofm1, 0, 0, nBlocksOFm, cfg.bn, cfg.bk);
+              cfg.fwd_zero_kernel( &unary_ld_param );
+            }
+          }
+          gemm_param.op.tertiary = (void*)&blocks;
+          gemm_param.a.primary = (void*)&LIBXSMM_VLA_ACCESS(5, filter, ofm1, ifm1*CB_BLOCKS, 0, 0, 0, nBlocksIFm, bc_lp, cfg.bk, lpb);
+          gemm_param.b.primary = (void*)&LIBXSMM_VLA_ACCESS(5, input,  mb1, ifm1*CB_BLOCKS, 0, 0, 0, nBlocksIFm, bc_lp, cfg.bn, lpb);
+          gemm_param.c.primary = (void*)&LIBXSMM_VLA_ACCESS(4, output_f32, mb1, ofm1, 0, 0, nBlocksOFm, cfg.bn, cfg.bk);
+          cfg.fwd_compute_kernel_strd( &gemm_param );
+          if ( ifm1 == BF-1  ) {
+            if ( ((cfg.fuse_type & LIBXSMM_DNN_FC_ELTW_FUSE_RELU) == LIBXSMM_DNN_FC_ELTW_FUSE_RELU) ||
+                 ((cfg.fuse_type & LIBXSMM_DNN_FC_ELTW_FUSE_RELU_WITH_MASK) == LIBXSMM_DNN_FC_ELTW_FUSE_RELU_WITH_MASK) ) {
+              unary_st_param.in.primary = &LIBXSMM_VLA_ACCESS(4, output_f32, mb1, ofm1, 0, 0, nBlocksOFm, cfg.bn, cfg.bk);
+              unary_st_param.out.primary = &LIBXSMM_VLA_ACCESS(4, output, mb1, ofm1, 0, 0, nBlocksOFm, cfg.bn, cfg.bk);
+              if ( (cfg.fuse_type & LIBXSMM_DNN_FC_ELTW_FUSE_RELU_WITH_MASK) == LIBXSMM_DNN_FC_ELTW_FUSE_RELU_WITH_MASK ) {
+                unary_st_param.out.secondary = &LIBXSMM_VLA_ACCESS(4, relubitmask, mb1, ofm1, 0, 0, nBlocksOFm, cfg.bn, cfg.bk/32);
+              }
+              cfg.fwd_act_kernel( &unary_st_param );
+            } else {
+              unary_st_param.in.primary = &LIBXSMM_VLA_ACCESS(4, output_f32, mb1, ofm1, 0, 0, nBlocksOFm, cfg.bn, cfg.bk);
+              unary_st_param.out.primary = &LIBXSMM_VLA_ACCESS(4, output, mb1, ofm1, 0, 0, nBlocksOFm, cfg.bn, cfg.bk);
+              cfg.fwd_store_kernel( &unary_st_param );
+            }
+          }
+        }
+      }
+    } else {
+      for ( mb1ofm1 = thr_begin; mb1ofm1 < thr_end; ++mb1ofm1 ) {
+        mb1  = mb1ofm1%nBlocksMB;
+        ofm1 = mb1ofm1/nBlocksMB;
+        if ( ((cfg.fuse_type & LIBXSMM_DNN_FC_ELTW_FUSE_BIAS) == LIBXSMM_DNN_FC_ELTW_FUSE_BIAS) ||
+             ((cfg.fuse_type & LIBXSMM_DNN_FC_ELTW_FUSE_RELU) == LIBXSMM_DNN_FC_ELTW_FUSE_RELU) ||
+             ((cfg.fuse_type & LIBXSMM_DNN_FC_ELTW_FUSE_RELU_WITH_MASK) == LIBXSMM_DNN_FC_ELTW_FUSE_RELU_WITH_MASK) ) {
+          gemm_ext_param.op.tertiary = (void*)&blocks;
+          gemm_ext_param.a.primary = (void*)&LIBXSMM_VLA_ACCESS(5, filter, ofm1, 0, 0, 0, 0, nBlocksIFm, bc_lp, cfg.bk, lpb);
+          gemm_ext_param.b.primary = (void*)&LIBXSMM_VLA_ACCESS(5, input,  mb1, 0, 0, 0, 0, nBlocksIFm, bc_lp, cfg.bn, lpb);
+          gemm_ext_param.c.primary = (void*)&LIBXSMM_VLA_ACCESS(4, output, mb1, ofm1, 0, 0, nBlocksOFm, cfg.bn, cfg.bk);
+          if ((cfg.fuse_type & LIBXSMM_DNN_FC_ELTW_FUSE_BIAS) == LIBXSMM_DNN_FC_ELTW_FUSE_BIAS) {
+            gemm_ext_param.d.primary = (void*)&LIBXSMM_VLA_ACCESS(2, bias, ofm1, 0, cfg.bk);
+          }
+          if ((cfg.fuse_type & LIBXSMM_DNN_FC_ELTW_FUSE_RELU_WITH_MASK) == LIBXSMM_DNN_FC_ELTW_FUSE_RELU_WITH_MASK) {
+            gemm_ext_param.c.secondary = (void*)&LIBXSMM_VLA_ACCESS(4, relubitmask, mb1, ofm1, 0, 0, nBlocksOFm, cfg.bn, cfg.bk/32);
+          }
+          cfg.fwd_compute_kernel5_strd_fused( &gemm_ext_param );
+        } else {
+          gemm_param.op.tertiary = (void*)&blocks;
+          gemm_param.a.primary = (void*)&LIBXSMM_VLA_ACCESS(5, filter, ofm1, 0, 0, 0, 0, nBlocksIFm, bc_lp, cfg.bk, lpb);
+          gemm_param.b.primary = (void*)&LIBXSMM_VLA_ACCESS(5, input,  mb1, 0, 0, 0, 0, nBlocksIFm, bc_lp, cfg.bn, lpb);
+          gemm_param.c.primary = (void*)&LIBXSMM_VLA_ACCESS(4, output, mb1, ofm1, 0, 0, nBlocksOFm, cfg.bn, cfg.bk);
+          cfg.fwd_compute_kernel2_strd( &gemm_param );
+        }
+      }
+    }
+  }
+
+  cfg.fwd_tilerelease_kernel( NULL );
+  libxsmm_barrier_wait(cfg.barrier, ltid);
+}
+
+LIBXSMM_API void libxsmm_dnn_fc_fwd_exec_bf16_wt_vnni_iact_vnniT_oact_vnniT_format( libxsmm_dnn_fc_fwd_config cfg, const libxsmm_bfloat16* wt_ptr, const libxsmm_bfloat16* in_act_ptr,
+                                      libxsmm_bfloat16* out_act_ptr, const libxsmm_bfloat16* bias_ptr, int start_tid, int my_tid, void* scratch )
+{
+  const libxsmm_blasint nBlocksIFm = cfg.C / cfg.bc;
+  const libxsmm_blasint nBlocksOFm = cfg.K / cfg.bk;
+  const libxsmm_blasint nBlocksMB  = cfg.N / cfg.bn;
+  const libxsmm_blasint bn = cfg.bn;
+  const libxsmm_blasint bk = cfg.bk;
+  const libxsmm_blasint lpb = libxsmm_cpuid_dot_pack_factor(LIBXSMM_DATATYPE_BF16);
+  const libxsmm_blasint bc_lp = (cfg.bc/lpb > 0) ? cfg.bc/lpb : 1;
+  const libxsmm_blasint bk_lp = (cfg.bk/lpb > 0) ? cfg.bk/lpb : 1;
+  /* const libxsmm_blasint bc = cfg.bc;*/
+  libxsmm_blasint use_2d_blocking = cfg.fwd_2d_blocking;
+
+  /* computing first logical thread */
+  const libxsmm_blasint ltid = my_tid - start_tid;
+  /* number of tasks that could be run in parallel */
+  const libxsmm_blasint work = nBlocksOFm * nBlocksMB;
+  /* compute chunk size */
+  const libxsmm_blasint chunksize = (work % cfg.threads == 0) ? (work / cfg.threads) : ((work / cfg.threads) + 1);
+  /* compute thr_begin and thr_end */
+  const libxsmm_blasint thr_begin = (ltid * chunksize < work) ? (ltid * chunksize) : work;
+  const libxsmm_blasint thr_end = ((ltid + 1) * chunksize < work) ? ((ltid + 1) * chunksize) : work;
+
+  /* loop variables */
+  libxsmm_blasint mb1ofm1 = 0, mb1 = 0, ofm1 = 0, ifm1 = 0;
+  libxsmm_blasint N_tasks_per_thread = 0, M_tasks_per_thread = 0, my_M_start = 0, my_M_end = 0, my_N_start = 0, my_N_end = 0, my_col_id = 0, my_row_id = 0, col_teams = 0, row_teams = 0;
+  LIBXSMM_VLA_DECL(5, libxsmm_bfloat16,       output,  out_act_ptr, nBlocksOFm, bk_lp, cfg.bn, lpb);
+  LIBXSMM_VLA_DECL(5, const libxsmm_bfloat16,  input,   in_act_ptr,  nBlocksIFm, bc_lp, cfg.bn, lpb);
+  LIBXSMM_VLA_DECL(5, const libxsmm_bfloat16, filter,       wt_ptr, nBlocksIFm, bc_lp, cfg.bk, lpb);
+  LIBXSMM_VLA_DECL(2, libxsmm_bfloat16, output_bf16, (libxsmm_bfloat16*)((char*)scratch + (my_tid * cfg.bn * cfg.bk * sizeof(libxsmm_bfloat16))), bk);
+  LIBXSMM_VLA_DECL(4, float, output_f32, (float*)((char*)scratch + (cfg.threads * cfg.bn * cfg.bk * sizeof(libxsmm_bfloat16))), nBlocksOFm, bn, bk);
+  LIBXSMM_VLA_DECL(2, const libxsmm_bfloat16, bias, ((cfg.fuse_type & LIBXSMM_DNN_FC_ELTW_FUSE_BIAS) == LIBXSMM_DNN_FC_ELTW_FUSE_BIAS) ? (libxsmm_bfloat16*) bias_ptr : NULL, cfg.bk);
+
+  libxsmm_meltw_unary_param unary_st_param;
+  libxsmm_meltw_unary_param unary_ld_param;
+  libxsmm_meltw_unary_param unary_trans_param;
+  libxsmm_gemm_param gemm_param;
+  libxsmm_gemm_ext_param gemm_ext_param;
+
+  unsigned long long  blocks = nBlocksIFm;
+  libxsmm_blasint CB_BLOCKS = nBlocksIFm, BF = 1;
+
+  memset( &gemm_param, 0, sizeof(libxsmm_gemm_param) );
+  memset( &gemm_ext_param, 0, sizeof(libxsmm_gemm_ext_param) );
+  memset( &unary_st_param, 0, sizeof(libxsmm_meltw_unary_param) );
+  memset( &unary_ld_param, 0, sizeof(libxsmm_meltw_unary_param) );
+  memset( &unary_trans_param, 0, sizeof(libxsmm_meltw_unary_param) );
+
+  BF = cfg.fwd_bf;
+  CB_BLOCKS = nBlocksIFm/BF;
+  blocks = CB_BLOCKS;
+
+  if (use_2d_blocking == 1) {
+    int _ltid, M_hyperpartition_id, N_hyperpartition_id, _nBlocksOFm, _nBlocksMB, hyperteam_id;
+    col_teams    = cfg.fwd_col_teams;
+    row_teams = cfg.fwd_row_teams;
+    hyperteam_id = ltid/(col_teams*row_teams);
+    _nBlocksOFm  = LIBXSMM_UPDIV(nBlocksOFm,cfg.fwd_M_hyperpartitions);
+    _nBlocksMB   = LIBXSMM_UPDIV(nBlocksMB,cfg.fwd_N_hyperpartitions);
+    _ltid = ltid % (col_teams * row_teams);
+    M_hyperpartition_id = hyperteam_id % cfg.fwd_M_hyperpartitions;
+    N_hyperpartition_id = hyperteam_id / cfg.fwd_M_hyperpartitions;
+    my_row_id = _ltid % row_teams;
+    my_col_id = _ltid / row_teams;
+    N_tasks_per_thread = (_nBlocksMB + col_teams-1)/col_teams;
+    M_tasks_per_thread = (_nBlocksOFm + row_teams-1)/row_teams;
+    my_N_start = N_hyperpartition_id * _nBlocksMB + LIBXSMM_MIN( my_col_id * N_tasks_per_thread, _nBlocksMB);
+    my_N_end   = LIBXSMM_MIN(N_hyperpartition_id * _nBlocksMB + LIBXSMM_MIN( (my_col_id+1) * N_tasks_per_thread, _nBlocksMB), nBlocksMB);
+    my_M_start = M_hyperpartition_id * _nBlocksOFm + LIBXSMM_MIN( my_row_id * M_tasks_per_thread, _nBlocksOFm);
+    my_M_end   = LIBXSMM_MIN(M_hyperpartition_id * _nBlocksOFm + LIBXSMM_MIN( (my_row_id+1) * M_tasks_per_thread, _nBlocksOFm), nBlocksOFm);
+  }
+
+  /* lazy barrier init */
+  libxsmm_barrier_init(cfg.barrier, ltid);
+
+  cfg.fwd_tileconfig_kernel( NULL );
+
+  if (use_2d_blocking == 1) {
+    if ((BF > 1) || (cfg.K % 32 != 0)) {
+      for ( ifm1 = 0; ifm1 < BF; ++ifm1 ) {
+        for (ofm1 = my_M_start; ofm1 < my_M_end; ++ofm1) {
+          for (mb1 = my_N_start; mb1 < my_N_end; ++mb1) {
+            if ( ifm1 == 0 ) {
+              if ( (cfg.fuse_type & LIBXSMM_DNN_FC_ELTW_FUSE_BIAS) == LIBXSMM_DNN_FC_ELTW_FUSE_BIAS ) {
+                unary_ld_param.in.primary  = (void*) &LIBXSMM_VLA_ACCESS(2, bias, ofm1, 0,cfg.bk);
+                unary_ld_param.out.primary = &LIBXSMM_VLA_ACCESS(4, output_f32, mb1, ofm1, 0, 0, nBlocksOFm,cfg.bn,cfg.bk);
+                cfg.fwd_colbcast_load_kernel( &unary_ld_param );
+              } else {
+                unary_ld_param.out.primary = &LIBXSMM_VLA_ACCESS(4, output_f32, mb1, ofm1, 0, 0, nBlocksOFm, cfg.bn, cfg.bk);
+                cfg.fwd_zero_kernel( &unary_ld_param );
+              }
+            }
+            gemm_param.op.tertiary = (void*)&blocks;
+            gemm_param.a.primary = (void*)&LIBXSMM_VLA_ACCESS(5, filter, ofm1, ifm1*CB_BLOCKS, 0, 0, 0, nBlocksIFm, bc_lp, cfg.bk, lpb);
+            gemm_param.b.primary = (void*)&LIBXSMM_VLA_ACCESS(5, input,  mb1, ifm1*CB_BLOCKS, 0, 0, 0, nBlocksIFm, bc_lp, cfg.bn, lpb);
+            gemm_param.c.primary = (void*)&LIBXSMM_VLA_ACCESS(4, output_f32, mb1, ofm1, 0, 0, nBlocksOFm, cfg.bn, cfg.bk);
+            cfg.fwd_compute_kernel_strd( &gemm_param );
+            if ( ifm1 == BF-1  ) {
+              if ( ((cfg.fuse_type & LIBXSMM_DNN_FC_ELTW_FUSE_RELU) == LIBXSMM_DNN_FC_ELTW_FUSE_RELU ) ||
+                   ((cfg.fuse_type & LIBXSMM_DNN_FC_ELTW_FUSE_RELU_WITH_MASK) == LIBXSMM_DNN_FC_ELTW_FUSE_RELU_WITH_MASK) ) {
+                unary_st_param.in.primary = &LIBXSMM_VLA_ACCESS(4, output_f32, mb1, ofm1, 0, 0, nBlocksOFm, cfg.bn, cfg.bk);
+                unary_st_param.out.primary = &LIBXSMM_VLA_ACCESS(2, output_bf16, 0, 0, cfg.bk);
+                cfg.fwd_act_kernel( &unary_st_param );
+              } else {
+                unary_st_param.in.primary = &LIBXSMM_VLA_ACCESS(4, output_f32, mb1, ofm1, 0, 0, nBlocksOFm, cfg.bn, cfg.bk);
+                unary_st_param.out.primary = &LIBXSMM_VLA_ACCESS(2, output_bf16, 0, 0, cfg.bk);
+                cfg.fwd_store_kernel( &unary_st_param );
+              }
+              unary_trans_param.in.primary = &LIBXSMM_VLA_ACCESS(2, output_bf16, 0, 0, cfg.bk);
+              unary_trans_param.out.primary = &LIBXSMM_VLA_ACCESS(5, output, mb1, ofm1, 0, 0, 0, nBlocksOFm, bk_lp, cfg.bn, lpb);
+              cfg.fwd_vnniT_kernel( &unary_trans_param );
+            }
+          }
+        }
+      }
+    } else {
+      for (ofm1 = my_M_start; ofm1 < my_M_end; ++ofm1) {
+        for (mb1 = my_N_start; mb1 < my_N_end; ++mb1) {
+          if ( ((cfg.fuse_type & LIBXSMM_DNN_FC_ELTW_FUSE_BIAS) == LIBXSMM_DNN_FC_ELTW_FUSE_BIAS) ||
+               ((cfg.fuse_type & LIBXSMM_DNN_FC_ELTW_FUSE_RELU) == LIBXSMM_DNN_FC_ELTW_FUSE_RELU) ||
+               ((cfg.fuse_type & LIBXSMM_DNN_FC_ELTW_FUSE_RELU_WITH_MASK) == LIBXSMM_DNN_FC_ELTW_FUSE_RELU_WITH_MASK) ) {
+            gemm_ext_param.op.tertiary = (void*)&blocks;
+            gemm_ext_param.a.primary = (void*)&LIBXSMM_VLA_ACCESS(5, filter, ofm1, 0, 0, 0, 0, nBlocksIFm, bc_lp, cfg.bk, lpb);
+            gemm_ext_param.b.primary = (void*)&LIBXSMM_VLA_ACCESS(5, input,  mb1, 0, 0, 0, 0, nBlocksIFm, bc_lp, cfg.bn, lpb);
+            gemm_ext_param.c.primary = (void*)&LIBXSMM_VLA_ACCESS(2, output_bf16, 0, 0, cfg.bk);
+            if ((cfg.fuse_type & LIBXSMM_DNN_FC_ELTW_FUSE_BIAS) == LIBXSMM_DNN_FC_ELTW_FUSE_BIAS) {
+              gemm_ext_param.d.primary = (void*)&LIBXSMM_VLA_ACCESS(2, bias, ofm1, 0, cfg.bk);
+            }
+            cfg.fwd_compute_kernel5_strd_fused( &gemm_ext_param );
+          } else {
+            gemm_param.op.tertiary = (void*)&blocks;
+            gemm_param.a.primary = (void*)&LIBXSMM_VLA_ACCESS(5, filter, ofm1, 0, 0, 0, 0, nBlocksIFm, bc_lp, cfg.bk, lpb);
+            gemm_param.b.primary = (void*)&LIBXSMM_VLA_ACCESS(5, input,  mb1, 0, 0, 0, 0, nBlocksIFm, bc_lp, cfg.bn, lpb);
+            gemm_param.c.primary = (void*)&LIBXSMM_VLA_ACCESS(2, output_bf16, 0, 0, cfg.bk);
+            cfg.fwd_compute_kernel2_strd( &gemm_param );
+          }
+          unary_trans_param.in.primary = &LIBXSMM_VLA_ACCESS(2, output_bf16, 0, 0, cfg.bk);
+          unary_trans_param.out.primary = &LIBXSMM_VLA_ACCESS(5, output, mb1, ofm1, 0, 0, 0, nBlocksOFm, bk_lp, cfg.bn, lpb);
+          cfg.fwd_vnniT_kernel( &unary_trans_param );
+        }
+      }
+    }
+  } else {
+    if ((BF > 1) || (cfg.K % 32 != 0)) {
+      for ( ifm1 = 0; ifm1 < BF; ++ifm1 ) {
+        for ( mb1ofm1 = thr_begin; mb1ofm1 < thr_end; ++mb1ofm1 ) {
+          mb1  = mb1ofm1%nBlocksMB;
+          ofm1 = mb1ofm1/nBlocksMB;
+          /* Initialize libxsmm_blasintermediate f32 tensor */
+          if ( ifm1 == 0 ) {
+            if ( (cfg.fuse_type & LIBXSMM_DNN_FC_ELTW_FUSE_BIAS) == LIBXSMM_DNN_FC_ELTW_FUSE_BIAS ) {
+              unary_ld_param.in.primary  = (void*)&LIBXSMM_VLA_ACCESS(2, bias, ofm1, 0,cfg.bk);
+              unary_ld_param.out.primary = (void*)&LIBXSMM_VLA_ACCESS(4, output_f32, mb1, ofm1, 0, 0, nBlocksOFm,cfg.bn,cfg.bk);
+              cfg.fwd_colbcast_load_kernel( &unary_ld_param );
+            } else {
+              unary_ld_param.out.primary = (void*)&LIBXSMM_VLA_ACCESS(4, output_f32, mb1, ofm1, 0, 0, nBlocksOFm, cfg.bn, cfg.bk);
+              cfg.fwd_zero_kernel( &unary_ld_param );
+            }
+          }
+          gemm_param.op.tertiary = (void*)&blocks;
+          gemm_param.a.primary = (void*)&LIBXSMM_VLA_ACCESS(5, filter, ofm1, ifm1*CB_BLOCKS, 0, 0, 0, nBlocksIFm, bc_lp, cfg.bk, lpb);
+          gemm_param.b.primary = (void*)&LIBXSMM_VLA_ACCESS(5, input,  mb1, ifm1*CB_BLOCKS, 0, 0, 0, nBlocksIFm, bc_lp, cfg.bn, lpb);
+          gemm_param.c.primary = (void*)&LIBXSMM_VLA_ACCESS(4, output_f32, mb1, ofm1, 0, 0, nBlocksOFm, cfg.bn, cfg.bk);
+          cfg.fwd_compute_kernel_strd( &gemm_param );
+          if ( ifm1 == BF-1  ) {
+            if ( ((cfg.fuse_type & LIBXSMM_DNN_FC_ELTW_FUSE_RELU) == LIBXSMM_DNN_FC_ELTW_FUSE_RELU) ||
+                 ((cfg.fuse_type & LIBXSMM_DNN_FC_ELTW_FUSE_RELU_WITH_MASK) == LIBXSMM_DNN_FC_ELTW_FUSE_RELU_WITH_MASK) ) {
+              unary_st_param.in.primary = &LIBXSMM_VLA_ACCESS(4, output_f32, mb1, ofm1, 0, 0, nBlocksOFm, cfg.bn, cfg.bk);
+              unary_st_param.out.primary = &LIBXSMM_VLA_ACCESS(2, output_bf16, 0, 0, cfg.bk);
+              cfg.fwd_act_kernel( &unary_st_param );
+            } else {
+              unary_st_param.in.primary = &LIBXSMM_VLA_ACCESS(4, output_f32, mb1, ofm1, 0, 0, nBlocksOFm, cfg.bn, cfg.bk);
+              unary_st_param.out.primary = &LIBXSMM_VLA_ACCESS(2, output_bf16, 0, 0, cfg.bk);
+              cfg.fwd_store_kernel( &unary_st_param );
+            }
+            unary_trans_param.in.primary = &LIBXSMM_VLA_ACCESS(2, output_bf16, 0, 0, cfg.bk);
+            unary_trans_param.out.primary = &LIBXSMM_VLA_ACCESS(5, output, mb1, ofm1, 0, 0, 0, nBlocksOFm, bk_lp, cfg.bn, lpb);
+            cfg.fwd_vnniT_kernel( &unary_trans_param );
+          }
+        }
+      }
+    } else {
+      for ( mb1ofm1 = thr_begin; mb1ofm1 < thr_end; ++mb1ofm1 ) {
+        mb1  = mb1ofm1%nBlocksMB;
+        ofm1 = mb1ofm1/nBlocksMB;
+        if ( ((cfg.fuse_type & LIBXSMM_DNN_FC_ELTW_FUSE_BIAS) == LIBXSMM_DNN_FC_ELTW_FUSE_BIAS) ||
+             ((cfg.fuse_type & LIBXSMM_DNN_FC_ELTW_FUSE_RELU) == LIBXSMM_DNN_FC_ELTW_FUSE_RELU) ||
+             ((cfg.fuse_type & LIBXSMM_DNN_FC_ELTW_FUSE_RELU_WITH_MASK) == LIBXSMM_DNN_FC_ELTW_FUSE_RELU_WITH_MASK) ) {
+          gemm_ext_param.op.tertiary = (void*)&blocks;
+          gemm_ext_param.a.primary = (void*)&LIBXSMM_VLA_ACCESS(5, filter, ofm1, 0, 0, 0, 0, nBlocksIFm, bc_lp, cfg.bk, lpb);
+          gemm_ext_param.b.primary = (void*)&LIBXSMM_VLA_ACCESS(5, input,  mb1, 0, 0, 0, 0, nBlocksIFm, bc_lp, cfg.bn, lpb);
+          gemm_ext_param.c.primary = (void*)&LIBXSMM_VLA_ACCESS(2, output_bf16, 0, 0, cfg.bk);
+          if ((cfg.fuse_type & LIBXSMM_DNN_FC_ELTW_FUSE_BIAS) == LIBXSMM_DNN_FC_ELTW_FUSE_BIAS) {
+            gemm_ext_param.d.primary = (void*)&LIBXSMM_VLA_ACCESS(2, bias, ofm1, 0, cfg.bk);
+          }
+          cfg.fwd_compute_kernel5_strd_fused( &gemm_ext_param );
+        } else {
+          gemm_param.op.tertiary = (void*)&blocks;
+          gemm_param.a.primary = (void*)&LIBXSMM_VLA_ACCESS(5, filter, ofm1, 0, 0, 0, 0, nBlocksIFm, bc_lp, cfg.bk, lpb);
+          gemm_param.b.primary = (void*)&LIBXSMM_VLA_ACCESS(5, input,  mb1, 0, 0, 0, 0, nBlocksIFm, bc_lp, cfg.bn, lpb);
+          gemm_param.c.primary = (void*)&LIBXSMM_VLA_ACCESS(2, output_bf16, 0, 0, cfg.bk);
+          cfg.fwd_compute_kernel2_strd( &gemm_param );
+        }
+        unary_trans_param.in.primary = &LIBXSMM_VLA_ACCESS(2, output_bf16, 0, 0, cfg.bk);
+        unary_trans_param.out.primary = &LIBXSMM_VLA_ACCESS(5, output, mb1, ofm1, 0, 0, 0, nBlocksOFm, bk_lp, cfg.bn, lpb);
+        cfg.fwd_vnniT_kernel( &unary_trans_param );
+      }
+    }
+  }
+
+  cfg.fwd_tilerelease_kernel( NULL );
+  libxsmm_barrier_wait(cfg.barrier, ltid);
+}
+
 LIBXSMM_API void libxsmm_dnn_fc_fwd_exec_bf16( libxsmm_dnn_fc_fwd_config cfg, const libxsmm_bfloat16* wt_ptr, const libxsmm_bfloat16* in_act_ptr, libxsmm_bfloat16* out_act_ptr,
                           const libxsmm_bfloat16* bias_ptr, unsigned char* relu_ptr, int start_tid, int my_tid, void* scratch )
 {
-  libxsmm_dnn_fc_fwd_exec_bf16_vnni_format( cfg, wt_ptr, in_act_ptr, out_act_ptr, bias_ptr, relu_ptr, start_tid, my_tid, scratch );
+  if ( cfg.vnnipack == LIBXSMM_DNN_FC_VNNIPACK_WT ) {
+    libxsmm_dnn_fc_fwd_exec_bf16_wt_vnni_format( cfg, wt_ptr, in_act_ptr, out_act_ptr, bias_ptr, relu_ptr, start_tid, my_tid, scratch );
+  } else if ( cfg.vnnipack == LIBXSMM_DNN_FC_VNNIPACK_WT_IACT_TRANS ) {
+    libxsmm_dnn_fc_fwd_exec_bf16_wt_vnni_iact_vnniT_format( cfg, wt_ptr, in_act_ptr, out_act_ptr, bias_ptr, relu_ptr, start_tid, my_tid, scratch );
+  } else if ( cfg.vnnipack == LIBXSMM_DNN_FC_VNNIPACK_WT_IACT_TRANS_OACT_TRANS ) {
+    libxsmm_dnn_fc_fwd_exec_bf16_wt_vnni_iact_vnniT_oact_vnniT_format( cfg, wt_ptr, in_act_ptr, out_act_ptr, bias_ptr, start_tid, my_tid, scratch );
+  } else {
+    libxsmm_dnn_fc_fwd_exec_bf16_flat( cfg, wt_ptr, in_act_ptr, out_act_ptr, bias_ptr, relu_ptr, start_tid, my_tid, scratch );
+  }
 }
 
 LIBXSMM_API void libxsmm_dnn_fc_fwd_exec_bf8_vnni_format( libxsmm_dnn_fc_fwd_config cfg, const libxsmm_bfloat8* wt_ptr, const libxsmm_bfloat8* in_act_ptr, libxsmm_bfloat8* out_act_ptr,

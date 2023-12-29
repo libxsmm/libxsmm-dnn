@@ -20,7 +20,7 @@ fi
 
 if [ $# -ne 8 ]
 then
-  echo "Usage: $(basename $0) bin=(f32, bf16, bf8) iters MB type=(A, F, B, U, M) fuse=(0 (None), 1 (Bias), 2 (ReLU), 4 (Bias+ReLU)) bn bc bk"
+  echo "Usage: $(basename $0) bin=(f32, bf16, bf8) iters MB type=(A, F, B, U, M) fuse=(0 (None), 1 (Bias), 2 (ReLU), 4 (Bias+ReLU)) bn bc bk vnnipack"
   BIN=f32
   ITERS=${CHECK_DNN_ITERS}
   MB=${CHECK_DNN_MB}
@@ -29,6 +29,7 @@ then
   BN=32
   BC=32
   BK=32
+  VNNI=0
 else
   BIN=$1
   ITERS=$2
@@ -38,6 +39,7 @@ else
   BN=$6
   BC=$7
   BK=$8
+  VNNI=$9
 fi
 
 if [ "${GREP}" ] && [ "${SORT}" ] && [ "${CUT}" ] && [ "${TR}" ] && [ "${WC}" ]; then
@@ -108,13 +110,13 @@ else
   PREC=1
 fi
 
-${NUMACTL} "${HERE}/layer_example" ${ITERS} ${MB} 128 256 ${FUSE} ${TYPE} ${BN} ${BK} ${BC} ${PREC}
-${NUMACTL} "${HERE}/layer_example" ${ITERS} ${MB} 512 1024 ${FUSE} ${TYPE} ${BN} ${BK} ${BC} ${PREC}
-${NUMACTL} "${HERE}/layer_example" ${ITERS} ${MB} 1024 1024 ${FUSE} ${TYPE} ${BN} ${BK} ${BC} ${PREC}
-${NUMACTL} "${HERE}/layer_example" ${ITERS} ${MB} 2048 512 ${FUSE} ${TYPE} ${BN} ${BK} ${BC} ${PREC}
+${NUMACTL} "${HERE}/layer_example" ${ITERS} ${MB} 128 256 ${FUSE} ${TYPE} ${BN} ${BK} ${BC} ${PREC} ${VNNI}
+${NUMACTL} "${HERE}/layer_example" ${ITERS} ${MB} 512 1024 ${FUSE} ${TYPE} ${BN} ${BK} ${BC} ${PREC} ${VNNI}
+${NUMACTL} "${HERE}/layer_example" ${ITERS} ${MB} 1024 1024 ${FUSE} ${TYPE} ${BN} ${BK} ${BC} ${PREC} ${VNNI}
+${NUMACTL} "${HERE}/layer_example" ${ITERS} ${MB} 2048 512 ${FUSE} ${TYPE} ${BN} ${BK} ${BC} ${PREC} ${VNNI}
 
 # ResNet-50 fc layer with bias fusion
-${NUMACTL} "${HERE}/layer_example" ${ITERS} ${MB} 2048 1000 1 ${TYPE} ${BN} ${BK} ${BC} ${PREC}
+${NUMACTL} "${HERE}/layer_example" ${ITERS} ${MB} 2048 1000 1 ${TYPE} ${BN} ${BK} ${BC} ${PREC} ${VNNI}
 
 # post-process logfile (extract and collect performance results)
 if [ "${LIBXSMMROOT}" ] && [ -e "${LIBXSMMROOT}/scripts/tool_logrept.sh" ]; then

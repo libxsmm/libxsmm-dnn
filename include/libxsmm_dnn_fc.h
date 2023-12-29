@@ -30,6 +30,13 @@ typedef enum libxsmm_dnn_fc_pass {
   LIBXSMM_DNN_FC_PASS_BWD   = 6
 } libxsmm_dnn_fc_pass;
 
+typedef enum libxsmm_dnn_fc_vnnipack {
+  LIBXSMM_DNN_FC_VNNIPACK_NONE = 0,
+  LIBXSMM_DNN_FC_VNNIPACK_WT = 1,
+  LIBXSMM_DNN_FC_VNNIPACK_WT_IACT_TRANS = 3,
+  LIBXSMM_DNN_FC_VNNIPACK_WT_IACT_TRANS_OACT_TRANS = 7
+} libxsmm_dnn_fc_vnnipack;
+
 typedef struct libxsmm_dnn_fc_fwd_config {
   libxsmm_blasint N;
   libxsmm_blasint C;
@@ -39,6 +46,7 @@ typedef struct libxsmm_dnn_fc_fwd_config {
   libxsmm_blasint bk;
   libxsmm_blasint threads;
   libxsmm_dnn_fc_eltw_fuse fuse_type;
+  libxsmm_dnn_fc_vnnipack vnnipack;
   libxsmm_blasint fwd_bf;
   libxsmm_blasint fwd_2d_blocking;
   libxsmm_blasint fwd_row_teams;
@@ -60,6 +68,7 @@ typedef struct libxsmm_dnn_fc_fwd_config {
   libxsmm_meltwfunction_unary fwd_act_kernel;
   libxsmm_meltwfunction_unary fwd_colbcast_load_kernel;
   libxsmm_meltwfunction_unary fwd_store_kernel;
+  libxsmm_meltwfunction_unary fwd_vnniT_kernel;
 } libxsmm_dnn_fc_fwd_config;
 
 typedef struct libxsmm_dnn_fc_bwd_config {
@@ -112,7 +121,7 @@ typedef struct libxsmm_dnn_fc_bwd_config {
 } libxsmm_dnn_fc_bwd_config;
 
 LIBXSMM_API libxsmm_dnn_fc_fwd_config setup_libxsmm_dnn_fc_fwd(libxsmm_blasint N, libxsmm_blasint C, libxsmm_blasint K, libxsmm_blasint bn,
-                                 libxsmm_blasint bc, libxsmm_blasint bk, libxsmm_blasint threads, libxsmm_dnn_fc_eltw_fuse fuse_type,
+                                 libxsmm_blasint bc, libxsmm_blasint bk, libxsmm_blasint threads, libxsmm_dnn_fc_eltw_fuse fuse_type, libxsmm_dnn_fc_vnnipack vnnipack,
                                  libxsmm_datatype datatype_in, libxsmm_datatype datatype_out, libxsmm_datatype datatype_comp );
 
 LIBXSMM_API libxsmm_dnn_fc_bwd_config setup_libxsmm_dnn_fc_bwd(libxsmm_blasint N, libxsmm_blasint C, libxsmm_blasint K, libxsmm_blasint bn,
