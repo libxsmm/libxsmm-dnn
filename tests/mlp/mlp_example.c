@@ -116,14 +116,14 @@ int main(int argc, char* argv[])
   label_libxsmm = NULL;
 
   if (argc > 1 && !strncmp(argv[1], "-h", 3)) {
-    printf("Usage: %s iters MB fuse_type type bn bk bc prec_bf16 C1 C2 ... CN\n", argv[0]);
+    printf("Usage: %s iters MB fuse_type type bn bk bc prec_bf16 layout C1 C2 ... CN\n", argv[0]);
     return 0;
   }
   libxsmm_rng_set_seed(1);
 
   /* reading new values from cli */
   i = 1;
-  num_layers = argc - 10;
+  num_layers = argc - 11;
   if (argc > i) iters      = atoi(argv[i++]);
   if (argc > i) MB         = atoi(argv[i++]);
   if (argc > i) fuse_type  = atoi(argv[i++]);
@@ -204,7 +204,9 @@ int main(int argc, char* argv[])
     printf("SIZE Activations  %i (%dx%d): %10.2f MiB\n", i+1, MB, C[i+1], (double)(MB*C[i+1]*LIBXSMM_TYPESIZE(in_dt))/(1024.0*1024.0) );
   }
   act_size += (double)(MB*C[num_layers+1]*sizeof(float))/(1024.0*1024.0);
+#ifdef USE_SOFTMAX
   printf("SIZE Activations softmax (%dx%d): %10.2f MiB\n", MB, C[num_layers+1], (double)(MB*C[num_layers+1]*LIBXSMM_TYPESIZE(in_dt))/(1024.0*1024.0) );
+#endif
   printf("\nTOTAL SIZE Activations:    %10.2f MiB\n", act_size );
   printf("TOTAL SIZE Filter:         %10.2f MiB\n", fil_size );
   printf("TOTAL SIZE delActivations: %10.2f MiB\n", act_size );
@@ -368,7 +370,7 @@ int main(int argc, char* argv[])
     my_vnnipack = LIBXSMM_DNN_FC_VNNIPACK_WT;
   } else if ( layout == 3 ) {
     my_vnnipack = LIBXSMM_DNN_FC_VNNIPACK_WT_IACT_TRANS;
-  } else if ( layout == 3 ) {
+  } else if ( layout == 7 ) {
     my_vnnipack = LIBXSMM_DNN_FC_VNNIPACK_WT_IACT_TRANS_OACT_TRANS;
   } else {
     printf("Illegal packing\n");

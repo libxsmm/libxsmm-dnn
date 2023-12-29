@@ -551,11 +551,11 @@ int main(int argc, char* argv[])
             int max_id = 0;
             float max_val = 0.0;
             max_val = *(act_libxsmm[num_layers+1] +  _i * 10);
-            float sum = max_val;
+            /*float sum = max_val;*/
             /* Find predicted label */
             for (_j = 1; _j < 10; _j++) {
               float val = *(act_libxsmm[num_layers+1] + _i * 10  + _j);
-              sum += val;
+              /*sum += val;*/
               if (val > max_val) {
                 max_id = _j;
                 max_val = val;
