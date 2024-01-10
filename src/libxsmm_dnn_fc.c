@@ -117,11 +117,13 @@ LIBXSMM_API libxsmm_dnn_fc_fwd_config setup_libxsmm_dnn_fc_fwd(libxsmm_blasint N
       res.fwd_2d_blocking = 1;
       res.fwd_col_teams = 14;
       res.fwd_row_teams = 2;
+#if 0
     } else if (res.C == 1024 && res.K == 1024 && res.threads == 28) {
       res.fwd_bf = 1/*((res.C/res.bc) % 1 == 0) ? 1 : 1*/;
       res.fwd_2d_blocking = 1;
       res.fwd_col_teams = 7;
       res.fwd_row_teams = 4;
+#endif
     } else if (res.C == 100 && res.K == 1024 && res.threads == 40) {
       res.fwd_bf = 1/*((res.C/res.bc) % 1 == 0) ? 1 : 1*/;
       res.fwd_2d_blocking = 1;
@@ -142,6 +144,7 @@ LIBXSMM_API libxsmm_dnn_fc_fwd_config setup_libxsmm_dnn_fc_fwd(libxsmm_blasint N
       res.fwd_2d_blocking = 1;
       res.fwd_col_teams = 11;
       res.fwd_row_teams = 2;
+#if 0
     } else if (res.C == 100 && res.K == 1024 && res.threads == 64) {
       res.fwd_2d_blocking = 1;
       res.fwd_col_teams = 8;
@@ -155,6 +158,7 @@ LIBXSMM_API libxsmm_dnn_fc_fwd_config setup_libxsmm_dnn_fc_fwd(libxsmm_blasint N
       res.fwd_2d_blocking = 0;
       res.fwd_col_teams = 1;
       res.fwd_row_teams = 1;
+#endif
     } else if (res.C == 1024 && res.K == 1 && res.threads == 28) {
       res.fwd_bf = 1/*((res.C/res.bc) % 1 == 0) ? 1 : 1*/;
       res.fwd_2d_blocking = 0;
@@ -210,6 +214,7 @@ LIBXSMM_API libxsmm_dnn_fc_fwd_config setup_libxsmm_dnn_fc_fwd(libxsmm_blasint N
       res.fwd_2d_blocking = 0;
       res.fwd_col_teams = 6;
       res.fwd_row_teams = 4;
+#if 0
     } else if (res.C == 4096 && res.K == 4096 && res.threads == 8) {
       res.fwd_bf = 8/*((res.C/res.bc) % 1 == 0) ? 1 : 1*/;
       res.fwd_2d_blocking = 1;
@@ -220,6 +225,7 @@ LIBXSMM_API libxsmm_dnn_fc_fwd_config setup_libxsmm_dnn_fc_fwd(libxsmm_blasint N
       res.fwd_2d_blocking = 1;
       res.fwd_col_teams = 4;
       res.fwd_row_teams = 2;
+#endif
     } else {}
 
     if ((res.C >= 512) && (res.threads == 22)) {
@@ -843,6 +849,7 @@ LIBXSMM_API libxsmm_dnn_fc_bwd_config setup_libxsmm_dnn_fc_bwd(libxsmm_blasint N
       res.upd_row_teams = 1;
       res.ifm_subtasks = 1/*((res.bc % 2 == 0) && (res.upd_2d_blocking == 0)) ? 2 : 1*/;
       res.ofm_subtasks = 1/*((res.bk % 1 == 0) && (res.upd_2d_blocking == 0)) ? 1 : 1*/;
+#if 0
     } else if (res.C == 1024 && res.K == 1024 && res.threads == 64) {
       res.bwd_bf = ((res.K/res.bk) % 8 == 0) ? 8 : 1;
       res.bwd_2d_blocking = 1;
@@ -865,6 +872,7 @@ LIBXSMM_API libxsmm_dnn_fc_bwd_config setup_libxsmm_dnn_fc_bwd(libxsmm_blasint N
       res.upd_row_teams = 1;
       res.ifm_subtasks = ((res.bc % 2 == 0) && (res.upd_2d_blocking == 0)) ? 2 : 1;
       res.ofm_subtasks = 1;
+#endif
     } else if (res.C == 100 && res.K == 1024 && res.threads == 28) {
       res.bwd_bf = 1/*((res.K/res.bk) % 1 == 0) ? 1 : 1*/;
       res.bwd_2d_blocking = 0;
