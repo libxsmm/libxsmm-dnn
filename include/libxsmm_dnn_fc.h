@@ -55,8 +55,8 @@ typedef struct libxsmm_dnn_fc_fwd_config {
   libxsmm_blasint fwd_N_hyperpartitions;
   size_t          scratch_size;
   libxsmm_barrier* barrier;
-  libxsmm_gemmfunction fwd_tileconfig_kernel;
-  libxsmm_gemmfunction fwd_tilerelease_kernel;
+  libxsmm_tilecfgfunction fwd_tileconfig_kernel;
+  libxsmm_tilecfgfunction fwd_tilerelease_kernel;
   libxsmm_gemmfunction fwd_compute_kernel_strd;                /* beta = 1.0 */
   libxsmm_gemmfunction fwd_compute_kernel2_strd;               /* beta = 0.0 */
   libxsmm_gemmfunction_ext fwd_compute_kernel_strd_fused_f32;  /* beta = 1.0 + relu */
@@ -100,8 +100,8 @@ typedef struct libxsmm_dnn_fc_bwd_config {
   size_t  scratch_size;
   size_t  doutput_scratch_mark;
   libxsmm_barrier* barrier;
-  libxsmm_gemmfunction bwd_tileconfig_kernel;
-  libxsmm_gemmfunction bwd_tilerelease_kernel;
+  libxsmm_tilecfgfunction bwd_tileconfig_kernel;
+  libxsmm_tilecfgfunction bwd_tilerelease_kernel;
   libxsmm_gemmfunction bwd_compute_kernel_strd;   /* beta = 1.0 (bwd) */
   libxsmm_gemmfunction bwd_compute_kernel2_strd;  /* beta = 0.0 (bwd) */
   libxsmm_meltwfunction_unary bwd_relu_kernel;
@@ -109,8 +109,8 @@ typedef struct libxsmm_dnn_fc_bwd_config {
   libxsmm_meltwfunction_unary bwd_zero_kernel;
   libxsmm_meltwfunction_unary bwd_store_kernel;
   libxsmm_meltwfunction_unary vnni_to_vnniT_kernel;
-  libxsmm_gemmfunction upd_tileconfig_kernel;
-  libxsmm_gemmfunction upd_tilerelease_kernel;
+  libxsmm_tilecfgfunction upd_tileconfig_kernel;
+  libxsmm_tilecfgfunction upd_tilerelease_kernel;
   libxsmm_gemmfunction upd_compute_kernel_strd;   /* beta = 1.0 (upd) */
   libxsmm_gemmfunction upd_compute_kernel2_strd;  /* beta = 0.0 (upd) */
   libxsmm_meltwfunction_unary upd_store_kernel;

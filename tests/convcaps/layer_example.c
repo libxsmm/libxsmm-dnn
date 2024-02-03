@@ -9,6 +9,7 @@
 /* Alexander Heinecke (Intel Corp.)
 ******************************************************************************/
 #include <libxsmm.h>
+#include <libxsmm_utils.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
@@ -820,9 +821,9 @@ int main(int argc, char* argv[])
                                          LIBXSMM_DATATYPE_BF16, LIBXSMM_DATATYPE_BF16, LIBXSMM_DATATYPE_BF16, LIBXSMM_DATATYPE_F32 );
   }
   l_brconfig = libxsmm_create_gemm_batch_reduce_config( LIBXSMM_GEMM_BATCH_REDUCE_OFFSET, 0, 0, brcount );
-  fwd_brgemma = libxsmm_dispatch_brgemm_v2( l_shape, l_flags, l_prefetch_flags, l_brconfig );
+  fwd_brgemma = libxsmm_dispatch_brgemm( l_shape, l_flags, l_prefetch_flags, l_brconfig );
   l_flags |= LIBXSMM_GEMM_FLAG_BETA_0;
-  fwd_brgemmz = libxsmm_dispatch_brgemm_v2( l_shape, l_flags, l_prefetch_flags, l_brconfig );
+  fwd_brgemmz = libxsmm_dispatch_brgemm( l_shape, l_flags, l_prefetch_flags, l_brconfig );
 
   printf("BRGEMM FWD col-major: m=%d, n=%d, k=%d, lda=%d, ldb=%d, ldc=%d, transa='n', transb='n', alpha=1.0, beta=1.0, brcount=%d\n", CHANNEL_BLOCKING, ofwp, CHANNEL_BLOCKING, CHANNEL_BLOCKING, stride_w*CHANNEL_BLOCKING, CHANNEL_BLOCKING, brcount);
 

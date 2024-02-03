@@ -47,7 +47,7 @@ typedef struct libxsmm_dnn_gn_fwd_config {
 
   libxsmm_barrier* barrier;
 
-  libxsmm_matrix_eqn_function  func10;
+  libxsmm_meqn_function  func10;
   libxsmm_meltwfunction_unary  reduce_kernel;
   libxsmm_meltwfunction_unary  reduce_rows_kernel;
   libxsmm_meltwfunction_unary  reduce_groups_kernel;
@@ -83,11 +83,11 @@ typedef struct libxsmm_dnn_gn_bwd_config {
 
   libxsmm_barrier* barrier;
 
-  libxsmm_matrix_eqn_function  dgamma_func;
-  libxsmm_matrix_eqn_function  dbeta_func;
-  libxsmm_matrix_eqn_function  db_func;
-  libxsmm_matrix_eqn_function  ds_func;
-  libxsmm_matrix_eqn_function  din_func;
+  libxsmm_meqn_function  dgamma_func;
+  libxsmm_meqn_function  dbeta_func;
+  libxsmm_meqn_function  db_func;
+  libxsmm_meqn_function  ds_func;
+  libxsmm_meqn_function  din_func;
   libxsmm_meltwfunction_unary  all_zero_kernel;
   libxsmm_meltwfunction_unary  all_zero_hp_kernel;
   libxsmm_meltwfunction_unary  all_zero_wp_kernel;

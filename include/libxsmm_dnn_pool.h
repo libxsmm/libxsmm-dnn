@@ -85,7 +85,7 @@ typedef struct libxsmm_dnn_pooling_bwd_config {
   size_t           scratch_size;
   libxsmm_barrier* barrier;
   /* Aux TPP kernels */
-  libxsmm_matrix_eqn_function   func_bwd_max_pool;
+  libxsmm_meqn_function   func_bwd_max_pool;
   libxsmm_meltwfunction_unary   bwd_zero_kernel;
   libxsmm_meltwfunction_binary  func_bwd_avg_pool;
 } libxsmm_dnn_pooling_bwd_config;
