@@ -482,8 +482,8 @@ ${NUMACTL} "${HERE}/layer_example" ${ITERS}  120   68 ${MB} 512 512 3 3 1 1 1 ${
 fi
 
 # post-process logfile (extract and collect performance results)
-if [ "${LIBXSMMROOT}" ] && [ -e "${LIBXSMMROOT}/scripts/tool_logrept.sh" ]; then
-  ${LIBXSMMROOT}/scripts/tool_logrept.sh
-elif [ -e "${HERE}/../../libxsmm/scripts/tool_logrept.sh" ]; then
-  ${HERE}/../../libxsmm/scripts/tool_logrept.sh
-fi
+#if [ "${LIBXSMMROOT}" ] && [ -e "${LIBXSMMROOT}/scripts/tool_logrept.sh" ]; then
+#  ${LIBXSMMROOT}/scripts/tool_logrept.sh
+#elif [ -e "${HERE}/../../libxsmm/scripts/tool_logrept.sh" ]; then
+#  ${HERE}/../../libxsmm/scripts/tool_logrept.sh
+#fi

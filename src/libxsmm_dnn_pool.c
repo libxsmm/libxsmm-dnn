@@ -70,15 +70,15 @@ LIBXSMM_API libxsmm_dnn_pooling_fwd_config setup_libxsmm_dnn_pooling_fwd( const 
   unary_flags = LIBXSMM_MELTW_FLAG_UNARY_IDX_SIZE_4BYTES | LIBXSMM_MELTW_FLAG_UNARY_REDUCE_NO_PREFETCH;
   if ( res.pool_type == LIBXSMM_DNN_POOLING_TYPE_MAX ) {
     unary_flags = unary_flags | LIBXSMM_MELTW_FLAG_UNARY_REDUCE_INF_ACC | LIBXSMM_MELTW_FLAG_UNARY_REDUCE_RECORD_ARGOP;
-    res.fwd_pool_reduce_kernel = libxsmm_dispatch_meltw_unary_v2( LIBXSMM_MELTW_TYPE_UNARY_REDUCE_COLS_IDX_OP_MAX, unary_shape, unary_flags );
+    res.fwd_pool_reduce_kernel = libxsmm_dispatch_meltw_unary( LIBXSMM_MELTW_TYPE_UNARY_REDUCE_COLS_IDX_OP_MAX, unary_shape, unary_flags );
   } else if ( res.pool_type == LIBXSMM_DNN_POOLING_TYPE_MAX_NOMASK )  {
     unary_flags = unary_flags | LIBXSMM_MELTW_FLAG_UNARY_REDUCE_INF_ACC;
-    res.fwd_pool_reduce_kernel = libxsmm_dispatch_meltw_unary_v2( LIBXSMM_MELTW_TYPE_UNARY_REDUCE_COLS_IDX_OP_MAX, unary_shape, unary_flags );
+    res.fwd_pool_reduce_kernel = libxsmm_dispatch_meltw_unary( LIBXSMM_MELTW_TYPE_UNARY_REDUCE_COLS_IDX_OP_MAX, unary_shape, unary_flags );
   } else {
-    res.fwd_pool_reduce_kernel = libxsmm_dispatch_meltw_unary_v2( LIBXSMM_MELTW_TYPE_UNARY_REDUCE_COLS_IDX_OP_ADD, unary_shape, unary_flags );
+    res.fwd_pool_reduce_kernel = libxsmm_dispatch_meltw_unary( LIBXSMM_MELTW_TYPE_UNARY_REDUCE_COLS_IDX_OP_ADD, unary_shape, unary_flags );
     binary_shape = libxsmm_create_meltw_binary_shape( res.bc, 1, res.bc, 1, res.bc, datatype_in, datatype_in, datatype_out, datatype_comp );
     binary_flags = LIBXSMM_MELTW_FLAG_BINARY_BCAST_SCALAR_IN_1;
-    res.fwd_scale_kernel = libxsmm_dispatch_meltw_binary_v2( LIBXSMM_MELTW_TYPE_BINARY_MUL, binary_shape, binary_flags );
+    res.fwd_scale_kernel = libxsmm_dispatch_meltw_binary( LIBXSMM_MELTW_TYPE_BINARY_MUL, binary_shape, binary_flags );
   }
 
   return res;
@@ -93,8 +93,8 @@ LIBXSMM_API libxsmm_dnn_pooling_bwd_config setup_libxsmm_dnn_pooling_bwd( const 
                                             const libxsmm_blasint bc, const libxsmm_blasint threads, const libxsmm_dnn_pooling_type pool_type,
                                             const libxsmm_datatype datatype_in, const libxsmm_datatype datatype_out, const libxsmm_datatype datatype_comp ) {
   libxsmm_dnn_pooling_bwd_config res;
-  libxsmm_matrix_eqn_arg_metadata arg_metadata[2];
-  libxsmm_matrix_eqn_op_metadata  op_metadata;
+  libxsmm_meqn_arg_metadata arg_metadata[2];
+  libxsmm_meqn_op_metadata  op_metadata;
   libxsmm_meqn_arg_shape          arg_shape;
   libxsmm_blasint                 eqn_idx = 0;
   libxsmm_matrix_arg_attributes   arg_singular_attr = libxsmm_create_matrix_arg_attributes( LIBXSMM_MATRIX_ARG_TYPE_SINGULAR, LIBXSMM_MATRIX_ARG_SET_TYPE_NONE, 0, 0);
@@ -145,30 +145,30 @@ LIBXSMM_API libxsmm_dnn_pooling_bwd_config setup_libxsmm_dnn_pooling_bwd( const 
 
   /* Setup bwd kernels */
   if ( res.pool_type == LIBXSMM_DNN_POOLING_TYPE_MAX ) {
-    eqn_idx = libxsmm_matrix_eqn_create();
-    arg_metadata[0] = libxsmm_create_matrix_eqn_arg_metadata(eqn_idx, 0);
-    arg_metadata[1] = libxsmm_create_matrix_eqn_arg_metadata(eqn_idx, 1);
-    op_metadata     = libxsmm_create_matrix_eqn_op_metadata(eqn_idx, -1);
+    eqn_idx = libxsmm_meqn_create();
+    arg_metadata[0] = libxsmm_create_meqn_arg_metadata(eqn_idx, 0);
+    arg_metadata[1] = libxsmm_create_meqn_arg_metadata(eqn_idx, 1);
+    op_metadata     = libxsmm_create_meqn_op_metadata(eqn_idx, -1);
     arg_shape       = libxsmm_create_meqn_arg_shape( bc, 1, bc, datatype_in );
     unary_flags     = LIBXSMM_MELTW_FLAG_UNARY_GS_OFFS | LIBXSMM_MELTW_FLAG_UNARY_IDX_SIZE_4BYTES;
 
-    libxsmm_matrix_eqn_push_back_unary_op_v2(op_metadata, LIBXSMM_MELTW_TYPE_UNARY_SCATTER, datatype_out, unary_flags);
+    libxsmm_meqn_push_back_unary_op(op_metadata, LIBXSMM_MELTW_TYPE_UNARY_SCATTER, datatype_out, unary_flags);
     if (datatype_in == LIBXSMM_DATATYPE_BF16) {
-      libxsmm_matrix_eqn_push_back_unary_op_v2(op_metadata, LIBXSMM_MELTW_TYPE_UNARY_IDENTITY, datatype_in, LIBXSMM_MELTW_FLAG_UNARY_NONE);
+      libxsmm_meqn_push_back_unary_op(op_metadata, LIBXSMM_MELTW_TYPE_UNARY_IDENTITY, datatype_in, LIBXSMM_MELTW_FLAG_UNARY_NONE);
     }
-    libxsmm_matrix_eqn_push_back_binary_op_v2(op_metadata, LIBXSMM_MELTW_TYPE_BINARY_ADD, LIBXSMM_DATATYPE_F32, LIBXSMM_MELTW_FLAG_BINARY_NONE);
-    libxsmm_matrix_eqn_push_back_unary_op_v2(op_metadata, LIBXSMM_MELTW_TYPE_UNARY_GATHER, datatype_in, unary_flags);
-    libxsmm_matrix_eqn_push_back_arg_v2(arg_metadata[0], arg_shape, arg_singular_attr);
-    libxsmm_matrix_eqn_push_back_arg_v2(arg_metadata[1], arg_shape, arg_singular_attr);
-    res.func_bwd_max_pool = libxsmm_dispatch_matrix_eqn_v2( eqn_idx, arg_shape );
+    libxsmm_meqn_push_back_binary_op(op_metadata, LIBXSMM_MELTW_TYPE_BINARY_ADD, LIBXSMM_DATATYPE_F32, LIBXSMM_MELTW_FLAG_BINARY_NONE);
+    libxsmm_meqn_push_back_unary_op(op_metadata, LIBXSMM_MELTW_TYPE_UNARY_GATHER, datatype_in, unary_flags);
+    libxsmm_meqn_push_back_arg(arg_metadata[0], arg_shape, arg_singular_attr);
+    libxsmm_meqn_push_back_arg(arg_metadata[1], arg_shape, arg_singular_attr);
+    res.func_bwd_max_pool = libxsmm_dispatch_meqn( eqn_idx, arg_shape );
   } else {
     binary_shape = libxsmm_create_meltw_binary_shape( res.bc, 1, res.bc, 1, res.bc, datatype_in, datatype_in, datatype_out, datatype_comp );
     binary_flags = LIBXSMM_MELTW_FLAG_BINARY_BCAST_SCALAR_IN_1;
-    res.func_bwd_avg_pool = libxsmm_dispatch_meltw_binary_v2( LIBXSMM_MELTW_TYPE_BINARY_MULADD, binary_shape, binary_flags );
+    res.func_bwd_avg_pool = libxsmm_dispatch_meltw_binary( LIBXSMM_MELTW_TYPE_BINARY_MULADD, binary_shape, binary_flags );
   }
   unary_shape = libxsmm_create_meltw_unary_shape( res.bc*res.W, 1, res.bc*res.W, res.bc*res.W, datatype_in, datatype_out, datatype_comp );
   unary_flags = LIBXSMM_MELTW_FLAG_UNARY_NONE;
-  res.bwd_zero_kernel = libxsmm_dispatch_meltw_unary_v2( LIBXSMM_MELTW_TYPE_UNARY_XOR, unary_shape, unary_flags );
+  res.bwd_zero_kernel = libxsmm_dispatch_meltw_unary( LIBXSMM_MELTW_TYPE_UNARY_XOR, unary_shape, unary_flags );
 
   return res;
 }
@@ -394,7 +394,7 @@ LIBXSMM_API void libxsmm_dnn_pooling_bwd_exec_f32( const libxsmm_dnn_pooling_bwd
   libxsmm_blasint kw = 0;
   float recp_pool_size = 1.0f/((float)cfg.R*(float)cfg.S);
 
-  libxsmm_matrix_eqn_param eqn_param;
+  libxsmm_meqn_param eqn_param;
   libxsmm_matrix_arg arg_array[2];
   libxsmm_meltw_unary_param  unary_param;
   libxsmm_meltw_binary_param binary_param;
@@ -482,7 +482,7 @@ LIBXSMM_API void libxsmm_dnn_pooling_bwd_exec_bf16( const libxsmm_dnn_pooling_bw
   float recp_pool_size_f32 = 1.0f/((float)cfg.R*(float)cfg.S);
   libxsmm_bfloat16 recp_pool_size;
 
-  libxsmm_matrix_eqn_param eqn_param;
+  libxsmm_meqn_param eqn_param;
   libxsmm_matrix_arg arg_array[2];
   libxsmm_meltw_unary_param  unary_param;
   libxsmm_meltw_binary_param binary_param;
