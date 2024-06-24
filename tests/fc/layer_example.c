@@ -171,7 +171,7 @@ int main(int argc, char* argv[])
   } else if ( (prec == 1) && (layout != 1) ) {
     printf("illegal vnnipack for FP8\n");
     return -1;
-  } else if ( ((prec == 2) && (type != 'F') && (layout == 3 || layout == 7)) || ((prec == 2) && (layout == 0)) ) {
+  } else if ( (prec == 2) && (type != 'F') && (layout == 3 || layout == 7) ) {
     printf("illegal vnnipack for BF16\n");
     return -1;
   }
@@ -433,8 +433,13 @@ int main(int argc, char* argv[])
       matrix_copy_NC_to_NCNC_bf16( naive_output_bf16,    output_libxsmm_bf16,    1, nImg, nOFm, bn, bk );
     }
     matrix_copy_NC_to_NCNC_bf16( naive_deloutput_bf16, deloutput_libxsmm_bf16, 1, nImg, nOFm, bn, bk );
-    matrix_copy_KC_to_KCCK_bf16( naive_filter_bf16,    filter_libxsmm_bf16      , nIFm, nOFm, bc, bk );
-    matrix_copy_KC_to_KCCK_bf16( naive_delfilter_bf16, delfilter_libxsmm_bf16   , nIFm, nOFm, bc, bk );
+    if ( my_vnnipack == LIBXSMM_DNN_FC_VNNIPACK_NONE ) {
+      matrix_copy_KC_to_KCCK_bf16_flat( naive_filter_bf16,    filter_libxsmm_bf16      , nIFm, nOFm, bc, bk );
+      matrix_copy_KC_to_KCCK_bf16_flat( naive_delfilter_bf16, delfilter_libxsmm_bf16   , nIFm, nOFm, bc, bk );
+    } else {
+      matrix_copy_KC_to_KCCK_bf16( naive_filter_bf16,    filter_libxsmm_bf16      , nIFm, nOFm, bc, bk );
+      matrix_copy_KC_to_KCCK_bf16( naive_delfilter_bf16, delfilter_libxsmm_bf16   , nIFm, nOFm, bc, bk );
+    }
     matrix_copy_NC_to_NCNC_bf16( naive_bias_bf16,    bias_libxsmm_bf16,    1, 1, nOFm, 1, nOFm );
     matrix_copy_NC_to_NCNC_bf16( naive_delbias_bf16, delbias_libxsmm_bf16, 1, 1, nOFm, 1, nOFm );
   } else if ( prec == 1 ) {

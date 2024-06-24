@@ -533,6 +533,8 @@ LIBXSMM_API libxsmm_dnn_fc_fwd_config setup_libxsmm_dnn_fc_fwd(libxsmm_blasint N
       res.fwd_vnniT_kernel = libxsmm_dispatch_meltw_unary( LIBXSMM_MELTW_TYPE_UNARY_TRANSFORM_NORM_TO_VNNI2T, l_unary_shape, LIBXSMM_MELTW_FLAG_UNARY_NONE );
     } else if ( 4 == libxsmm_cpuid_dot_pack_factor(LIBXSMM_DATATYPE_BF16) ) {
       res.fwd_vnniT_kernel = libxsmm_dispatch_meltw_unary( LIBXSMM_MELTW_TYPE_UNARY_TRANSFORM_NORM_TO_VNNI4T, l_unary_shape, LIBXSMM_MELTW_FLAG_UNARY_NONE );
+    } else if ( 8 == libxsmm_cpuid_dot_pack_factor(LIBXSMM_DATATYPE_BF16) ) {
+      res.fwd_vnniT_kernel = libxsmm_dispatch_meltw_unary( LIBXSMM_MELTW_TYPE_UNARY_TRANSFORM_NORM_TO_VNNI8T, l_unary_shape, LIBXSMM_MELTW_FLAG_UNARY_NONE );
     } else {
       /* should not happen */
     }

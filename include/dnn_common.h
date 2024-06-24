@@ -1118,6 +1118,54 @@ LIBXSMM_INLINE void matrix_copy_CK_to_KCCK_bf16(libxsmm_bfloat16 *src, libxsmm_b
   }
 }
 
+LIBXSMM_INLINE void matrix_copy_KC_to_KCCK_bf16_flat(libxsmm_bfloat16 *src, libxsmm_bfloat16 *dst, int C, int K, int bc, int bk)
+{
+  int k1, k2, c1, c2;
+  int kBlocks = K/bk;
+  int cBlocks = C/bc;
+  LIBXSMM_VLA_DECL(2, libxsmm_bfloat16, real_src, src, C);
+  LIBXSMM_VLA_DECL(4, libxsmm_bfloat16, real_dst, dst, cBlocks, bc, bk);
+
+#if defined(_OPENMP)
+  LIBXSMM_OMP_VAR(c1); LIBXSMM_OMP_VAR(c2); LIBXSMM_OMP_VAR(k2);
+# pragma omp parallel for private(k1,c1,c2,k2)
+#endif
+  for (k1 = 0; k1 < kBlocks; k1++) {
+    for (c1 = 0; c1 < cBlocks; c1++) {
+      for (c2 = 0; c2 < bc; c2++) {
+        for (k2 = 0; k2 < bk; k2++) {
+          LIBXSMM_VLA_ACCESS(4, real_dst, k1, c1, c2, k2, cBlocks, bc, bk) =
+            LIBXSMM_VLA_ACCESS(2, real_src, k1*bk+k2, c1*bc+c2, C);
+        }
+      }
+    }
+  }
+}
+
+LIBXSMM_INLINE void matrix_copy_KCCK_to_KC_bf16_flat(libxsmm_bfloat16 *src, libxsmm_bfloat16 *dst, int C, int K, int bc, int bk)
+{
+  int k1, k2, c1, c2;
+  int kBlocks = K/bk;
+  int cBlocks = C/bc;
+  LIBXSMM_VLA_DECL(2, libxsmm_bfloat16, real_dst, dst, C);
+  LIBXSMM_VLA_DECL(4, libxsmm_bfloat16, real_src, src, cBlocks, bc, bk);
+
+#if defined(_OPENMP)
+  LIBXSMM_OMP_VAR(c1); LIBXSMM_OMP_VAR(c2); LIBXSMM_OMP_VAR(k2);
+# pragma omp parallel for private(k1,c1,c2,k2)
+#endif
+  for (k1 = 0; k1 < kBlocks; k1++) {
+    for (c1 = 0; c1 < cBlocks; c1++) {
+      for (c2 = 0; c2 < bc; c2++) {
+        for (k2 = 0; k2 < bk; k2++) {
+          LIBXSMM_VLA_ACCESS(2, real_dst, k1*bk+k2, c1*bc+c2, C) =
+            LIBXSMM_VLA_ACCESS(4, real_src, k1, c1, c2, k2, cBlocks, bc, bk);
+        }
+      }
+    }
+  }
+}
+
 LIBXSMM_INLINE void matrix_copy_CK_to_CKKC_bf16(libxsmm_bfloat16 *src, libxsmm_bfloat16 *dst, int C, int K, int bc, int bk)
 {
   int k1, k2, c1, c2;
