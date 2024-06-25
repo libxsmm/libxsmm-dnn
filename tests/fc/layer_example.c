@@ -34,7 +34,7 @@ int main(int argc, char* argv[])
   libxsmm_datatype in_dt, out_dt, comp_dt;
 
   libxsmm_dnn_fc_eltw_fuse my_fuse = LIBXSMM_DNN_FC_ELTW_FUSE_NONE;
-  libxsmm_dnn_fc_vnnipack my_vnnipack = LIBXSMM_DNN_FC_VNNIPACK_NONE;
+  libxsmm_dnn_fc_layout my_layout = LIBXSMM_DNN_FC_LAYOUT_PACKED;
   libxsmm_dnn_fc_fwd_config libxsmm_dnn_fc_fwd;
   libxsmm_dnn_fc_bwd_config libxsmm_dnn_fc_bwd;
 
@@ -165,10 +165,10 @@ int main(int argc, char* argv[])
     return -1;
   }
 
-  if ( (prec == 4) && (layout != 0) ) {
+  if ( (prec == 4) && ( (layout != 0) && (layout != 1)) ) {
     printf("vnnipack must not specify for FP32\n");
     return -1;
-  } else if ( (prec == 1) && (layout != 1) ) {
+  } else if ( (prec == 1) && (layout != 2) ) {
     printf("illegal vnnipack for FP8\n");
     return -1;
   } else if ( (prec == 2) && (type != 'F') && (layout == 3 || layout == 7) ) {
@@ -180,7 +180,7 @@ int main(int argc, char* argv[])
     return -1;
   }
 
-  printf( "iters : %d, nImg : %d, nIFm: %d, nOFm: %d, fuse_type: %d, type: %d, bn: %d, bk: %d, bc: %d, prec: %d, vnnipack: %d\n", iters, nImg, nIFm, nOFm, fuse_type, type, bn, bk, bc, prec, layout);
+  printf( "iters : %d, nImg : %d, nIFm: %d, nOFm: %d, fuse_type: %d, type: %d, bn: %d, bk: %d, bc: %d, prec: %d, layout: %d\n", iters, nImg, nIFm, nOFm, fuse_type, type, bn, bk, bc, prec, layout);
   /* set struct for naive convolution */
   naive_param.N = nImg;
   naive_param.C = nIFm;
@@ -392,13 +392,15 @@ int main(int argc, char* argv[])
   }
 
   if ( layout == 0 ) {
-    my_vnnipack = LIBXSMM_DNN_FC_VNNIPACK_NONE;
+    my_layout = LIBXSMM_DNN_FC_LAYOUT_FLAT;
   } else if ( layout == 1 ) {
-    my_vnnipack = LIBXSMM_DNN_FC_VNNIPACK_WT;
-  } else if ( layout == 3 ) {
-    my_vnnipack = LIBXSMM_DNN_FC_VNNIPACK_WT_IACT_TRANS;
-  } else if ( layout == 7 ) {
-    my_vnnipack = LIBXSMM_DNN_FC_VNNIPACK_WT_IACT_TRANS_OACT_TRANS;
+    my_layout = LIBXSMM_DNN_FC_LAYOUT_PACKED;
+  } else if ( layout == 2 ) {
+    my_layout = LIBXSMM_DNN_FC_LAYOUT_VNNIPACK_WT;
+  } else if ( layout == 6 ) {
+    my_layout = LIBXSMM_DNN_FC_LAYOUT_VNNIPACK_WT_IACT_TRANS;
+  } else if ( layout == 14 ) {
+    my_layout = LIBXSMM_DNN_FC_LAYOUT_VNNIPACK_WT_IACT_TRANS_OACT_TRANS;
   } else {
     printf("Illegal packing\n");
     return -1;
@@ -408,7 +410,7 @@ int main(int argc, char* argv[])
   size_t alloc_size = 0;
 
   if (type == 'A' || type == 'F') {
-    libxsmm_dnn_fc_fwd = setup_libxsmm_dnn_fc_fwd(nImg, nIFm, nOFm, bn, bc, bk, nThreads, my_fuse, my_vnnipack, in_dt, out_dt, comp_dt);
+    libxsmm_dnn_fc_fwd = setup_libxsmm_dnn_fc_fwd(nImg, nIFm, nOFm, bn, bc, bk, nThreads, my_fuse, my_layout, in_dt, out_dt, comp_dt);
 
     alloc_size = libxsmm_dnn_fc_fwd.scratch_size;
   }
@@ -421,27 +423,38 @@ int main(int argc, char* argv[])
   /* we can also use the layout functions and set the data on our
      own external to the library */
   if ( prec == 2 ) {
-    if ( (my_vnnipack == LIBXSMM_DNN_FC_VNNIPACK_WT_IACT_TRANS) || (my_vnnipack == LIBXSMM_DNN_FC_VNNIPACK_WT_IACT_TRANS_OACT_TRANS) ) {
-      matrix_copy_NC_to_NCNC_bf16_vnniT( naive_input_bf16,     input_libxsmm_bf16,     1, nImg, nIFm, bn, bc );
+    if ( my_layout == LIBXSMM_DNN_FC_LAYOUT_FLAT ) {
+      copy_buf_uint16( naive_input_bf16,          input_libxsmm_bf16, nImg*nIFm );
+      copy_buf_uint16( naive_delinput_bf16,       delinput_libxsmm_bf16, nImg*nIFm );
+      copy_buf_uint16( naive_output_bf16,         output_libxsmm_bf16, nImg*nOFm );
+      copy_buf_uint16( naive_deloutput_bf16,      deloutput_libxsmm_bf16, nImg*nOFm );
+      matrix_copy_KC_to_CK_bf16( naive_filter_bf16,         filter_libxsmm_bf16, nIFm, nOFm );
+      matrix_copy_KC_to_CK_bf16( naive_delfilter_bf16,      delfilter_libxsmm_bf16, nIFm, nOFm );
+      copy_buf_uint16( naive_bias_bf16,    bias_libxsmm_bf16,    nOFm);
+      copy_buf_uint16( naive_delbias_bf16, delbias_libxsmm_bf16, nOFm);
     } else {
-      matrix_copy_NC_to_NCNC_bf16( naive_input_bf16,     input_libxsmm_bf16,     1, nImg, nIFm, bn, bc );
+      if ( (my_layout == LIBXSMM_DNN_FC_LAYOUT_VNNIPACK_WT_IACT_TRANS) || (my_layout == LIBXSMM_DNN_FC_LAYOUT_VNNIPACK_WT_IACT_TRANS_OACT_TRANS) ) {
+        matrix_copy_NC_to_NCNC_bf16_vnniT( naive_input_bf16,     input_libxsmm_bf16,     1, nImg, nIFm, bn, bc );
+      } else {
+        matrix_copy_NC_to_NCNC_bf16( naive_input_bf16,     input_libxsmm_bf16,     1, nImg, nIFm, bn, bc );
+      }
+      matrix_copy_NC_to_NCNC_bf16( naive_delinput_bf16,  delinput_libxsmm_bf16,  1, nImg, nIFm, bn, bc );
+      if ( my_layout == LIBXSMM_DNN_FC_LAYOUT_VNNIPACK_WT_IACT_TRANS_OACT_TRANS ) {
+        matrix_copy_NC_to_NCNC_bf16_vnniT( naive_output_bf16,    output_libxsmm_bf16,    1, nImg, nOFm, bn, bk );
+      } else {
+        matrix_copy_NC_to_NCNC_bf16( naive_output_bf16,    output_libxsmm_bf16,    1, nImg, nOFm, bn, bk );
+      }
+      matrix_copy_NC_to_NCNC_bf16( naive_deloutput_bf16, deloutput_libxsmm_bf16, 1, nImg, nOFm, bn, bk );
+      if ( my_layout == LIBXSMM_DNN_FC_LAYOUT_PACKED) {
+        matrix_copy_KC_to_KCCK_bf16_flat( naive_filter_bf16,    filter_libxsmm_bf16      , nIFm, nOFm, bc, bk );
+        matrix_copy_KC_to_KCCK_bf16_flat( naive_delfilter_bf16, delfilter_libxsmm_bf16   , nIFm, nOFm, bc, bk );
+      } else {
+        matrix_copy_KC_to_KCCK_bf16( naive_filter_bf16,    filter_libxsmm_bf16      , nIFm, nOFm, bc, bk );
+        matrix_copy_KC_to_KCCK_bf16( naive_delfilter_bf16, delfilter_libxsmm_bf16   , nIFm, nOFm, bc, bk );
+      }
+      matrix_copy_NC_to_NCNC_bf16( naive_bias_bf16,    bias_libxsmm_bf16,    1, 1, nOFm, 1, nOFm );
+      matrix_copy_NC_to_NCNC_bf16( naive_delbias_bf16, delbias_libxsmm_bf16, 1, 1, nOFm, 1, nOFm );
     }
-    matrix_copy_NC_to_NCNC_bf16( naive_delinput_bf16,  delinput_libxsmm_bf16,  1, nImg, nIFm, bn, bc );
-    if ( my_vnnipack == LIBXSMM_DNN_FC_VNNIPACK_WT_IACT_TRANS_OACT_TRANS ) {
-      matrix_copy_NC_to_NCNC_bf16_vnniT( naive_output_bf16,    output_libxsmm_bf16,    1, nImg, nOFm, bn, bk );
-    } else {
-      matrix_copy_NC_to_NCNC_bf16( naive_output_bf16,    output_libxsmm_bf16,    1, nImg, nOFm, bn, bk );
-    }
-    matrix_copy_NC_to_NCNC_bf16( naive_deloutput_bf16, deloutput_libxsmm_bf16, 1, nImg, nOFm, bn, bk );
-    if ( my_vnnipack == LIBXSMM_DNN_FC_VNNIPACK_NONE ) {
-      matrix_copy_KC_to_KCCK_bf16_flat( naive_filter_bf16,    filter_libxsmm_bf16      , nIFm, nOFm, bc, bk );
-      matrix_copy_KC_to_KCCK_bf16_flat( naive_delfilter_bf16, delfilter_libxsmm_bf16   , nIFm, nOFm, bc, bk );
-    } else {
-      matrix_copy_KC_to_KCCK_bf16( naive_filter_bf16,    filter_libxsmm_bf16      , nIFm, nOFm, bc, bk );
-      matrix_copy_KC_to_KCCK_bf16( naive_delfilter_bf16, delfilter_libxsmm_bf16   , nIFm, nOFm, bc, bk );
-    }
-    matrix_copy_NC_to_NCNC_bf16( naive_bias_bf16,    bias_libxsmm_bf16,    1, 1, nOFm, 1, nOFm );
-    matrix_copy_NC_to_NCNC_bf16( naive_delbias_bf16, delbias_libxsmm_bf16, 1, 1, nOFm, 1, nOFm );
   } else if ( prec == 1 ) {
     matrix_copy_NC_to_NCNC_bf8( naive_input_bf8,     input_libxsmm_bf8,     1, nImg, nIFm, bn, bc );
     matrix_copy_NC_to_NCNC_bf8( naive_delinput_bf8,  delinput_libxsmm_bf8,  1, nImg, nIFm, bn, bc );
@@ -452,12 +465,21 @@ int main(int argc, char* argv[])
     matrix_copy_NC_to_NCNC_bf8( naive_bias_bf8,    bias_libxsmm_bf8,    1, 1, nOFm, 1, nOFm );
     matrix_copy_NC_to_NCNC_bf8( naive_delbias_bf8, delbias_libxsmm_bf8, 1, 1, nOFm, 1, nOFm );
   } else {
-    matrix_copy_NC_to_NCNC( naive_input,          input_libxsmm,     1, nImg, nIFm, bn, bc );
-    matrix_copy_NC_to_NCNC( naive_delinput,       delinput_libxsmm,  1, nImg, nIFm, bn, bc );
-    matrix_copy_NC_to_NCNC( naive_output,         output_libxsmm,    1, nImg, nOFm, bn, bk );
-    matrix_copy_NC_to_NCNC( naive_deloutput,      deloutput_libxsmm, 1, nImg, nOFm, bn, bk );
-    matrix_copy_KC_to_KCCK( naive_filter,         filter_libxsmm      , nIFm, nOFm, bc, bk );
-    matrix_copy_KC_to_KCCK( naive_delfilter,      delfilter_libxsmm   , nIFm, nOFm, bc, bk );
+    if ( my_layout == LIBXSMM_DNN_FC_LAYOUT_FLAT ) {
+      copy_buf( naive_input,          input_libxsmm, nImg*nIFm );
+      copy_buf( naive_delinput,       delinput_libxsmm, nImg*nIFm );
+      copy_buf( naive_output,         output_libxsmm, nImg*nOFm );
+      copy_buf( naive_deloutput,      deloutput_libxsmm, nImg*nOFm );
+      matrix_copy_KC_to_CK( naive_filter,         filter_libxsmm, nIFm, nOFm );
+      matrix_copy_KC_to_CK( naive_delfilter,      delfilter_libxsmm, nIFm, nOFm );
+    } else {
+      matrix_copy_NC_to_NCNC( naive_input,          input_libxsmm,     1, nImg, nIFm, bn, bc );
+      matrix_copy_NC_to_NCNC( naive_delinput,       delinput_libxsmm,  1, nImg, nIFm, bn, bc );
+      matrix_copy_NC_to_NCNC( naive_output,         output_libxsmm,    1, nImg, nOFm, bn, bk );
+      matrix_copy_NC_to_NCNC( naive_deloutput,      deloutput_libxsmm, 1, nImg, nOFm, bn, bk );
+      matrix_copy_KC_to_KCCK( naive_filter,         filter_libxsmm      , nIFm, nOFm, bc, bk );
+      matrix_copy_KC_to_KCCK( naive_delfilter,      delfilter_libxsmm   , nIFm, nOFm, bc, bk );
+    }
     copy_buf(naive_bias,    bias_libxsmm,    nOFm);
     copy_buf(naive_delbias, delbias_libxsmm, nOFm);
   }
@@ -496,8 +518,10 @@ int main(int argc, char* argv[])
 
     /* copy out data */
     if ( prec == 2 ) {
-      if ( my_vnnipack == LIBXSMM_DNN_FC_VNNIPACK_WT_IACT_TRANS_OACT_TRANS ) {
+      if ( my_layout == LIBXSMM_DNN_FC_LAYOUT_VNNIPACK_WT_IACT_TRANS_OACT_TRANS ) {
         matrix_copy_NCNC_vnniT_to_NC_bf16( output_libxsmm_bf16, naive_libxsmm_output_bf16, 1, nImg, nOFm, bn, bk );
+      } else if ( my_layout == LIBXSMM_DNN_FC_LAYOUT_FLAT  ) {
+        copy_buf_uint16( output_libxsmm_bf16, naive_libxsmm_output_bf16, nImg*nOFm );
       } else {
         matrix_copy_NCNC_to_NC_bf16( output_libxsmm_bf16, naive_libxsmm_output_bf16, 1, nImg, nOFm, bn, bk );
       }
@@ -506,7 +530,11 @@ int main(int argc, char* argv[])
       matrix_copy_NCNC_to_NC_bf8( output_libxsmm_bf8, naive_libxsmm_output_bf8, 1, nImg, nOFm, bn, bk );
       libxsmm_convert_bf8_f32( naive_libxsmm_output_bf8, naive_libxsmm_output, nImg*nOFm );
     } else {
-      matrix_copy_NCNC_to_NC( output_libxsmm, naive_libxsmm_output, 1, nImg, nOFm, bn, bk );
+      if ( my_layout == LIBXSMM_DNN_FC_LAYOUT_FLAT ) {
+        copy_buf( output_libxsmm, naive_libxsmm_output, nImg*nOFm );
+      } else {
+        matrix_copy_NCNC_to_NC( output_libxsmm, naive_libxsmm_output, 1, nImg, nOFm, bn, bk );
+      }
     }
 
     /* compare */
