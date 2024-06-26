@@ -165,18 +165,19 @@ int main(int argc, char* argv[])
     return -1;
   }
 
-  if ( (prec == 4) && ( (layout != 0) && (layout != 1)) ) {
-    printf("vnnipack must not specify for FP32\n");
-    return -1;
-  } else if ( (prec == 1) && (layout != 2) ) {
-    printf("illegal vnnipack for FP8\n");
-    return -1;
-  } else if ( (prec == 2) && (type != 'F') && (layout == 3 || layout == 7) ) {
-    printf("illegal vnnipack for BF16\n");
+  if ( (type != 'F') && (layout == 6 || layout == 14 || layout == 0) ) {
+    printf("Illegal layout for non-Forward\n");
     return -1;
   }
-  if ( (layout == 7) && (( fuse_type == 3) || ( fuse_type == 2 )) ) {
-    printf("illegal vnnipack & relu with mask for BF16\n");
+  if ( (prec == 4) && ( (layout != 0) && (layout != 1)) ) {
+    printf("layout must not specify for FP32\n");
+    return -1;
+  } else if ( (prec == 1) && (layout != 2) ) {
+    printf("illegal layout for FP8\n");
+    return -1;
+  }
+  if ( (layout == 14) && (( fuse_type == 3) || ( fuse_type == 2 )) ) {
+    printf("illegal layout & relu with mask for BF16\n");
     return -1;
   }
 
