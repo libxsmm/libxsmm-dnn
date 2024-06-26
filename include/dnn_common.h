@@ -1209,7 +1209,7 @@ LIBXSMM_INLINE void matrix_copy_KC_to_CK(float *src, float *dst, int C, int K)
   LIBXSMM_VLA_DECL(2, float, real_dst, dst, K);
 
 #if defined(_OPENMP)
-  LIBXSMM_OMP_VAR(c1); LIBXSMM_OMP_VAR(k1)
+  LIBXSMM_OMP_VAR(c1); LIBXSMM_OMP_VAR(k1);
 # pragma omp parallel for private(k1,c1)
 #endif
   for (k1 = 0; k1 < K; k1++) {
@@ -1227,7 +1227,7 @@ LIBXSMM_INLINE void matrix_copy_KC_to_CK_bf16(libxsmm_bfloat16 *src, libxsmm_bfl
   LIBXSMM_VLA_DECL(2, libxsmm_bfloat16, real_dst, dst, K);
 
 #if defined(_OPENMP)
-  LIBXSMM_OMP_VAR(c1); LIBXSMM_OMP_VAR(k1)
+  LIBXSMM_OMP_VAR(c1); LIBXSMM_OMP_VAR(k1);
 # pragma omp parallel for private(k1,c1)
 #endif
   for (k1 = 0; k1 < K; k1++) {
