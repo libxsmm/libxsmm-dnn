@@ -276,7 +276,7 @@ LIBXSMM_API libxsmm_dnn_fc_fwd_config setup_libxsmm_dnn_fc_fwd(libxsmm_blasint N
        (datatype_comp == LIBXSMM_DATATYPE_F32) ) {
     libxsmm_datatype dtype = LIBXSMM_DATATYPE_F32;
     libxsmm_blasint stride_a = lda*res.bc*sizeof(float);
-    libxsmm_blasint stride_b = ldb*res.bn*sizeof(float);
+    libxsmm_blasint stride_b = ( layout == LIBXSMM_DNN_FC_LAYOUT_FLAT ) ? res.bn*sizeof(float) : ldb*res.bn*sizeof(float);
 
     l_flags = LIBXSMM_GEMM_FLAGS('N', 'N');
 
@@ -413,6 +413,9 @@ LIBXSMM_API libxsmm_dnn_fc_fwd_config setup_libxsmm_dnn_fc_fwd(libxsmm_blasint N
   } else if ( (datatype_in == LIBXSMM_DATATYPE_BF16) &&
               (datatype_out == LIBXSMM_DATATYPE_BF16) &&
               (datatype_comp == LIBXSMM_DATATYPE_F32) ) {
+    libxsmm_blasint stride_a = lda*res.bc*sizeof(libxsmm_bfloat16);
+    libxsmm_blasint stride_b = ( layout == LIBXSMM_DNN_FC_LAYOUT_FLAT ) ? res.bn*sizeof(libxsmm_bfloat16) : ldb*res.bn*sizeof(libxsmm_bfloat16);
+
     if ( (layout == LIBXSMM_DNN_FC_LAYOUT_VNNIPACK_WT_IACT_TRANS_OACT_TRANS) &&
          ((fuse_type & LIBXSMM_DNN_FC_ELTW_FUSE_RELU_WITH_MASK) == LIBXSMM_DNN_FC_ELTW_FUSE_RELU_WITH_MASK) ) {
       fprintf( stderr, "Output trans and ReLU with mask are not combinable!\n");
@@ -454,8 +457,8 @@ LIBXSMM_API libxsmm_dnn_fc_fwd_config setup_libxsmm_dnn_fc_fwd(libxsmm_blasint N
                                          LIBXSMM_DATATYPE_BF16, LIBXSMM_DATATYPE_BF16,
                                          LIBXSMM_DATATYPE_F32, LIBXSMM_DATATYPE_F32 );
     l_brconfig = libxsmm_create_gemm_batch_reduce_config( LIBXSMM_GEMM_BATCH_REDUCE_STRIDE,
-                                                          lda*res.bc*sizeof(libxsmm_bfloat16),
-                                                          ldb*res.bn*sizeof(libxsmm_bfloat16),
+                                                          stride_a,
+                                                          stride_b,
                                                           unroll_hint );
     /* strided BRGEMM, FP32 out, Beta = 1 */
     res.fwd_compute_kernel_strd = libxsmm_dispatch_brgemm( l_shape, l_flags, l_prefetch_flags, l_brconfig );
