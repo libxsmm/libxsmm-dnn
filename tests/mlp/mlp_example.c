@@ -154,6 +154,10 @@ int main(int argc, char* argv[])
     printf("fuse type needs to be 0 (None), 1 (Bias), 2 (ReLU, mask), 3 (Bias+ReLU, mask), 4 (ReLU), 5 (Bias+RELU)\n");
     return -1;
   }
+  if ( (prec != 4) && (prec != 2) && (prec != 1) ) {
+    printf("prec needs to be 4 (F32), 2 (BF16), 1 (BF8)\n");
+    return -1;
+  }
 
   if ( (type != 'F') && (layout == 6 || layout == 14 || layout == 0) ) {
     printf("Illegal layout for non-Forward\n");
