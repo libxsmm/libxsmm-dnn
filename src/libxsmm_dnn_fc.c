@@ -276,7 +276,7 @@ LIBXSMM_API libxsmm_dnn_fc_fwd_config setup_libxsmm_dnn_fc_fwd(libxsmm_blasint N
        (datatype_comp == LIBXSMM_DATATYPE_F32) ) {
     libxsmm_datatype dtype = LIBXSMM_DATATYPE_F32;
     libxsmm_blasint stride_a = lda*res.bc*sizeof(float);
-    libxsmm_blasint stride_b = ( layout == LIBXSMM_DNN_FC_LAYOUT_FLAT ) ? res.bn*sizeof(float) : ldb*res.bn*sizeof(float);
+    libxsmm_blasint stride_b = ( layout == LIBXSMM_DNN_FC_LAYOUT_FLAT ) ? res.bc*sizeof(float) : ldb*res.bn*sizeof(float);
 
     l_flags = LIBXSMM_GEMM_FLAGS('N', 'N');
 
@@ -414,7 +414,7 @@ LIBXSMM_API libxsmm_dnn_fc_fwd_config setup_libxsmm_dnn_fc_fwd(libxsmm_blasint N
               (datatype_out == LIBXSMM_DATATYPE_BF16) &&
               (datatype_comp == LIBXSMM_DATATYPE_F32) ) {
     libxsmm_blasint stride_a = lda*res.bc*sizeof(libxsmm_bfloat16);
-    libxsmm_blasint stride_b = ( layout == LIBXSMM_DNN_FC_LAYOUT_FLAT ) ? res.bn*sizeof(libxsmm_bfloat16) : ldb*res.bn*sizeof(libxsmm_bfloat16);
+    libxsmm_blasint stride_b = ( layout == LIBXSMM_DNN_FC_LAYOUT_FLAT ) ? res.bc*sizeof(libxsmm_bfloat16) : ldb*res.bc*sizeof(libxsmm_bfloat16);
 
     if ( (layout == LIBXSMM_DNN_FC_LAYOUT_VNNIPACK_WT_IACT_TRANS_OACT_TRANS) &&
          ((fuse_type & LIBXSMM_DNN_FC_ELTW_FUSE_RELU_WITH_MASK) == LIBXSMM_DNN_FC_ELTW_FUSE_RELU_WITH_MASK) ) {
