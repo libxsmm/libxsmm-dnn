@@ -306,6 +306,17 @@ LIBXSMM_INLINE void copy_buf_int16(short* src, short* dst, size_t size) {
   }
 }
 
+LIBXSMM_INLINE void copy_buf_uint16(unsigned short* src, unsigned short* dst, size_t size) {
+  int i;
+#if defined(_OPENMP)
+  LIBXSMM_OMP_VAR(i);
+# pragma omp parallel for private(i)
+#endif
+  for (i = 0; i < (int)size; ++i) {
+    dst[i] = src[i];
+  }
+}
+
 LIBXSMM_INLINE void copy_buf_int8(char* src, char* dst, size_t size) {
   int i;
 #if defined(_OPENMP)
@@ -1187,6 +1198,42 @@ LIBXSMM_INLINE void matrix_copy_CK_to_CKKC_bf16(libxsmm_bfloat16 *src, libxsmm_b
             LIBXSMM_VLA_ACCESS(2, real_src, c1*bc+c2, k1*bk+k2, K);
         }
       }
+    }
+  }
+}
+
+LIBXSMM_INLINE void matrix_copy_KC_to_CK(float *src, float *dst, int C, int K)
+{
+  int k1, c1;
+  LIBXSMM_VLA_DECL(2, float, real_src, src, C);
+  LIBXSMM_VLA_DECL(2, float, real_dst, dst, K);
+
+#if defined(_OPENMP)
+  LIBXSMM_OMP_VAR(c1); LIBXSMM_OMP_VAR(k1);
+# pragma omp parallel for private(k1,c1)
+#endif
+  for (k1 = 0; k1 < K; k1++) {
+    for (c1 = 0; c1 < C; c1++) {
+      LIBXSMM_VLA_ACCESS(2, real_dst, c1, k1, K) =
+        LIBXSMM_VLA_ACCESS(2, real_src, k1, c1, C);
+    }
+  }
+}
+
+LIBXSMM_INLINE void matrix_copy_KC_to_CK_bf16(libxsmm_bfloat16 *src, libxsmm_bfloat16 *dst, int C, int K)
+{
+  int k1, c1;
+  LIBXSMM_VLA_DECL(2, libxsmm_bfloat16, real_src, src, C);
+  LIBXSMM_VLA_DECL(2, libxsmm_bfloat16, real_dst, dst, K);
+
+#if defined(_OPENMP)
+  LIBXSMM_OMP_VAR(c1); LIBXSMM_OMP_VAR(k1);
+# pragma omp parallel for private(k1,c1)
+#endif
+  for (k1 = 0; k1 < K; k1++) {
+    for (c1 = 0; c1 < C; c1++) {
+      LIBXSMM_VLA_ACCESS(2, real_dst, c1, k1, K) =
+        LIBXSMM_VLA_ACCESS(2, real_src, k1, c1, C);
     }
   }
 }

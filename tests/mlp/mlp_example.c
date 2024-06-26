@@ -56,7 +56,7 @@ int main(int argc, char* argv[])
   int *label_libxsmm;
   libxsmm_datatype in_dt, out_dt, comp_dt;
   libxsmm_dnn_fc_eltw_fuse my_fuse;
-  libxsmm_dnn_fc_vnnipack my_vnnipack;
+  libxsmm_dnn_fc_layout my_layout;
   libxsmm_dnn_fc_fwd_config* libxsmm_dnn_fc_fwd;
   libxsmm_dnn_fc_bwd_config* libxsmm_dnn_fc_bwd;
   libxsmm_dnn_opt_config* libxsmm_dnn_opt;
@@ -154,19 +154,24 @@ int main(int argc, char* argv[])
     printf("fuse type needs to be 0 (None), 1 (Bias), 2 (ReLU, mask), 3 (Bias+ReLU, mask), 4 (ReLU), 5 (Bias+RELU)\n");
     return -1;
   }
-  if ( type != 'F' && ((fuse_type == 4) || (fuse_type == 5))) {
-    printf("fuse type 4 & 5 (ReLU without mask) is only available when running only Forward\n");
+  if ( (prec != 4) && (prec != 2) && (prec != 1) ) {
+    printf("prec needs to be 4 (F32), 2 (BF16), 1 (BF8)\n");
     return -1;
   }
-  if ( (prec_bf16 == 0) && (layout != 0) ) {
-    printf("vnnipack must not specify for FP32\n");
-    return -1;
-  } else if ( ((prec_bf16 > 0) && (type != 'F') && (layout == 3)) || ((prec_bf16 > 0) && (layout == 0)) ) {
-    printf("illegal vnnipack for BF16\n");
+
+  if ( (type != 'F') && (layout == 6 || layout == 14 || layout == 0) ) {
+    printf("Illegal layout for non-Forward\n");
     return -1;
   }
-  if ( (layout == 7) && (( fuse_type == 3) || ( fuse_type == 2 )) ) {
-    printf("illegal vnnipack & relu with mask for BF16\n");
+  if ( (prec == 4) && ( (layout != 0) && (layout != 1)) ) {
+    printf("layout must not specify for FP32\n");
+    return -1;
+  } else if ( (prec == 1) && (layout != 2) ) {
+    printf("illegal layout for FP8\n");
+    return -1;
+  }
+  if ( (layout == 14) && (( fuse_type == 3) || ( fuse_type == 2 )) ) {
+    printf("illegal layout & relu with mask for BF16\n");
     return -1;
   }
 
@@ -365,13 +370,15 @@ int main(int argc, char* argv[])
   }
 
   if ( layout == 0 ) {
-    my_vnnipack = LIBXSMM_DNN_FC_VNNIPACK_NONE;
+    my_layout = LIBXSMM_DNN_FC_LAYOUT_FLAT;
   } else if ( layout == 1 ) {
-    my_vnnipack = LIBXSMM_DNN_FC_VNNIPACK_WT;
-  } else if ( layout == 3 ) {
-    my_vnnipack = LIBXSMM_DNN_FC_VNNIPACK_WT_IACT_TRANS;
-  } else if ( layout == 7 ) {
-    my_vnnipack = LIBXSMM_DNN_FC_VNNIPACK_WT_IACT_TRANS_OACT_TRANS;
+    my_layout = LIBXSMM_DNN_FC_LAYOUT_PACKED;
+  } else if ( layout == 2 ) {
+    my_layout = LIBXSMM_DNN_FC_LAYOUT_VNNIPACK_WT;
+  } else if ( layout == 6 ) {
+    my_layout = LIBXSMM_DNN_FC_LAYOUT_VNNIPACK_WT_IACT_TRANS;
+  } else if ( layout == 14 ) {
+    my_layout = LIBXSMM_DNN_FC_LAYOUT_VNNIPACK_WT_IACT_TRANS_OACT_TRANS;
   } else {
     printf("Illegal packing\n");
     return -1;
@@ -391,7 +398,7 @@ int main(int argc, char* argv[])
       libxsmm_dnn_fc_fwd[i] = setup_libxsmm_dnn_fc_fwd(MB, C[i], C[i+1], (MB % bn == 0) ? bn : MB,
                                                (C[i  ] % bc == 0) ? bc : C[i  ],
                                                (C[i+1] % bk == 0) ? bk : C[i+1],
-                                               nThreads, my_fuse, my_vnnipack, in_dt, out_dt, comp_dt );
+                                               nThreads, my_fuse, my_layout, in_dt, out_dt, comp_dt );
     }
     if ( (type == 'B') || (type == 'A') ) {
       libxsmm_dnn_fc_bwd[i] = setup_libxsmm_dnn_fc_bwd(MB, C[i], C[i+1], (MB % bn == 0) ? bn : MB,

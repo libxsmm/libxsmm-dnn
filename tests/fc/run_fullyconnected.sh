@@ -29,7 +29,7 @@ then
   BN=32
   BC=32
   BK=32
-  VNNI=0
+  VNNI=1
 else
   BIN=$1
   ITERS=$2
