@@ -9,6 +9,7 @@
 /* Kirill Voronin, Alexander Heinecke (Intel Corp.)
 ******************************************************************************/
 #include <libxsmm_dnn_fc.h>
+#include "libxsmm_dnn_sfc_tools.h"
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wcast-qual"
@@ -34,6 +35,8 @@ LIBXSMM_API libxsmm_dnn_fc_fwd_config setup_libxsmm_dnn_fc_fwd(libxsmm_blasint N
   libxsmm_gemm_batch_reduce_config l_brconfig;
   libxsmm_gemm_ext_unary_argops   l_argops;
   libxsmm_gemm_ext_binary_postops l_postops;
+
+  const char *const l_env_sfc = getenv("LIBXSMM_DNN_DISABLE_SFC");
 
   /* init libxsmm structs */
   memset( &l_shape, 0, sizeof(libxsmm_gemm_shape) );
@@ -61,7 +64,24 @@ LIBXSMM_API libxsmm_dnn_fc_fwd_config setup_libxsmm_dnn_fc_fwd(libxsmm_blasint N
   res.fwd_col_teams = 1;
   res.fwd_row_teams = 1;
 
-  if ( l_is_aarch64 == 0 ) {
+  /* check if we should use SFC */
+  if ( 0 == l_env_sfc ) {
+    res.fwd_sfc = 1;
+  } else {
+    if ( atoi(l_env_sfc) != 0 ) {
+      res.fwd_sfc = 0;
+    } else {
+      res.fwd_sfc = 1;
+    }
+  }
+  if ( res.N % res.bn != 0 ) {
+    res.fwd_sfc = 0;
+  }
+  if ( res.K % res.bk != 0 ) {
+    res.fwd_sfc = 0;
+  }
+
+  if ( (l_is_aarch64 == 0) && (res.fwd_sfc == 0) ) {
     if (threads == 16) {
       res.fwd_bf = 1;
       res.fwd_2d_blocking = 1;
@@ -234,7 +254,7 @@ LIBXSMM_API libxsmm_dnn_fc_fwd_config setup_libxsmm_dnn_fc_fwd(libxsmm_blasint N
         res.fwd_bf--;
       }
     }
-  } else {
+  } else if ( res.fwd_sfc == 0 ) {
     if (threads == 16) {
       res.fwd_bf = 1;
       res.fwd_2d_blocking = 1;
@@ -258,6 +278,11 @@ LIBXSMM_API libxsmm_dnn_fc_fwd_config setup_libxsmm_dnn_fc_fwd(libxsmm_blasint N
       res.fwd_col_teams = 1;
       res.fwd_row_teams = 1;
     }
+  } else {
+#if 0
+    printf("using SFC-based access logic\n");
+#endif
+    res.fwd_sfc_map_tsize = libxsmm_dnn_sfc_create_map(&(res.fwd_sfc_map), res.K/res.bk, res.N/res.bn );
   }
 
 #if 0
@@ -1757,8 +1782,12 @@ LIBXSMM_API void libxsmm_dnn_fc_fwd_exec_f32_flat( libxsmm_dnn_fc_fwd_config cfg
     if (BF > 1) {
       for ( ifm1 = 0; ifm1 < BF; ++ifm1 ) {
         for ( mb1ofm1 = thr_begin; mb1ofm1 < thr_end; ++mb1ofm1 ) {
-          mb1  = mb1ofm1%nBlocksMB;
-          ofm1 = mb1ofm1/nBlocksMB;
+          if (cfg.fwd_sfc == 1) {
+            libxsmm_dnn_sfc_get_coord(&ofm1, &mb1, cfg.fwd_sfc_map, mb1ofm1, cfg.fwd_sfc_map_tsize);
+          } else {
+            mb1  = mb1ofm1%nBlocksMB;
+            ofm1 = mb1ofm1/nBlocksMB;
+          }
           if ( ifm1 == 0 ) {
             if ( cfg.fuse_type == LIBXSMM_DNN_FC_ELTW_FUSE_BIAS || cfg.fuse_type == LIBXSMM_DNN_FC_ELTW_FUSE_BIAS_RELU || cfg.fuse_type == LIBXSMM_DNN_FC_ELTW_FUSE_BIAS_RELU_WITH_MASK ) {
               gemm_param_ext.op.tertiary = &blocks;
@@ -1797,8 +1826,12 @@ LIBXSMM_API void libxsmm_dnn_fc_fwd_exec_f32_flat( libxsmm_dnn_fc_fwd_config cfg
       }
     } else {
       for ( mb1ofm1 = thr_begin; mb1ofm1 < thr_end; ++mb1ofm1 ) {
-        mb1  = mb1ofm1%nBlocksMB;
-        ofm1 = mb1ofm1/nBlocksMB;
+        if (cfg.fwd_sfc == 1) {
+          libxsmm_dnn_sfc_get_coord(&ofm1, &mb1, cfg.fwd_sfc_map, mb1ofm1, cfg.fwd_sfc_map_tsize);
+        } else {
+          mb1  = mb1ofm1%nBlocksMB;
+          ofm1 = mb1ofm1/nBlocksMB;
+        }
         if ( cfg.fuse_type == LIBXSMM_DNN_FC_ELTW_FUSE_BIAS ) { /* bias only */
           gemm_param_ext.op.tertiary = &blocks;
           gemm_param_ext.a.primary = (void*)&LIBXSMM_VLA_ACCESS(4, filter, 0, 0, ofm1, 0, cfg.bc, nBlocksOFm, cfg.bk);
@@ -1976,8 +2009,12 @@ LIBXSMM_API void libxsmm_dnn_fc_fwd_exec_f32_packed( libxsmm_dnn_fc_fwd_config c
     if (BF > 1) {
       for ( ifm1 = 0; ifm1 < BF; ++ifm1 ) {
         for ( mb1ofm1 = thr_begin; mb1ofm1 < thr_end; ++mb1ofm1 ) {
-          mb1  = mb1ofm1%nBlocksMB;
-          ofm1 = mb1ofm1/nBlocksMB;
+          if (cfg.fwd_sfc == 1) {
+            libxsmm_dnn_sfc_get_coord(&ofm1, &mb1, cfg.fwd_sfc_map, mb1ofm1, cfg.fwd_sfc_map_tsize);
+          } else {
+            mb1  = mb1ofm1%nBlocksMB;
+            ofm1 = mb1ofm1/nBlocksMB;
+          }
           if ( ifm1 == 0 ) {
             if ( cfg.fuse_type == LIBXSMM_DNN_FC_ELTW_FUSE_BIAS || cfg.fuse_type == LIBXSMM_DNN_FC_ELTW_FUSE_BIAS_RELU || cfg.fuse_type == LIBXSMM_DNN_FC_ELTW_FUSE_BIAS_RELU_WITH_MASK ) {
               gemm_param_ext.op.tertiary = &blocks;
@@ -2016,8 +2053,12 @@ LIBXSMM_API void libxsmm_dnn_fc_fwd_exec_f32_packed( libxsmm_dnn_fc_fwd_config c
       }
     } else {
       for ( mb1ofm1 = thr_begin; mb1ofm1 < thr_end; ++mb1ofm1 ) {
-        mb1  = mb1ofm1%nBlocksMB;
-        ofm1 = mb1ofm1/nBlocksMB;
+        if (cfg.fwd_sfc == 1) {
+          libxsmm_dnn_sfc_get_coord(&ofm1, &mb1, cfg.fwd_sfc_map, mb1ofm1, cfg.fwd_sfc_map_tsize);
+        } else {
+          mb1  = mb1ofm1%nBlocksMB;
+          ofm1 = mb1ofm1/nBlocksMB;
+        }
         if ( cfg.fuse_type == LIBXSMM_DNN_FC_ELTW_FUSE_BIAS ) { /* bias only */
           gemm_param_ext.op.tertiary = &blocks;
           gemm_param_ext.a.primary = (void*)&LIBXSMM_VLA_ACCESS(4, filter, ofm1, 0, 0, 0, nBlocksIFm, cfg.bc, cfg.bk);
@@ -2207,8 +2248,12 @@ LIBXSMM_API void libxsmm_dnn_fc_fwd_exec_bf16_flat( libxsmm_dnn_fc_fwd_config cf
     if ((BF > 1) || (cfg.K % 32 != 0)) {
       for ( ifm1 = 0; ifm1 < BF; ++ifm1 ) {
         for ( mb1ofm1 = thr_begin; mb1ofm1 < thr_end; ++mb1ofm1 ) {
-          mb1  = mb1ofm1%nBlocksMB;
-          ofm1 = mb1ofm1/nBlocksMB;
+          if (cfg.fwd_sfc == 1) {
+            libxsmm_dnn_sfc_get_coord(&ofm1, &mb1, cfg.fwd_sfc_map, mb1ofm1, cfg.fwd_sfc_map_tsize);
+          } else {
+            mb1  = mb1ofm1%nBlocksMB;
+            ofm1 = mb1ofm1/nBlocksMB;
+          }
           /* Initialize libxsmm_blasintermediate f32 tensor */
           if ( ifm1 == 0 ) {
             if ( (cfg.fuse_type & LIBXSMM_DNN_FC_ELTW_FUSE_BIAS) == LIBXSMM_DNN_FC_ELTW_FUSE_BIAS ) {
@@ -2244,8 +2289,12 @@ LIBXSMM_API void libxsmm_dnn_fc_fwd_exec_bf16_flat( libxsmm_dnn_fc_fwd_config cf
       }
     } else {
       for ( mb1ofm1 = thr_begin; mb1ofm1 < thr_end; ++mb1ofm1 ) {
-        mb1  = mb1ofm1%nBlocksMB;
-        ofm1 = mb1ofm1/nBlocksMB;
+        if (cfg.fwd_sfc == 1) {
+          libxsmm_dnn_sfc_get_coord(&ofm1, &mb1, cfg.fwd_sfc_map, mb1ofm1, cfg.fwd_sfc_map_tsize);
+        } else {
+          mb1  = mb1ofm1%nBlocksMB;
+          ofm1 = mb1ofm1/nBlocksMB;
+        }
         if ( ((cfg.fuse_type & LIBXSMM_DNN_FC_ELTW_FUSE_BIAS) == LIBXSMM_DNN_FC_ELTW_FUSE_BIAS) ||
              ((cfg.fuse_type & LIBXSMM_DNN_FC_ELTW_FUSE_RELU) == LIBXSMM_DNN_FC_ELTW_FUSE_RELU) ||
              ((cfg.fuse_type & LIBXSMM_DNN_FC_ELTW_FUSE_RELU_WITH_MASK) == LIBXSMM_DNN_FC_ELTW_FUSE_RELU_WITH_MASK) ) {
@@ -2418,8 +2467,12 @@ LIBXSMM_API void libxsmm_dnn_fc_fwd_exec_bf16_packed( libxsmm_dnn_fc_fwd_config 
     if ((BF > 1) || (cfg.K % 32 != 0)) {
       for ( ifm1 = 0; ifm1 < BF; ++ifm1 ) {
         for ( mb1ofm1 = thr_begin; mb1ofm1 < thr_end; ++mb1ofm1 ) {
-          mb1  = mb1ofm1%nBlocksMB;
-          ofm1 = mb1ofm1/nBlocksMB;
+          if (cfg.fwd_sfc == 1) {
+            libxsmm_dnn_sfc_get_coord(&ofm1, &mb1, cfg.fwd_sfc_map, mb1ofm1, cfg.fwd_sfc_map_tsize);
+          } else {
+            mb1  = mb1ofm1%nBlocksMB;
+            ofm1 = mb1ofm1/nBlocksMB;
+          }
           /* Initialize libxsmm_blasintermediate f32 tensor */
           if ( ifm1 == 0 ) {
             if ( (cfg.fuse_type & LIBXSMM_DNN_FC_ELTW_FUSE_BIAS) == LIBXSMM_DNN_FC_ELTW_FUSE_BIAS ) {
@@ -2455,8 +2508,12 @@ LIBXSMM_API void libxsmm_dnn_fc_fwd_exec_bf16_packed( libxsmm_dnn_fc_fwd_config 
       }
     } else {
       for ( mb1ofm1 = thr_begin; mb1ofm1 < thr_end; ++mb1ofm1 ) {
-        mb1  = mb1ofm1%nBlocksMB;
-        ofm1 = mb1ofm1/nBlocksMB;
+        if (cfg.fwd_sfc == 1) {
+          libxsmm_dnn_sfc_get_coord(&ofm1, &mb1, cfg.fwd_sfc_map, mb1ofm1, cfg.fwd_sfc_map_tsize);
+        } else {
+          mb1  = mb1ofm1%nBlocksMB;
+          ofm1 = mb1ofm1/nBlocksMB;
+        }
         if ( ((cfg.fuse_type & LIBXSMM_DNN_FC_ELTW_FUSE_BIAS) == LIBXSMM_DNN_FC_ELTW_FUSE_BIAS) ||
              ((cfg.fuse_type & LIBXSMM_DNN_FC_ELTW_FUSE_RELU) == LIBXSMM_DNN_FC_ELTW_FUSE_RELU) ||
              ((cfg.fuse_type & LIBXSMM_DNN_FC_ELTW_FUSE_RELU_WITH_MASK) == LIBXSMM_DNN_FC_ELTW_FUSE_RELU_WITH_MASK) ) {
@@ -2631,8 +2688,12 @@ LIBXSMM_API void libxsmm_dnn_fc_fwd_exec_bf16_wt_vnni_format( libxsmm_dnn_fc_fwd
     if ((BF > 1) || (cfg.K % 32 != 0)) {
       for ( ifm1 = 0; ifm1 < BF; ++ifm1 ) {
         for ( mb1ofm1 = thr_begin; mb1ofm1 < thr_end; ++mb1ofm1 ) {
-          mb1  = mb1ofm1%nBlocksMB;
-          ofm1 = mb1ofm1/nBlocksMB;
+          if (cfg.fwd_sfc == 1) {
+            libxsmm_dnn_sfc_get_coord(&ofm1, &mb1, cfg.fwd_sfc_map, mb1ofm1, cfg.fwd_sfc_map_tsize);
+          } else {
+            mb1  = mb1ofm1%nBlocksMB;
+            ofm1 = mb1ofm1/nBlocksMB;
+          }
           /* Initialize libxsmm_blasintermediate f32 tensor */
           if ( ifm1 == 0 ) {
             if ( (cfg.fuse_type & LIBXSMM_DNN_FC_ELTW_FUSE_BIAS) == LIBXSMM_DNN_FC_ELTW_FUSE_BIAS ) {
@@ -2668,8 +2729,12 @@ LIBXSMM_API void libxsmm_dnn_fc_fwd_exec_bf16_wt_vnni_format( libxsmm_dnn_fc_fwd
       }
     } else {
       for ( mb1ofm1 = thr_begin; mb1ofm1 < thr_end; ++mb1ofm1 ) {
-        mb1  = mb1ofm1%nBlocksMB;
-        ofm1 = mb1ofm1/nBlocksMB;
+        if (cfg.fwd_sfc == 1) {
+          libxsmm_dnn_sfc_get_coord(&ofm1, &mb1, cfg.fwd_sfc_map, mb1ofm1, cfg.fwd_sfc_map_tsize);
+        } else {
+          mb1  = mb1ofm1%nBlocksMB;
+          ofm1 = mb1ofm1/nBlocksMB;
+        }
         if ( ((cfg.fuse_type & LIBXSMM_DNN_FC_ELTW_FUSE_BIAS) == LIBXSMM_DNN_FC_ELTW_FUSE_BIAS) ||
              ((cfg.fuse_type & LIBXSMM_DNN_FC_ELTW_FUSE_RELU) == LIBXSMM_DNN_FC_ELTW_FUSE_RELU) ||
              ((cfg.fuse_type & LIBXSMM_DNN_FC_ELTW_FUSE_RELU_WITH_MASK) == LIBXSMM_DNN_FC_ELTW_FUSE_RELU_WITH_MASK) ) {
@@ -2844,8 +2909,12 @@ LIBXSMM_API void libxsmm_dnn_fc_fwd_exec_bf16_wt_vnni_iact_vnniT_format( libxsmm
     if ((BF > 1) || (cfg.K % 32 != 0)) {
       for ( ifm1 = 0; ifm1 < BF; ++ifm1 ) {
         for ( mb1ofm1 = thr_begin; mb1ofm1 < thr_end; ++mb1ofm1 ) {
-          mb1  = mb1ofm1%nBlocksMB;
-          ofm1 = mb1ofm1/nBlocksMB;
+          if (cfg.fwd_sfc == 1) {
+            libxsmm_dnn_sfc_get_coord(&ofm1, &mb1, cfg.fwd_sfc_map, mb1ofm1, cfg.fwd_sfc_map_tsize);
+          } else {
+            mb1  = mb1ofm1%nBlocksMB;
+            ofm1 = mb1ofm1/nBlocksMB;
+          }
           /* Initialize libxsmm_blasintermediate f32 tensor */
           if ( ifm1 == 0 ) {
             if ( (cfg.fuse_type & LIBXSMM_DNN_FC_ELTW_FUSE_BIAS) == LIBXSMM_DNN_FC_ELTW_FUSE_BIAS ) {
@@ -2881,8 +2950,12 @@ LIBXSMM_API void libxsmm_dnn_fc_fwd_exec_bf16_wt_vnni_iact_vnniT_format( libxsmm
       }
     } else {
       for ( mb1ofm1 = thr_begin; mb1ofm1 < thr_end; ++mb1ofm1 ) {
-        mb1  = mb1ofm1%nBlocksMB;
-        ofm1 = mb1ofm1/nBlocksMB;
+        if (cfg.fwd_sfc == 1) {
+          libxsmm_dnn_sfc_get_coord(&ofm1, &mb1, cfg.fwd_sfc_map, mb1ofm1, cfg.fwd_sfc_map_tsize);
+        } else {
+          mb1  = mb1ofm1%nBlocksMB;
+          ofm1 = mb1ofm1/nBlocksMB;
+        }
         if ( ((cfg.fuse_type & LIBXSMM_DNN_FC_ELTW_FUSE_BIAS) == LIBXSMM_DNN_FC_ELTW_FUSE_BIAS) ||
              ((cfg.fuse_type & LIBXSMM_DNN_FC_ELTW_FUSE_RELU) == LIBXSMM_DNN_FC_ELTW_FUSE_RELU) ||
              ((cfg.fuse_type & LIBXSMM_DNN_FC_ELTW_FUSE_RELU_WITH_MASK) == LIBXSMM_DNN_FC_ELTW_FUSE_RELU_WITH_MASK) ) {
@@ -3060,8 +3133,12 @@ LIBXSMM_API void libxsmm_dnn_fc_fwd_exec_bf16_wt_vnni_iact_vnniT_oact_vnniT_form
     if ((BF > 1) || (cfg.K % 32 != 0)) {
       for ( ifm1 = 0; ifm1 < BF; ++ifm1 ) {
         for ( mb1ofm1 = thr_begin; mb1ofm1 < thr_end; ++mb1ofm1 ) {
-          mb1  = mb1ofm1%nBlocksMB;
-          ofm1 = mb1ofm1/nBlocksMB;
+          if (cfg.fwd_sfc == 1) {
+            libxsmm_dnn_sfc_get_coord(&ofm1, &mb1, cfg.fwd_sfc_map, mb1ofm1, cfg.fwd_sfc_map_tsize);
+          } else {
+            mb1  = mb1ofm1%nBlocksMB;
+            ofm1 = mb1ofm1/nBlocksMB;
+          }
           /* Initialize libxsmm_blasintermediate f32 tensor */
           if ( ifm1 == 0 ) {
             if ( (cfg.fuse_type & LIBXSMM_DNN_FC_ELTW_FUSE_BIAS) == LIBXSMM_DNN_FC_ELTW_FUSE_BIAS ) {
@@ -3097,8 +3174,12 @@ LIBXSMM_API void libxsmm_dnn_fc_fwd_exec_bf16_wt_vnni_iact_vnniT_oact_vnniT_form
       }
     } else {
       for ( mb1ofm1 = thr_begin; mb1ofm1 < thr_end; ++mb1ofm1 ) {
-        mb1  = mb1ofm1%nBlocksMB;
-        ofm1 = mb1ofm1/nBlocksMB;
+        if (cfg.fwd_sfc == 1) {
+          libxsmm_dnn_sfc_get_coord(&ofm1, &mb1, cfg.fwd_sfc_map, mb1ofm1, cfg.fwd_sfc_map_tsize);
+        } else {
+          mb1  = mb1ofm1%nBlocksMB;
+          ofm1 = mb1ofm1/nBlocksMB;
+        }
         if ( ((cfg.fuse_type & LIBXSMM_DNN_FC_ELTW_FUSE_BIAS) == LIBXSMM_DNN_FC_ELTW_FUSE_BIAS) ||
              ((cfg.fuse_type & LIBXSMM_DNN_FC_ELTW_FUSE_RELU) == LIBXSMM_DNN_FC_ELTW_FUSE_RELU) ||
              ((cfg.fuse_type & LIBXSMM_DNN_FC_ELTW_FUSE_RELU_WITH_MASK) == LIBXSMM_DNN_FC_ELTW_FUSE_RELU_WITH_MASK) ) {
@@ -3289,8 +3370,12 @@ LIBXSMM_API void libxsmm_dnn_fc_fwd_exec_bf8_vnni_format( libxsmm_dnn_fc_fwd_con
     if ((BF > 1) || (cfg.K % 64 != 0)) {
       for ( ifm1 = 0; ifm1 < BF; ++ifm1 ) {
         for ( mb1ofm1 = thr_begin; mb1ofm1 < thr_end; ++mb1ofm1 ) {
-          mb1  = mb1ofm1%nBlocksMB;
-          ofm1 = mb1ofm1/nBlocksMB;
+          if (cfg.fwd_sfc == 1) {
+            libxsmm_dnn_sfc_get_coord(&ofm1, &mb1, cfg.fwd_sfc_map, mb1ofm1, cfg.fwd_sfc_map_tsize);
+          } else {
+            mb1  = mb1ofm1%nBlocksMB;
+            ofm1 = mb1ofm1/nBlocksMB;
+          }
           /* Initialize libxsmm_blasintermediate f32 tensor */
           if ( ifm1 == 0 ) {
             if ( (cfg.fuse_type & LIBXSMM_DNN_FC_ELTW_FUSE_BIAS) == LIBXSMM_DNN_FC_ELTW_FUSE_BIAS ) {
@@ -3326,8 +3411,12 @@ LIBXSMM_API void libxsmm_dnn_fc_fwd_exec_bf8_vnni_format( libxsmm_dnn_fc_fwd_con
       }
     } else {
       for ( mb1ofm1 = thr_begin; mb1ofm1 < thr_end; ++mb1ofm1 ) {
-        mb1  = mb1ofm1%nBlocksMB;
-        ofm1 = mb1ofm1/nBlocksMB;
+        if (cfg.fwd_sfc == 1) {
+          libxsmm_dnn_sfc_get_coord(&ofm1, &mb1, cfg.fwd_sfc_map, mb1ofm1, cfg.fwd_sfc_map_tsize);
+        } else {
+          mb1  = mb1ofm1%nBlocksMB;
+          ofm1 = mb1ofm1/nBlocksMB;
+        }
         if ( ((cfg.fuse_type & LIBXSMM_DNN_FC_ELTW_FUSE_BIAS) == LIBXSMM_DNN_FC_ELTW_FUSE_BIAS) ||
              ((cfg.fuse_type & LIBXSMM_DNN_FC_ELTW_FUSE_RELU) == LIBXSMM_DNN_FC_ELTW_FUSE_RELU) ||
              ((cfg.fuse_type & LIBXSMM_DNN_FC_ELTW_FUSE_RELU_WITH_MASK) == LIBXSMM_DNN_FC_ELTW_FUSE_RELU_WITH_MASK) ) {
@@ -4625,6 +4714,9 @@ LIBXSMM_API void libxsmm_dnn_fc_bwd_exec_bf8( libxsmm_dnn_fc_bwd_config cfg,  co
 
 LIBXSMM_API void destroy_libxsmm_dnn_fc_fwd(libxsmm_dnn_fc_fwd_config* cfg) {
   libxsmm_barrier_destroy(cfg->barrier);
+  if (cfg->fwd_sfc != 0) {
+    libxsmm_free(cfg->fwd_sfc_map);
+  }
 }
 
 LIBXSMM_API void destroy_libxsmm_dnn_fc_bwd(libxsmm_dnn_fc_bwd_config* cfg) {
