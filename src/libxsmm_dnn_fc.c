@@ -279,6 +279,9 @@ LIBXSMM_API libxsmm_dnn_fc_fwd_config setup_libxsmm_dnn_fc_fwd(libxsmm_blasint N
       res.fwd_row_teams = 1;
     }
   } else {
+#if 0
+    printf("using SFC-based access logic\n");
+#endif
     res.fwd_sfc_map_tsize = libxsmm_dnn_sfc_create_map(&(res.fwd_sfc_map), res.K/res.bk, res.N/res.bn );
   }
 
@@ -4711,6 +4714,9 @@ LIBXSMM_API void libxsmm_dnn_fc_bwd_exec_bf8( libxsmm_dnn_fc_bwd_config cfg,  co
 
 LIBXSMM_API void destroy_libxsmm_dnn_fc_fwd(libxsmm_dnn_fc_fwd_config* cfg) {
   libxsmm_barrier_destroy(cfg->barrier);
+  if (cfg->fwd_sfc != 0) {
+    libxsmm_free(cfg->fwd_sfc_map);
+  }
 }
 
 LIBXSMM_API void destroy_libxsmm_dnn_fc_bwd(libxsmm_dnn_fc_bwd_config* cfg) {
