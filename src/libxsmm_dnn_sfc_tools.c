@@ -42,6 +42,15 @@
 
 /* The generalized hilbert functions are from: https://github.com/jakubcerveny/gilbert */
 
+LIBXSMM_API_INLINE int libxsmm_dnn_gilbert_d2xy_r(int dst_idx, int cur_idx,
+                       int *xres, int *yres,
+                       int ax,int ay,
+                       int bx,int by );
+
+LIBXSMM_API_INLINE int libxsmm_dnn_gilbert_d2xy(int *x, int *y, int idx, int w,int h);
+
+
+
 LIBXSMM_API_INLINE int libxsmm_dnn_gilbert_d2xy(int *x, int *y, int idx,int w,int h) {
   *x = 0;
   *y = 0;
@@ -152,7 +161,7 @@ LIBXSMM_API_INLINE int libxsmm_dnn_gilbert_d2xy_r(int dst_idx, int cur_idx,
                         -(ax-ax2), -(ay-ay2));
 }
 
-LIBXSMM_API_INLINE unsigned int libxsmm_dnn_fill_sf_curve_index_map(unsigned char **sf_curve_index_map, unsigned int Mb, unsigned int Nb) {
+LIBXSMM_API_INTERN unsigned int libxsmm_dnn_sfc_create_map(unsigned char **sf_curve_index_map, unsigned int Mb, unsigned int Nb) {
   long long i, n_tasks = Mb*Nb;
   int m_id, n_id;
   if (Mb < 256 && Nb < 256) {
@@ -188,7 +197,7 @@ LIBXSMM_API_INLINE unsigned int libxsmm_dnn_fill_sf_curve_index_map(unsigned cha
   }
 }
 
-LIBXSMM_API_INLINE void libxsmm_dnn_extract_indices_from_sf_curve(int *i_m, int *i_n, unsigned char *sf_curve_index_map, int sf_curve_index, unsigned int index_tsize) {
+LIBXSMM_API_INTERN void libxsmm_dnn_sfc_get_coord(int *i_m, int *i_n, unsigned char *sf_curve_index_map, int sf_curve_index, unsigned int index_tsize) {
   if (index_tsize == 1) {
     unsigned char *map;
     map = (unsigned char*) sf_curve_index_map;
