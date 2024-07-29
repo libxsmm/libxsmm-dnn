@@ -154,8 +154,8 @@ int main(int argc, char* argv[])
     printf("fuse type needs to be 0 (None), 1 (Bias), 2 (ReLU, mask), 3 (Bias+ReLU, mask), 4 (ReLU), 5 (Bias+RELU)\n");
     return -1;
   }
-  if ( (prec != 4) && (prec != 2) && (prec != 1) ) {
-    printf("prec needs to be 4 (F32), 2 (BF16), 1 (BF8)\n");
+  if ( (prec_bf16 != 0) && (prec_bf16 != 1) ) {
+    printf("prec needs to be 0 (F32), 1 (BF16)\n");
     return -1;
   }
 
@@ -163,11 +163,8 @@ int main(int argc, char* argv[])
     printf("Illegal layout for non-Forward\n");
     return -1;
   }
-  if ( (prec == 4) && ( (layout != 0) && (layout != 1)) ) {
+  if ( (prec_bf16 == 0) && ( (layout != 0) && (layout != 1)) ) {
     printf("layout must not specify for FP32\n");
-    return -1;
-  } else if ( (prec == 1) && (layout != 2) ) {
-    printf("illegal layout for FP8\n");
     return -1;
   }
   if ( (layout == 14) && (( fuse_type == 3) || ( fuse_type == 2 )) ) {
