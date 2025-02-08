@@ -1,6 +1,6 @@
 env:
   TOOL_TEST: "$${BUILDKITE_BUILD_CHECKOUT_PATH}/libxsmm/scripts/tool_test.sh"
-  PARTITIONS: "spr-all"
+  PARTITIONS: "emr"
   CONFIG: "intel-2022"
   LOGRPTBND: "+"
   ENV_PYTHON: 1
