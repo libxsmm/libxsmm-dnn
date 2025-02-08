@@ -1208,8 +1208,6 @@ LIBXSMM_API_INLINE void libxsmm_dnn_conv_generate_fwd_kernels( libxsmm_dnn_conv_
     libxsmm_bitfield l_flags = LIBXSMM_GEMM_FLAGS('N', 'N');
     libxsmm_bitfield l_prefetch_flags = 0;
     int prefetch_mode = (int)LIBXSMM_GEMM_PREFETCH_NONE;
-    int brgemm_pf_oob = 0;
-    const char *const env_brgemm_pf_oob = getenv("BRGEMM_PF_OOB");
 
     res.A_offsets = NULL;
     res.B_offsets = NULL;
@@ -1223,13 +1221,6 @@ LIBXSMM_API_INLINE void libxsmm_dnn_conv_generate_fwd_kernels( libxsmm_dnn_conv_
 
     l_flags |= res.fwd_flags;
     l_flags |= ( beta == 0 ) ? LIBXSMM_GEMM_FLAG_BETA_0 : 0;
-    if ( 0 == env_brgemm_pf_oob ) {
-    } else {
-      brgemm_pf_oob = atoi(env_brgemm_pf_oob);
-    }
-    if (brgemm_pf_oob > 0) {
-      prefetch_mode = (int)LIBXSMM_GEMM_PREFETCH_BRGEMM_OOB;
-    }
     l_prefetch_flags = prefetch_mode;
 
     /* Strided kernel  */
@@ -1449,8 +1440,6 @@ LIBXSMM_API_INLINE void libxsmm_dnn_conv_generate_fwd_kernels( libxsmm_dnn_conv_
     libxsmm_bitfield l_flags = LIBXSMM_GEMM_VNNI_FLAGS('N', 'N', 'V', 'N');
     libxsmm_bitfield l_prefetch_flags = 0;
     int prefetch_mode = (int)LIBXSMM_GEMM_PREFETCH_NONE;
-    int brgemm_pf_oob = 0;
-    const char *const env_brgemm_pf_oob = getenv("BRGEMM_PF_OOB");
 
     res.A_offsets = NULL;
     res.B_offsets = NULL;
@@ -1464,13 +1453,6 @@ LIBXSMM_API_INLINE void libxsmm_dnn_conv_generate_fwd_kernels( libxsmm_dnn_conv_
 
     l_flags |= res.fwd_flags;
     l_flags |= ( beta == 0 ) ? LIBXSMM_GEMM_FLAG_BETA_0 : 0;
-    if ( 0 == env_brgemm_pf_oob ) {
-    } else {
-      brgemm_pf_oob = atoi(env_brgemm_pf_oob);
-    }
-    if (brgemm_pf_oob > 0) {
-      prefetch_mode = (int)LIBXSMM_GEMM_PREFETCH_BRGEMM_OOB;
-    }
     l_prefetch_flags = prefetch_mode;
 
     /* Strided kernel  */
@@ -1751,8 +1733,6 @@ LIBXSMM_API_INLINE void libxsmm_dnn_conv_generate_fwd_kernels( libxsmm_dnn_conv_
     libxsmm_bitfield l_flags = LIBXSMM_GEMM_VNNI_FLAGS('N', 'N', 'V', 'N');
     libxsmm_bitfield l_prefetch_flags = 0;
     int prefetch_mode = (int)LIBXSMM_GEMM_PREFETCH_NONE;
-    int brgemm_pf_oob = 0;
-    const char *const env_brgemm_pf_oob = getenv("BRGEMM_PF_OOB");
 
     res.A_offsets = NULL;
     res.B_offsets = NULL;
@@ -1766,13 +1746,6 @@ LIBXSMM_API_INLINE void libxsmm_dnn_conv_generate_fwd_kernels( libxsmm_dnn_conv_
 
     l_flags |= res.fwd_flags;
     l_flags |= ( beta == 0 ) ? LIBXSMM_GEMM_FLAG_BETA_0 : 0;
-    if ( 0 == env_brgemm_pf_oob ) {
-    } else {
-      brgemm_pf_oob = atoi(env_brgemm_pf_oob);
-    }
-    if (brgemm_pf_oob > 0) {
-      prefetch_mode = (int)LIBXSMM_GEMM_PREFETCH_BRGEMM_OOB;
-    }
     l_prefetch_flags = prefetch_mode;
 
     /* Strided kernel  */
@@ -2053,8 +2026,6 @@ LIBXSMM_API_INLINE void libxsmm_dnn_conv_generate_bwd_kernels( libxsmm_dnn_conv_
     libxsmm_bitfield l_flags = LIBXSMM_GEMM_FLAGS('N', 'N');
     libxsmm_bitfield l_prefetch_flags = 0;
     int prefetch_mode = (int)LIBXSMM_GEMM_PREFETCH_NONE;
-    int brgemm_pf_oob = 0;
-    const char *const env_brgemm_pf_oob = getenv("BRGEMM_PF_OOB");
     res.A_offsets_bwd = NULL;
     res.B_offsets_bwd = NULL;
 
@@ -2065,13 +2036,6 @@ LIBXSMM_API_INLINE void libxsmm_dnn_conv_generate_bwd_kernels( libxsmm_dnn_conv_
 
     l_flags |= res.bwd_flags;
     l_flags |= ( beta == 0 ) ? LIBXSMM_GEMM_FLAG_BETA_0 : 0;
-    if ( 0 == env_brgemm_pf_oob ) {
-    } else {
-      brgemm_pf_oob = atoi(env_brgemm_pf_oob);
-    }
-    if (brgemm_pf_oob > 0) {
-      prefetch_mode = (int)LIBXSMM_GEMM_PREFETCH_BRGEMM_OOB;
-    }
     l_prefetch_flags = prefetch_mode;
 
     /* Strided kernel  */
@@ -2228,8 +2192,6 @@ LIBXSMM_API_INLINE void libxsmm_dnn_conv_generate_bwd_kernels( libxsmm_dnn_conv_
     libxsmm_bitfield l_flags = LIBXSMM_GEMM_VNNI_FLAGS('N', 'N', 'V', 'N');
     libxsmm_bitfield l_prefetch_flags = 0;
     int prefetch_mode = (int)LIBXSMM_GEMM_PREFETCH_NONE;
-    int brgemm_pf_oob = 0;
-    const char *const env_brgemm_pf_oob = getenv("BRGEMM_PF_OOB");
 
     res.A_offsets_bwd = NULL;
     res.B_offsets_bwd = NULL;
@@ -2241,13 +2203,6 @@ LIBXSMM_API_INLINE void libxsmm_dnn_conv_generate_bwd_kernels( libxsmm_dnn_conv_
 
     l_flags |= res.bwd_flags;
     l_flags |= ( beta == 0 ) ? LIBXSMM_GEMM_FLAG_BETA_0 : 0;
-    if ( 0 == env_brgemm_pf_oob ) {
-    } else {
-      brgemm_pf_oob = atoi(env_brgemm_pf_oob);
-    }
-    if (brgemm_pf_oob > 0) {
-      prefetch_mode = (int)LIBXSMM_GEMM_PREFETCH_BRGEMM_OOB;
-    }
     l_prefetch_flags = prefetch_mode;
 
     /* Strided kernel  */
@@ -2457,8 +2412,6 @@ LIBXSMM_API_INLINE void libxsmm_dnn_conv_generate_bwd_kernels( libxsmm_dnn_conv_
     libxsmm_bitfield l_flags = LIBXSMM_GEMM_VNNI_FLAGS('N', 'N', 'V', 'N');
     libxsmm_bitfield l_prefetch_flags = 0;
     int prefetch_mode = (int)LIBXSMM_GEMM_PREFETCH_NONE;
-    int brgemm_pf_oob = 0;
-    const char *const env_brgemm_pf_oob = getenv("BRGEMM_PF_OOB");
 
     res.A_offsets_bwd = NULL;
     res.B_offsets_bwd = NULL;
@@ -2470,13 +2423,6 @@ LIBXSMM_API_INLINE void libxsmm_dnn_conv_generate_bwd_kernels( libxsmm_dnn_conv_
 
     l_flags |= res.bwd_flags;
     l_flags |= ( beta == 0 ) ? LIBXSMM_GEMM_FLAG_BETA_0 : 0;
-    if ( 0 == env_brgemm_pf_oob ) {
-    } else {
-      brgemm_pf_oob = atoi(env_brgemm_pf_oob);
-    }
-    if (brgemm_pf_oob > 0) {
-      prefetch_mode = (int)LIBXSMM_GEMM_PREFETCH_BRGEMM_OOB;
-    }
     l_prefetch_flags = prefetch_mode;
 
     /* Strided kernel  */
@@ -2697,9 +2643,7 @@ LIBXSMM_API_INLINE void libxsmm_dnn_conv_generate_upd_kernels( libxsmm_dnn_conv_
     libxsmm_gemm_batch_reduce_config l_brconfig;
     libxsmm_bitfield l_flags = LIBXSMM_GEMM_FLAGS('N', 'N');
     libxsmm_bitfield l_prefetch_flags = 0;
-    int prefetch_mode = (res.u == 2 || (res.R == 3 && res.ofw == 7) ) ? (int)LIBXSMM_GEMM_PREFETCH_NONE : (int)LIBXSMM_GEMM_PREFETCH_BL1;
-    int brgemm_pf_oob = 0;
-    const char *const env_brgemm_pf_oob = getenv("BRGEMM_PF_OOB");
+    int prefetch_mode = (int)LIBXSMM_GEMM_PREFETCH_NONE;
     const int img_work = res.N;
     const int img_chunksize = (img_work % res.threads == 0) ? (img_work / res.threads) : (img_work / res.threads) + 1;
     int n_blocks;
@@ -2711,13 +2655,6 @@ LIBXSMM_API_INLINE void libxsmm_dnn_conv_generate_upd_kernels( libxsmm_dnn_conv_
     LDB = (res.upd_pack_input == 1) ? res.ifmblock : res.v * res.ifmblock;
     LDC = res.ofmblock;
 
-    if ( 0 == env_brgemm_pf_oob ) {
-    } else {
-      brgemm_pf_oob = atoi(env_brgemm_pf_oob);
-    }
-    if (brgemm_pf_oob > 0) {
-      prefetch_mode = prefetch_mode | (int)LIBXSMM_GEMM_PREFETCH_BRGEMM_OOB;
-    }
     l_prefetch_flags = prefetch_mode;
 
     /* Regular GEMM  -- no tasklist*/
@@ -2929,17 +2866,8 @@ LIBXSMM_API_INLINE void libxsmm_dnn_conv_generate_upd_kernels( libxsmm_dnn_conv_
     libxsmm_bitfield l_flags = LIBXSMM_GEMM_VNNI_FLAGS('N', 'N', 'V', 'N');
     libxsmm_bitfield l_prefetch_flags = 0;
     int prefetch_mode = (int)LIBXSMM_GEMM_PREFETCH_NONE;
-    int brgemm_pf_oob = 0;
-    const char *const env_brgemm_pf_oob = getenv("BRGEMM_PF_OOB");
     beta = (res.use_intermediate_f32_wt_tensor ? 1.f : 0.f);
     l_flags |= ( beta == 0 ) ? LIBXSMM_GEMM_FLAG_BETA_0 : 0;
-    if ( 0 == env_brgemm_pf_oob ) {
-    } else {
-      brgemm_pf_oob = atoi(env_brgemm_pf_oob);
-    }
-    if (brgemm_pf_oob > 0) {
-      prefetch_mode = (int)LIBXSMM_GEMM_PREFETCH_BRGEMM_OOB;
-    }
     l_prefetch_flags = prefetch_mode;
 
     /* Strided kernel  */
@@ -3357,17 +3285,8 @@ LIBXSMM_API_INLINE void libxsmm_dnn_conv_generate_upd_kernels( libxsmm_dnn_conv_
     libxsmm_bitfield l_flags = LIBXSMM_GEMM_VNNI_FLAGS('N', 'N', 'V', 'N');
     libxsmm_bitfield l_prefetch_flags = 0;
     int prefetch_mode = (int)LIBXSMM_GEMM_PREFETCH_NONE;
-    int brgemm_pf_oob = 0;
-    const char *const env_brgemm_pf_oob = getenv("BRGEMM_PF_OOB");
     beta = (res.use_intermediate_f32_wt_tensor ? 1.f : 0.f);
     l_flags |= ( beta == 0 ) ? LIBXSMM_GEMM_FLAG_BETA_0 : 0;
-    if ( 0 == env_brgemm_pf_oob ) {
-    } else {
-      brgemm_pf_oob = atoi(env_brgemm_pf_oob);
-    }
-    if (brgemm_pf_oob > 0) {
-      prefetch_mode = (int)LIBXSMM_GEMM_PREFETCH_BRGEMM_OOB;
-    }
     l_prefetch_flags = prefetch_mode;
 
     /* Strided kernel  */
