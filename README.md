@@ -26,9 +26,3 @@ tests/conv/run_convs.sh 1 1000 -1 f32 F 0 0 64 64 1 | tee output.log
 ```
 
 > **NOTE**: To mimic performance, FLOPS are shown and the time spent for convolutional layers is measured. This is different from running inference end-to-end using a real framework such as PyTorch).
-
-To summarize timings:
-
-```bash
-tests/performance.sh output.log
-```
