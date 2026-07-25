@@ -2149,6 +2149,7 @@ LIBXSMM_API void libxsmm_dnn_fc_fwd_exec_bf16_flat( libxsmm_dnn_fc_fwd_config cf
   memset( &gemm_ext_param, 0, sizeof(libxsmm_gemm_ext_param) );
   memset( &unary_st_param, 0, sizeof(libxsmm_meltw_unary_param) );
   memset( &unary_ld_param, 0, sizeof(libxsmm_meltw_unary_param) );
+  memset( &tilestate, 0, sizeof(libxsmm_tilecfg_state) );
 
   BF = cfg.fwd_bf;
   CB_BLOCKS = nBlocksIFm/BF;
@@ -2368,6 +2369,7 @@ LIBXSMM_API void libxsmm_dnn_fc_fwd_exec_bf16_packed( libxsmm_dnn_fc_fwd_config 
   memset( &gemm_ext_param, 0, sizeof(libxsmm_gemm_ext_param) );
   memset( &unary_st_param, 0, sizeof(libxsmm_meltw_unary_param) );
   memset( &unary_ld_param, 0, sizeof(libxsmm_meltw_unary_param) );
+  memset( &tilestate, 0, sizeof(libxsmm_tilecfg_state) );
 
   BF = cfg.fwd_bf;
   CB_BLOCKS = nBlocksIFm/BF;
@@ -2589,6 +2591,7 @@ LIBXSMM_API void libxsmm_dnn_fc_fwd_exec_bf16_wt_vnni_format( libxsmm_dnn_fc_fwd
   memset( &gemm_ext_param, 0, sizeof(libxsmm_gemm_ext_param) );
   memset( &unary_st_param, 0, sizeof(libxsmm_meltw_unary_param) );
   memset( &unary_ld_param, 0, sizeof(libxsmm_meltw_unary_param) );
+  memset( &tilestate, 0, sizeof(libxsmm_tilecfg_state) );
 
   BF = cfg.fwd_bf;
   CB_BLOCKS = nBlocksIFm/BF;
@@ -2810,6 +2813,7 @@ LIBXSMM_API void libxsmm_dnn_fc_fwd_exec_bf16_wt_vnni_iact_vnniT_format( libxsmm
   memset( &gemm_ext_param, 0, sizeof(libxsmm_gemm_ext_param) );
   memset( &unary_st_param, 0, sizeof(libxsmm_meltw_unary_param) );
   memset( &unary_ld_param, 0, sizeof(libxsmm_meltw_unary_param) );
+  memset( &tilestate, 0, sizeof(libxsmm_tilecfg_state) );
 
   BF = cfg.fwd_bf;
   CB_BLOCKS = nBlocksIFm/BF;
@@ -3034,6 +3038,7 @@ LIBXSMM_API void libxsmm_dnn_fc_fwd_exec_bf16_wt_vnni_iact_vnniT_oact_vnniT_form
   memset( &unary_st_param, 0, sizeof(libxsmm_meltw_unary_param) );
   memset( &unary_ld_param, 0, sizeof(libxsmm_meltw_unary_param) );
   memset( &unary_trans_param, 0, sizeof(libxsmm_meltw_unary_param) );
+  memset( &tilestate, 0, sizeof(libxsmm_tilecfg_state) );
 
   BF = cfg.fwd_bf;
   CB_BLOCKS = nBlocksIFm/BF;
@@ -3271,6 +3276,7 @@ LIBXSMM_API void libxsmm_dnn_fc_fwd_exec_bf8_vnni_format( libxsmm_dnn_fc_fwd_con
   memset( &gemm_ext_param, 0, sizeof(libxsmm_gemm_ext_param) );
   memset( &unary_st_param, 0, sizeof(libxsmm_meltw_unary_param) );
   memset( &unary_ld_param, 0, sizeof(libxsmm_meltw_unary_param) );
+  memset( &tilestate, 0, sizeof(libxsmm_tilecfg_state) );
 
   BF = cfg.fwd_bf;
   CB_BLOCKS = nBlocksIFm/BF;
@@ -3829,6 +3835,7 @@ LIBXSMM_API void libxsmm_dnn_fc_bwd_exec_bf16_vnni_format( libxsmm_dnn_fc_bwd_co
   memset( &delbias_param, 0, sizeof(libxsmm_meltw_unary_param) );
   memset( &act_param, 0, sizeof(libxsmm_meltw_unary_param) );
   memset( &gemm_param, 0, sizeof(libxsmm_gemm_param) );
+  memset( &tilestate, 0, sizeof(libxsmm_tilecfg_state) );
 
   /* lazy barrier init */
   libxsmm_barrier_init(cfg.barrier, ltid);
@@ -4300,6 +4307,7 @@ LIBXSMM_API void libxsmm_dnn_fc_bwd_exec_bf8_vnni_format( libxsmm_dnn_fc_bwd_con
   memset( &delbias_param, 0, sizeof(libxsmm_meltw_unary_param) );
   memset( &act_param, 0, sizeof(libxsmm_meltw_unary_param) );
   memset( &gemm_param, 0, sizeof(libxsmm_gemm_param) );
+  memset( &tilestate, 0, sizeof(libxsmm_tilecfg_state) );
 
   /* lazy barrier init */
   libxsmm_barrier_init(cfg.barrier, ltid);
